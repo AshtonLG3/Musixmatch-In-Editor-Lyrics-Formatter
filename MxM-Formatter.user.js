@@ -14,9 +14,9 @@
 // ==/UserScript==
 
 (function () {
-  const RAISE_BY_FACTOR = 1.5;
-  const ALWAYS_AGGRESSIVE = true;
-  const SETTINGS_KEY = 'mxmFmtSettings.v096';
+  const RAISE_BY_FACTOR = 1.5;        // raise button by 1.5× its width (keeps clear of song length)
+  const ALWAYS_AGGRESSIVE = true;      // always force-write into contenteditable
+  const SETTINGS_KEY = 'mxmFmtSettings.v099';
   const defaults = { showPanel: true };
   const settings = loadSettings();
 
@@ -36,7 +36,7 @@
   }
   function isDecadeNumeric(line, _s, e) {
     const after = line.slice(e);
-    return /^['’]s\b/.test(after);
+    return /^['’]s\b/.test(after); // '60s
   }
   function numerals0to10ToWords(line) {
     const re = /\b(0|1|2|3|4|5|6|7|8|9|10)\b/g;
@@ -117,7 +117,7 @@
     x = x
       .replace(/[\u201c\u201d\u00ab\u00bb\u201e]/gu, '"')
       // Strip end-of-line punctuation EXCEPT ? !
-      .replace(/[.,;:\u2013\u2014-]+(?=[ \t]*\n)/g, "")   // <— now includes commas at EOL
+      .replace(/[.,;:\u2013\u2014-]+(?=[ \t]*\n)/g, "")
       .replace(/!{2,}/g, "!").replace(/\?{2,}/g, "?")
       .replace(/(^|[^'’])\b(?:cause|cos)\b/gi, "$1'cause")
       .replace(/(^|[^'’])\b(?:till)\b/gi, "$1'til")
@@ -130,49 +130,80 @@
       .replace(/\bi(?=\s|['"),.!?:;\]]|$)/g, "I")
       .replace(/\u0415/gu, "E").replace(/\u0435/gu, "e");
 
-    // Interjections: woah→whoa, and add comma only if followed by text on the SAME LINE
+    // --- Interjections + "na" runs (distinct rules) ---
+    // Spelling fix
     x = x.replace(/\bwoah\b/gi, "whoa");
-    x = x.replace(/\b(oh|yeah|whoa)\b/gi, function (m, _word, offset, str) {
-      const after = str.slice(offset + m.length);
-      // examine only until the next newline
-      const nl = after.indexOf("\n");
-      const segment = nl === -1 ? after : after.slice(0, nl);
 
-      if (/^\s*-\s*/.test(segment)) return m;     // hyphenated (whoa-oh) → leave
-      if (/^\s*[,!?.;:]/.test(segment)) return m; // already punctuated → leave
-      if (/^\s*$/.test(segment)) return m;        // end of line → NO comma
-      if (/^\s*[A-Za-z"'\(]/.test(segment)) return m + ","; // same-line word/quote/paren → add comma
+    // Interjection commas (same line only): oh / yeah / whoa / ooh
+    x = x.replace(/\b(oh|yeah|whoa|ooh)\b/gi, function (m, _w, offset, str) {
+      const after = str.slice(offset + m.length);
+      const nl = after.indexOf("\n");
+      const seg = nl === -1 ? after : after.slice(0, nl);
+      if (/^\s*-\s*/.test(seg)) return m;      // hyphenated (whoa-oh) → leave
+      if (/^\s*[,!?.;:]/.test(seg)) return m;  // already punctuated → leave
+      if (/^\s*$/.test(seg)) return m;         // end of line → NO comma
+      if (/^\s*[A-Za-z"'\(]/.test(seg)) return m + ","; // word/quote/paren next → add comma
       return m;
     });
 
+    // "na" runs: any sequence of 4+ "na" on the same line → "na-na-na-na"; extras → ", na"
+    x = x.replace(/((?:\bna\b(?:[ \t]+|-\s*)?){4,})/gi, function (run) {
+      const count = (run.match(/\bna\b/gi) || []).length;
+      const suffixSpace = (run.match(/\s+$/) || [""])[0];
+      let out = "na-na-na-na";
+      if (count > 4) out += ", " + Array(count - 4).fill("na").join(", ");
+      return out + suffixSpace;
+    });
+
     // Dropped-G (by case only): add apostrophe when user already dropped G
-    const droppedInList = [
-      "nothin","somethin","anythin","everythin","nuthin","mornin","evenin",
-      "comin","becomin","lovin","rollin","rockin","talkin","walkin","havin","goin","doin",
-      "leanin","feelin","lookin","runnin","gettin","trippin","workin","flexin",
-      "drinkin","smokin","bangin","kickin","breathin","swervin","singin","dancin",
-      "cryin","tryin","watchin","listenin","writin","hittin","sittin","ridin",
-      "drivin","closin","openin","turnin","burnin","learnin","earnin","shinin",
-      "movin","provin","shootin","textin","postin","hatin","winnin","losin","chillin","fallin","risin","flyin"
-    ];
-    x = x.replace(new RegExp("\\b(" + droppedInList.join("|") + ")(?!['’])\\b", "gi"), m => m + "'");
+    (function () {
+      const droppedInList = [
+        "nothin","somethin","anythin","everythin","nuthin","mornin","evenin",
+        "comin","becomin","lovin","rollin","rockin","talkin","walkin","havin","goin","doin",
+        "leanin","feelin","lookin","runnin","gettin","trippin","workin","flexin",
+        "drinkin","smokin","bangin","kickin","breathin","swervin","singin","dancin",
+        "cryin","tryin","watchin","listenin","writin","hittin","sittin","ridin",
+        "drivin","closin","openin","turnin","burnin","learnin","earnin","shinin",
+        "movin","provin","shootin","textin","postin","hatin","winnin","losin",
+        "chillin","fallin","risin","flyin","playin"
+      ];
+      const reDropped = new RegExp("\\b(" + droppedInList.join("|") + ")(?!['’])\\b", "gi");
+      x = x.replace(reDropped, (m) => m + "'");
+    })();
 
     // Numbers
     x = applyNumberRules(x);
 
-    // Parens + capitalize line starts
+    // Parens spacing + capitalize first visible char of each line
     x = x.replace(/([^\s])\(/g, "$1 (")
          .replace(/\( +/g, "(")
          .replace(/ +\)/g, ")")
          .replace(/(\))[^\s\)\]\}\.,!?\-]/g, "$1 ")
-         .replace(/(^|\n)(\(?["']?)([a-z])/g, (_, a, b, c) => a + b + c.toUpperCase())
-         .replace(/[ \t]+\n/g, "\n")
-         .trim();
+         .replace(/(^|\n)(\(?["']?)([a-z])/g, (_, a, b, c) => a + b + c.toUpperCase());
 
+    // Backing vocals in parentheses: lowercase first letter unless proper noun
+    x = x.replace(/\(([^()]+)\)/g, function (m, inner) {
+      const firstAlphaIdx = inner.search(/[A-Za-z]/);
+      if (firstAlphaIdx === -1) return m;
+
+      const leading = inner.slice(0, firstAlphaIdx);
+      const rest = inner.slice(firstAlphaIdx);
+
+      // Keep proper nouns / title case / months & days / ALL-CAPS & initialisms
+      if (/^[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+\b/.test(rest)) return m; // "New York City"
+      if (/^(January|February|March|April|May|June|July|August|September|October|November|December|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\b/.test(rest)) return m;
+      if (/^([A-Z]{2,}\b|(?:[A-Z]\.){2,}[A-Z]?)/.test(rest)) return m; // USA, U.K., L.A.
+
+      const lowered = rest.replace(/^([A-Za-z])/, (c) => c.toLowerCase());
+      return "(" + leading + lowered + ")";
+    });
+
+    // Final whitespace tidy
+    x = x.replace(/[ \t]+\n/g, "\n").trim();
     return x;
   }
 
-  // ---------- metrics ----------
+  // ---------- metrics (for toast & optional panel) ----------
   function computeMetrics(text) {
     const lines = text.split(/\n/);
     let over70 = 0, stanzaTooLongAt = [], numIssues = [], curLen = 0;
@@ -183,7 +214,9 @@
       const reNum = /\b(0|1|2|3|4|5|6|7|8|9|10)\b/g; let m;
       while ((m = reNum.exec(L)) !== null) {
         const start = m.index, end = start + m[0].length, ctx = L.slice(Math.max(0, start - 6), Math.min(L.length, end + 6));
-        const timeAround = /\b\d{1,2}:\d{2}\b/i.test(L) || /\b(?:a|p)\.?m\.?\b/i.test(L.slice(end, end + 6)) || /\b(?:a|p)\.?m\.?\b/i.test(L.slice(Math.max(0, start - 6), end));
+        const timeAround = /\b\d{1,2}:\d{2}\b/i.test(L) ||
+                           /\b(?:a|p)\.?m\.?\b/i.test(L.slice(end, end + 6)) ||
+                           /\b(?:a|p)\.?m\.?\b/i.test(L.slice(Math.max(0, start - 6), end));
         const oclock = /\bo'?clock\b/i.test(L.slice(end, end + 10));
         const datey = /(?:\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4})/.test(L) || /\b(19|20)\d{2}\b/.test(L) || /[\/-]/.test(ctx);
         if (!(timeAround || oclock || datey)) numIssues.push({ line: i + 1, col: start + 1, value: m[0], sample: L.trim() });
@@ -247,6 +280,7 @@
     placeButton(btn);
     btn.onclick = runFormat;
 
+    // Hotkey: Alt+M (avoid Chrome Ctrl+Shift+M conflict)
     document.addEventListener('keydown', (e) => {
       if (e.altKey && !e.ctrlKey && !e.metaKey && e.key.toLowerCase() === 'm') {
         e.preventDefault(); runFormat();
@@ -342,4 +376,3 @@
   }
 
 })();
-
