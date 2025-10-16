@@ -2,7 +2,7 @@
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
 // @author       Vincas Mangezi
-// @version      0.9.6
+// @version      0.9.8
 // @description  EN-only; case-by-case dropped-G (add ’ only); oh/yeah/whoa comma (same-line only); woah→whoa; strip EOL commas; numbers per spec; Alt+M; button BR +1.5×.
 // @match        *://*.musixmatch.com/*
 // @match        *://studio.musixmatch.com/*
