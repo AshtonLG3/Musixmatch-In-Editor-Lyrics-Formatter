@@ -14,9 +14,9 @@
 // ==/UserScript==
 
 (function () {
-  const RAISE_BY_FACTOR = 1.5;        // raise button by 1.5× its width (keeps clear of song length)
+  const RAISE_BY_FACTOR = 1.5;        // raise button by ~1.5× its width (keeps clear of song length)
   const ALWAYS_AGGRESSIVE = true;      // always force-write into contenteditable
-  const SETTINGS_KEY = 'mxmFmtSettings.v099';
+  const SETTINGS_KEY = 'mxmFmtSettings.v0911';
   const defaults = { showPanel: true };
   const settings = loadSettings();
 
@@ -127,7 +127,8 @@
       .replace(/\bcant\b/gi, "can't")
       .replace(/\bwont\b/gi, "won't")
       .replace(/\baint\b/gi, "ain't")
-      .replace(/\bi(?=\s|['"),.!?:;\]]|$)/g, "I")
+      // Capitalize standalone i → I (incl. cases like "(i'" and 'i '):
+      .replace(/\bi(?=\s|['”),.!?:;\]]|$)/g, "I")
       .replace(/\u0415/gu, "E").replace(/\u0435/gu, "e");
 
     // --- Interjections + "na" runs (distinct rules) ---
@@ -181,28 +182,29 @@
          .replace(/(\))[^\s\)\]\}\.,!?\-]/g, "$1 ")
          .replace(/(^|\n)(\(?["']?)([a-z])/g, (_, a, b, c) => a + b + c.toUpperCase());
 
-    // Backing vocals: lowercase first token; force interjections lower; keep proper nouns ---
-    x = x.replace(/\(([^()]+)\)/g, (m, inner) => {
-       const firstAlphaIdx = inner.search(/[A-Za-z]/);
-       if (firstAlphaIdx === -1) return m;
+    // Backing vocals: lowercase first letter inside (...) unless proper noun, BUT preserve pronoun "I" (I␠ or I')
+    x = x.replace(/\(([^()]+)\)/g, function (m, inner) {
+      const firstAlphaIdx = inner.search(/[A-Za-z]/);
+      if (firstAlphaIdx === -1) return m;
 
-       const leading = inner.slice(0, firstAlphaIdx);
-       let rest = inner.slice(firstAlphaIdx);
+      const leading = inner.slice(0, firstAlphaIdx);
+      let rest = inner.slice(firstAlphaIdx);
 
-   // Always lowercase common interjections if they start the BV phrase (even if capitalized)
-  rest = rest.replace(/^(Oh|Ooh|Yeah|Whoa)(\b|[,!?.;:])/,
-                      (_, w, b) => w.toLowerCase() + (b || ""));
+      // Force common interjections to lowercase if they start the BV phrase
+      rest = rest.replace(/^(Oh|Ooh|Yeah|Whoa)(\b|[,!?.;:])/, (_, w, b) => w.toLowerCase() + (b || ""));
 
-  // Preserve clear proper nouns / title case names / months-days / ALL-CAPS & initialisms
-  if (/^[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+\b/.test(rest)) return "(" + leading + rest + ")"; // e.g., New York City
-  if (/^(January|February|March|April|May|June|July|August|September|October|November|December|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\b/.test(rest)) return "(" + leading + rest + ")";
-  if (/^([A-Z]{2,}\b|(?:[A-Z]\.){2,}[A-Z]?)/.test(rest)) return "(" + leading + rest + ")"; // USA, U.K., L.A.
+      // PRESERVE pronoun I at BV start: "(I " or "(I'" should stay capital I
+      if (/^I(?=(\s|['’]))/.test(rest)) return "(" + leading + rest + ")";
 
-  // Otherwise lowercase just the first alphabetic character
-  rest = rest.replace(/^([A-Za-z])/, c => c.toLowerCase());
-  return "(" + leading + rest + ")";
-});
+      // Keep proper nouns / title case / months & days / ALL-CAPS & initialisms
+      if (/^[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+\b/.test(rest)) return "(" + leading + rest + ")"; // New York City
+      if (/^(January|February|March|April|May|June|July|August|September|October|November|December|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\b/.test(rest)) return "(" + leading + rest + ")";
+      if (/^([A-Z]{2,}\b|(?:[A-Z]\.){2,}[A-Z]?)/.test(rest)) return "(" + leading + rest + ")"; // USA, U.K., L.A.
 
+      // Otherwise lowercase just the first alphabetic character
+      rest = rest.replace(/^([A-Za-z])/, (c) => c.toLowerCase());
+      return "(" + leading + rest + ")";
+    });
 
     // Final whitespace tidy
     x = x.replace(/[ \t]+\n/g, "\n").trim();
