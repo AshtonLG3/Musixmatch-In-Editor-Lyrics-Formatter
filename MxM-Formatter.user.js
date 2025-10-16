@@ -2,7 +2,7 @@
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
 // @author       Vincas Mangezi
-// @version      0.9.8
+// @version      0.9.9
 // @description  EN-only; case-by-case dropped-G (add ’ only); oh/yeah/whoa comma (same-line only); woah→whoa; strip EOL commas; numbers per spec; Alt+M; button BR +1.5×.
 // @match        *://*.musixmatch.com/*
 // @match        *://studio.musixmatch.com/*
@@ -181,22 +181,28 @@
          .replace(/(\))[^\s\)\]\}\.,!?\-]/g, "$1 ")
          .replace(/(^|\n)(\(?["']?)([a-z])/g, (_, a, b, c) => a + b + c.toUpperCase());
 
-    // Backing vocals in parentheses: lowercase first letter unless proper noun
-    x = x.replace(/\(([^()]+)\)/g, function (m, inner) {
-      const firstAlphaIdx = inner.search(/[A-Za-z]/);
-      if (firstAlphaIdx === -1) return m;
+    // Backing vocals: lowercase first token; force interjections lower; keep proper nouns ---
+    x = x.replace(/\(([^()]+)\)/g, (m, inner) => {
+       const firstAlphaIdx = inner.search(/[A-Za-z]/);
+       if (firstAlphaIdx === -1) return m;
 
-      const leading = inner.slice(0, firstAlphaIdx);
-      const rest = inner.slice(firstAlphaIdx);
+       const leading = inner.slice(0, firstAlphaIdx);
+       let rest = inner.slice(firstAlphaIdx);
 
-      // Keep proper nouns / title case / months & days / ALL-CAPS & initialisms
-      if (/^[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+\b/.test(rest)) return m; // "New York City"
-      if (/^(January|February|March|April|May|June|July|August|September|October|November|December|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\b/.test(rest)) return m;
-      if (/^([A-Z]{2,}\b|(?:[A-Z]\.){2,}[A-Z]?)/.test(rest)) return m; // USA, U.K., L.A.
+   // Always lowercase common interjections if they start the BV phrase (even if capitalized)
+  rest = rest.replace(/^(Oh|Ooh|Yeah|Whoa)(\b|[,!?.;:])/,
+                      (_, w, b) => w.toLowerCase() + (b || ""));
 
-      const lowered = rest.replace(/^([A-Za-z])/, (c) => c.toLowerCase());
-      return "(" + leading + lowered + ")";
-    });
+  // Preserve clear proper nouns / title case names / months-days / ALL-CAPS & initialisms
+  if (/^[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+\b/.test(rest)) return "(" + leading + rest + ")"; // e.g., New York City
+  if (/^(January|February|March|April|May|June|July|August|September|October|November|December|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\b/.test(rest)) return "(" + leading + rest + ")";
+  if (/^([A-Z]{2,}\b|(?:[A-Z]\.){2,}[A-Z]?)/.test(rest)) return "(" + leading + rest + ")"; // USA, U.K., L.A.
+
+  // Otherwise lowercase just the first alphabetic character
+  rest = rest.replace(/^([A-Za-z])/, c => c.toLowerCase());
+  return "(" + leading + rest + ")";
+});
+
 
     // Final whitespace tidy
     x = x.replace(/[ \t]+\n/g, "\n").trim();
