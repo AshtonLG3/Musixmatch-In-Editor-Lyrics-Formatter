@@ -1,7 +1,15 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
+<<<<<<< HEAD
 // @version      1.1.1
+=======
+<<<<<<< ours
+// @version      1.0.9
+=======
+// @version      1.0.9-internal
+>>>>>>> theirs
+>>>>>>> abc2b9d (Cleaned whitespace and applied v1.0.8 update)
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Vincas Stepankevičius & Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -96,16 +104,23 @@
   function applyNumberRules(text) {
     const lines = text.split('\n');
     for (let i = 0; i < lines.length; i++) {
-      const numCount = (lines[i].match(/\b\d+\b/g) || []).length;
-      const useNumerals = numCount >= 3 || /\b(19|20)\d{2}\b|['’]\d0s|\d{1,2}:\d{2}\s*(?:a\.m\.|p\.m\.)/i.test(lines[i]);
+      let lineText = lines[i];
+      const numCount = (lineText.match(/\b\d+\b/g) || []).length;
+      const useNumerals = numCount >= 3 || /\b(19|20)\d{2}\b|['’]\d0s|\d{1,2}:\d{2}\s*(?:a\.m\.|p\.m\.)/i.test(lineText);
       if (useNumerals && settings.aggressiveNumbers) {
-        lines[i] = words11to99ToNumerals(lines[i]);
+        lineText = words11to99ToNumerals(lineText);
       } else {
-        let L = numerals0to10ToWords(lines[i]);
+        let L = numerals0to10ToWords(lineText);
         if (settings.aggressiveNumbers) L = words11to99ToNumerals(L);
-        lines[i] = L;
+        lineText = L;
       }
+<<<<<<< ours
       lines[i] = hyphenateCompoundNumbers(lines[i]);
+=======
+      lineText = hyphenateCompoundNumbers(lineText);
+      lineText = words11to99ToNumerals(lineText);
+      lines[i] = lineText;
+>>>>>>> theirs
     }
     return lines.join('\n');
   }
@@ -312,7 +327,11 @@
     const before=getEditorText(el);
     const out=formatLyrics(before);
     writeToEditor(el,out);
+<<<<<<< ours
     toast("Formatted ✓ (v1.0.8)");
+=======
+    toast("Formatted ✓ (v1.0.9-internal)");
+>>>>>>> theirs
   }
 
 })(typeof globalThis !== 'undefined' ? globalThis : this); 
