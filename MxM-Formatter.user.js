@@ -89,6 +89,10 @@
       });
     return line;
   }
+  function hyphenateCompoundNumbers(line) {
+    return line.replace(/\b(twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)\s+(one|two|three|four|five|six|seven|eight|nine)\b/gi,
+      (_, tens, ones) => `${tens}-${ones}`);
+  }
   function applyNumberRules(text) {
     const lines = text.split('\n');
     for (let i = 0; i < lines.length; i++) {
@@ -101,6 +105,28 @@
         if (settings.aggressiveNumbers) L = words11to99ToNumerals(L);
         lines[i] = L;
       }
+      lines[i] = hyphenateCompoundNumbers(lines[i]);
+    }
+    return lines.join('\n');
+  }
+
+  function capitalizeLineStarts(text) {
+    const lines = text.split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      const trimmed = lines[i].trimStart();
+      if (!trimmed) continue;
+      if (trimmed.startsWith('#')) continue;
+      const chars = lines[i].split('');
+      for (let j = 0; j < chars.length; j++) {
+        const ch = chars[j];
+        if (/[A-Z]/.test(ch)) break;
+        if (/[a-z]/.test(ch)) {
+          chars[j] = ch.toUpperCase();
+          break;
+        }
+        if (!/[\s'"“”‘’\(\[\{\-]/.test(ch)) break;
+      }
+      lines[i] = chars.join('');
     }
     return lines.join('\n');
   }
@@ -133,8 +159,12 @@
       return "#" + String(raw).toUpperCase().replace(/\d+/g, "").replace(/ +/g, "-");
     });
 
-    // Remove end-line punctuation
-    x = x.replace(/[.,;:\-]+(?=[ \t]*\n)/g, "");
+    // Remove end-line punctuation (preserve time acronyms like a.m./p.m.)
+    x = x.replace(/([.,;:\-]+)(?=[ \t]*\n)/g, (match, punct, offset, str) => {
+      const window = (str.slice(Math.max(0, offset - 4), offset) + punct).toLowerCase();
+      if (/\b(?:a|p)\.m\.$/.test(window)) return match;
+      return "";
+    });
 
     // Contractions
     x = x
@@ -200,6 +230,12 @@
 
     // Numbers
     x = applyNumberRules(x);
+
+    // Capitalize first alphabetical character on each line
+    x = capitalizeLineStarts(x);
+
+    // Standalone "i" pronoun to uppercase
+    x = x.replace(/\b(i)\b/g, "I");
 
     // Capitalize after ? or !
     x = x.replace(/([!?])\s*([a-z])/g, (_, a, b) => a + " " + b.toUpperCase());
