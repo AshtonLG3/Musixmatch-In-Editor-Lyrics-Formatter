@@ -2,6 +2,7 @@
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
 <<<<<<< ours
+<<<<<<< ours
 <<<<<<< HEAD
 // @version      1.1.1
 =======
@@ -11,6 +12,9 @@
 // @version      1.0.9-internal
 >>>>>>> theirs
 >>>>>>> abc2b9d (Cleaned whitespace and applied v1.0.8 update)
+=======
+// @version      1.1.1
+>>>>>>> theirs
 =======
 // @version      1.1.1
 >>>>>>> theirs
@@ -120,7 +124,13 @@
       }
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
       lines[i] = hyphenateCompoundNumbers(lines[i]);
+=======
+      lineText = hyphenateCompoundNumbers(lineText);
+      lineText = words11to99ToNumerals(lineText);
+      lines[i] = lineText;
+>>>>>>> theirs
 =======
       lineText = hyphenateCompoundNumbers(lineText);
       lineText = words11to99ToNumerals(lineText);
@@ -318,17 +328,20 @@
 
   // ---------- UI ----------
   if(window.top===window){
+    const docTarget=document.body||document.documentElement;
+    if(!docTarget) return;
     const btn=document.createElement('button');
     btn.id='mxmFmtBtn';
     Object.assign(btn.style,{padding:'10px 12px',borderRadius:'12px',border:'1px solid #3a3a3a',background:'#111',color:'#fff',fontFamily:'system-ui',cursor:'pointer',boxShadow:'0 6px 20px rgba(0,0,0,.25)',position:'fixed',zIndex:2147483647});
     btn.textContent='Format MxM';
-    document.documentElement.appendChild(btn);
+    docTarget.appendChild(btn);
     placeButton(btn);
+    requestAnimationFrame(()=>placeButton(btn));
     btn.onclick=runFormat;
     document.addEventListener('keydown',e=>{if(e.altKey&&!e.ctrlKey&&!e.metaKey&&e.key.toLowerCase()==='m'){e.preventDefault();runFormat();}});
   }
   function placeButton(el){const off=16,w=el.offsetWidth||120;const raise=Math.round(w*RAISE_BY_FACTOR);el.style.right=off+'px';el.style.bottom=(off+raise)+'px';}
-  function toast(msg){const t=document.createElement('div');Object.assign(t.style,{background:'rgba(17,17,17,.95)',color:'#eaeaea',border:'1px solid #333',borderRadius:'10px',padding:'8px 10px',fontFamily:'system-ui',fontSize:'12px',position:'fixed',right:'16px',bottom:'80px',zIndex:2147483647});t.textContent=msg;document.documentElement.appendChild(t);setTimeout(()=>t.remove(),1800);}
+  function toast(msg){const t=document.createElement('div');Object.assign(t.style,{background:'rgba(17,17,17,.95)',color:'#eaeaea',border:'1px solid #333',borderRadius:'10px',padding:'8px 10px',fontFamily:'system-ui',fontSize:'12px',position:'fixed',right:'16px',bottom:'80px',zIndex:2147483647});t.textContent=msg;(document.body||document.documentElement).appendChild(t);setTimeout(()=>t.remove(),1800);}
 
   // ---------- Runner ----------
   function runFormat(){
@@ -339,9 +352,13 @@
     writeToEditor(el,out);
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
     toast("Formatted ✓ (v1.0.8)");
 =======
     toast("Formatted ✓ (v1.0.9-internal)");
+>>>>>>> theirs
+=======
+    toast("Formatted ✓ (v1.1.1)");
 >>>>>>> theirs
 =======
     toast("Formatted ✓ (v1.1.1)");
