@@ -12,22 +12,30 @@
 // @updateURL    https://raw.githubusercontent.com/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/main/MxM-Formatter.user.js
 // ==/UserScript==
 
-(function () {
+(function (global) {
+  const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
+  const root = hasWindow ? window : global;
   const RAISE_BY_FACTOR = 1.5;
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: false };
+
+  function loadSettings() {
+    if (!hasWindow) return { ...defaults };
+    try {
+      const stored = root.localStorage.getItem(SETTINGS_KEY);
+      return { ...defaults, ...(stored ? JSON.parse(stored) : {}) };
+    } catch {
+      return { ...defaults };
+    }
+  }
+
   const settings = loadSettings();
 
   // ---------- Dynamic Focus Tracker ----------
   let currentEditable = null;
-  window.addEventListener("focusin", e => {
-    const el = e.target;
-    if (el.isContentEditable || el.tagName === "TEXTAREA" || el.getAttribute("role") === "textbox")
-      currentEditable = el;
-  });
-  function findDeepEditable(root) {
-    let el = root.activeElement;
+  function findDeepEditable(rootDoc) {
+    let el = rootDoc.activeElement;
     while (el) {
       if (el.shadowRoot && el.shadowRoot.activeElement) el = el.shadowRoot.activeElement;
       else if (el.tagName === "IFRAME" && el.contentDocument?.activeElement)
@@ -132,7 +140,11 @@
     x = x
       .replace(/\bcuz\b/gi, "'cause")
       .replace(/\bcos\b/gi, "'cause")
-      .replace(/\btill\b/gi, "'til")
+      .replace(/\btill\b/gi, m => {
+        if (m === m.toUpperCase()) return "'TIL";
+        if (m[0] === m[0].toUpperCase()) return "'Til";
+        return "'til";
+      })
       .replace(/\bimma\b/gi, "I'ma")
       .replace(/\bima\b/gi, "I'ma")
       .replace(/\bdont\b/gi, "don't")
@@ -141,13 +153,45 @@
       .replace(/\baint\b/gi, "ain't")
       .replace(/\bwoah\b/gi, "whoa");
 
+    x = x.replace(/((?:^|\n)\s*)'til\b/g, (match, boundary, offset, str) => {
+      const start = offset + boundary.length;
+      const afterStart = start + 4;
+      const lineEnd = str.indexOf('\n', afterStart);
+      const rest = lineEnd === -1 ? str.slice(afterStart) : str.slice(afterStart, lineEnd);
+      const hasLower = /[a-z]/.test(rest);
+      const hasUpper = /[A-Z]/.test(rest);
+      const replacement = hasUpper && !hasLower ? "'TIL" : "'Til";
+      return boundary + replacement;
+    });
+
+    x = x.replace(/(-\s+)'til\b/g, (_, prefix) => prefix + "'Til");
+
     // Interjections
+    const CLOSING_QUOTES = new Set(["'", '"', "’", "”"]);
+    const INTERJECTION_STOPPERS = ",!?.-;:)]}";
     x = x.replace(/\b(oh|yeah|whoa|ooh)\b/gi, (m, _, off, str) => {
       const after = str.slice(off + m.length);
-      if (/^[ \t]*$/.test(after)) return m;
-      if (/^[ \t]*[!?.,-]/.test(after)) return m;
-      return m + ",";
+      if (/^\s*$/.test(after)) return m;
+
+      let idx = 0;
+      while (idx < after.length && /\s/.test(after[idx])) idx++;
+      if (idx >= after.length) return m;
+
+      if (after[idx] === ',') return m;
+
+      while (idx < after.length && CLOSING_QUOTES.has(after[idx])) {
+        idx++;
+        while (idx < after.length && /\s/.test(after[idx])) idx++;
+        if (idx >= after.length) return m;
+        if (after[idx] === ',') return m;
+      }
+
+      const next = after[idx];
+      if (INTERJECTION_STOPPERS.includes(next)) return m;
+      return m + ',';
     });
+
+    x = x.replace(/\b(oh|yeah|whoa|ooh)\b\s*,\s*(?=\))/gi, '$1');
 
     // Dropped-G
     const dropped = ["nothin","somethin","anythin","comin","goin","playin","lovin","talkin","walkin","feelin","runnin","workin","doin"];
@@ -160,22 +204,21 @@
     // Capitalize after ? or !
     x = x.replace(/([!?])\s*([a-z])/g, (_, a, b) => a + " " + b.toUpperCase());
 
-   // BV lowercase (except I)
-x = x.replace(/([a-z])\(/g, "$1 (");
-x = x.replace(/\(([^()]+)\)/g, (m, inner) => {
-  let processed = inner.toLowerCase();
-  processed = processed.replace(/\b(i)\b/g, "I");
-  return "(" + processed + ")";
-});
+    // BV lowercase (except I)
+    x = x.replace(/([a-z])\(/g, "$1 (");
+    x = x.replace(/\(([^()]+)\)/g, (m, inner) => {
+      let processed = inner.toLowerCase();
+      processed = processed.replace(/\b(i)\b/g, "I");
+      return "(" + processed + ")";
+    });
 
-// Capitalize first letter when line starts with "("
-x = x.replace(/(^|\n)\(\s*([a-z])/g, (_, a, b) => a + "(" + b.toUpperCase());
+    // Capitalize first letter when line starts with "("
+    x = x.replace(/(^|\n)\(\s*([a-z])/g, (_, a, b) => a + "(" + b.toUpperCase());
 
-     // Smart comma relocation: only move if there's text after ")", otherwise remove
-     x = x.replace(/,\s*\(([^)]*?)\)(?=\s*\S)/g, ' ($1),'); // if content follows, move comma after ")"
-     x = x.replace(/,\s*\(([^)]*?)\)\s*$/gm, ' ($1)');     // if line ends after ")", remove comma
-      // Extra cleanup: remove comma if it ends the line after relocation
-     x = x.replace(/,\s*$/gm, "");
+    // Smart comma relocation: only move if there's text after ")", otherwise remove
+    x = x.replace(/,\s*\(([^)]*?)\)(?=\s*\S)/g, ' ($1),'); // if content follows, move comma after ")"
+    x = x.replace(/,\s*\(([^)]*?)\)\s*$/gm, ' ($1)');     // if line ends after ")", remove comma
+    x = x.replace(/,\s*$/gm, "");
 
 
     // ---------- Final Sanitation ----------
@@ -191,6 +234,18 @@ x = x.replace(/(^|\n)\(\s*([a-z])/g, (_, a, b) => a + "(" + b.toUpperCase());
 
     return x;
   }
+
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { formatLyrics };
+  }
+
+  if (!hasWindow) return;
+
+  window.addEventListener("focusin", e => {
+    const el = e.target;
+    if (el.isContentEditable || el.tagName === "TEXTAREA" || el.getAttribute("role") === "textbox")
+      currentEditable = el;
+  });
 
   // ---------- Editor I/O ----------
   function getEditorText(el){return el.isContentEditable?el.innerText:el.value;}
@@ -219,8 +274,7 @@ x = x.replace(/(^|\n)\(\s*([a-z])/g, (_, a, b) => a + "(" + b.toUpperCase());
     const before=getEditorText(el);
     const out=formatLyrics(before);
     writeToEditor(el,out);
-    toast("Formatted ✓ (v1.0.5)");
+    toast("Formatted ✓ (v1.0.8)");
   }
 
-  function loadSettings(){try{return{...defaults,...(JSON.parse(localStorage.getItem(SETTINGS_KEY))||{})};}catch{return{...defaults};}}
-})();
+})(typeof globalThis !== 'undefined' ? globalThis : this); 
