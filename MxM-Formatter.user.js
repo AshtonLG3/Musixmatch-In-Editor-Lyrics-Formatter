@@ -1,6 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
+<<<<<<< ours
 <<<<<<< HEAD
 // @version      1.1.1
 =======
@@ -10,6 +11,9 @@
 // @version      1.0.9-internal
 >>>>>>> theirs
 >>>>>>> abc2b9d (Cleaned whitespace and applied v1.0.8 update)
+=======
+// @version      1.1.1
+>>>>>>> theirs
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Vincas Stepankevičius & Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -115,7 +119,13 @@
         lineText = L;
       }
 <<<<<<< ours
+<<<<<<< ours
       lines[i] = hyphenateCompoundNumbers(lines[i]);
+=======
+      lineText = hyphenateCompoundNumbers(lineText);
+      lineText = words11to99ToNumerals(lineText);
+      lines[i] = lineText;
+>>>>>>> theirs
 =======
       lineText = hyphenateCompoundNumbers(lineText);
       lineText = words11to99ToNumerals(lineText);
@@ -328,9 +338,13 @@
     const out=formatLyrics(before);
     writeToEditor(el,out);
 <<<<<<< ours
+<<<<<<< ours
     toast("Formatted ✓ (v1.0.8)");
 =======
     toast("Formatted ✓ (v1.0.9-internal)");
+>>>>>>> theirs
+=======
+    toast("Formatted ✓ (v1.1.1)");
 >>>>>>> theirs
   }
 
