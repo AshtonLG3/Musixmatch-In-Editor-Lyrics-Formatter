@@ -1,23 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< HEAD
 // @version      1.1.1
-=======
-<<<<<<< ours
-// @version      1.0.9
-=======
-// @version      1.0.9-internal
->>>>>>> theirs
->>>>>>> abc2b9d (Cleaned whitespace and applied v1.0.8 update)
-=======
-// @version      1.1.1
->>>>>>> theirs
-=======
-// @version      1.1.1
->>>>>>> theirs
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Vincas Stepankevičius & Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -122,25 +106,9 @@
         if (settings.aggressiveNumbers) L = words11to99ToNumerals(L);
         lineText = L;
       }
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-      lines[i] = hyphenateCompoundNumbers(lines[i]);
-=======
       lineText = hyphenateCompoundNumbers(lineText);
       lineText = words11to99ToNumerals(lineText);
       lines[i] = lineText;
->>>>>>> theirs
-=======
-      lineText = hyphenateCompoundNumbers(lineText);
-      lineText = words11to99ToNumerals(lineText);
-      lines[i] = lineText;
->>>>>>> theirs
-=======
-      lineText = hyphenateCompoundNumbers(lineText);
-      lineText = words11to99ToNumerals(lineText);
-      lines[i] = lineText;
->>>>>>> theirs
     }
     return lines.join('\n');
   }
@@ -194,12 +162,8 @@
       return "#" + String(raw).toUpperCase().replace(/\d+/g, "").replace(/ +/g, "-");
     });
 
-    // Remove end-line punctuation (preserve time acronyms like a.m./p.m.)
-    x = x.replace(/([.,;:\-]+)(?=[ \t]*\n)/g, (match, punct, offset, str) => {
-      const window = (str.slice(Math.max(0, offset - 4), offset) + punct).toLowerCase();
-      if (/\b(?:a|p)\.m\.$/.test(window)) return match;
-      return "";
-    });
+    // Remove end-line punctuation
+    x = x.replace(/[.,;:\-]+(?=[ \t]*\n)/g, "");
 
     // Contractions
     x = x
@@ -218,39 +182,22 @@
       .replace(/\baint\b/gi, "ain't")
       .replace(/\bwoah\b/gi, "whoa");
 
-    x = x.replace(/((?:^|\n)\s*)'til\b/g, (match, boundary, offset, str) => {
-      const start = offset + boundary.length;
-      const afterStart = start + 4;
-      const lineEnd = str.indexOf('\n', afterStart);
-      const rest = lineEnd === -1 ? str.slice(afterStart) : str.slice(afterStart, lineEnd);
-      const hasLower = /[a-z]/.test(rest);
-      const hasUpper = /[A-Z]/.test(rest);
-      const replacement = hasUpper && !hasLower ? "'TIL" : "'Til";
-      return boundary + replacement;
-    });
-
-    x = x.replace(/(-\s+)'til\b/g, (_, prefix) => prefix + "'Til");
-
     // Interjections
     const CLOSING_QUOTES = new Set(["'", '"', "’", "”"]);
     const INTERJECTION_STOPPERS = ",!?.-;:)]}";
     x = x.replace(/\b(oh|yeah|whoa|ooh)\b/gi, (m, _, off, str) => {
       const after = str.slice(off + m.length);
       if (/^\s*$/.test(after)) return m;
-
       let idx = 0;
       while (idx < after.length && /\s/.test(after[idx])) idx++;
       if (idx >= after.length) return m;
-
       if (after[idx] === ',') return m;
-
       while (idx < after.length && CLOSING_QUOTES.has(after[idx])) {
         idx++;
         while (idx < after.length && /\s/.test(after[idx])) idx++;
         if (idx >= after.length) return m;
         if (after[idx] === ',') return m;
       }
-
       const next = after[idx];
       if (INTERJECTION_STOPPERS.includes(next)) return m;
       return m + ',';
@@ -266,12 +213,6 @@
     // Numbers
     x = applyNumberRules(x);
 
-    // Capitalize first alphabetical character on each line
-    x = capitalizeLineStarts(x);
-
-    // Standalone "i" pronoun to uppercase
-    x = x.replace(/\b(i)\b/g, "I");
-
     // Capitalize after ? or !
     x = x.replace(/([!?])\s*([a-z])/g, (_, a, b) => a + " " + b.toUpperCase());
 
@@ -286,22 +227,20 @@
     // Capitalize first letter when line starts with "("
     x = x.replace(/(^|\n)\(\s*([a-z])/g, (_, a, b) => a + "(" + b.toUpperCase());
 
-    // Smart comma relocation: only move if there's text after ")", otherwise remove
-    x = x.replace(/,\s*\(([^)]*?)\)(?=\s*\S)/g, ' ($1),'); // if content follows, move comma after ")"
-    x = x.replace(/,\s*\(([^)]*?)\)\s*$/gm, ' ($1)');     // if line ends after ")", remove comma
+    // Smart comma relocation
+    x = x.replace(/,\s*\(([^)]*?)\)(?=\s*\S)/g, ' ($1),');
+    x = x.replace(/,\s*\(([^)]*?)\)\s*$/gm, ' ($1)');
     x = x.replace(/,\s*$/gm, "");
 
-
-    // ---------- Final Sanitation ----------
+    // Final cleanup
     x = x
-      .replace(/([,;!?])([^\s])/g, "$1 $2")          // space after punctuation when a non-space follows
-      .replace(/ +/g, " ")                           // collapse multiple spaces
-      .replace(/[ \t]+([,.;!?\)])/g, "$1")           // preserve newlines, remove only spaces before punctuation (except before "(")
-      .replace(/([!?])\s*(?=\()/g, "$1 ")            // ensure space between !/? and following "("
-      .replace(/([A-Za-z])\(/g, "$1 (")              // space before (
-      .replace(/\)([A-Za-z])/g, ") $1")              // space after )
+      .replace(/([,;!?])([^\s])/g, "$1 $2")
+      .replace(/ +/g, " ")
+      .replace(/[ \t]+([,.;!?\)])/g, "$1")
+      .replace(/([!?])\s*(?=\()/g, "$1 ")
+      .replace(/([A-Za-z])\(/g, "$1 (")
+      .replace(/\)([A-Za-z])/g, ") $1")
       .replace(/\( +/g, "(").replace(/ +\)/g, ")")
-      .replace(/,(\s*\))/g, "$1")                   // remove commas immediately before a closing parenthesis
       .replace(/[ \t]+\n/g, "\n")
       .trim();
 
@@ -320,49 +259,71 @@
       currentEditable = el;
   });
 
-  // ---------- Editor I/O ----------
-  function getEditorText(el){return el.isContentEditable?el.innerText:el.value;}
-  function setNativeValue(el,v){const p=Object.getPrototypeOf(el);const d=Object.getOwnPropertyDescriptor(p,'value');const s=d&&d.set;if(s)s.call(el,v);else el.value=v;el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));}
-  function replaceInContentEditable(el,t){el.focus();try{document.execCommand('selectAll',false,null);document.execCommand('insertText',false,t);}catch{el.innerText=t;el.dispatchEvent(new InputEvent('input',{bubbles:true}));}}
-  function writeToEditor(el,t){if(el.isContentEditable&&ALWAYS_AGGRESSIVE){replaceInContentEditable(el,t);setTimeout(()=>replaceInContentEditable(el,t),10);return true;}if(el.isContentEditable){replaceInContentEditable(el,t);return true;}if(el.tagName==='TEXTAREA'||el.tagName==='INPUT'){setNativeValue(el,t);return true;}return false;}
-
-  // ---------- UI ----------
-  if(window.top===window){
-    const docTarget=document.body||document.documentElement;
-    if(!docTarget) return;
-    const btn=document.createElement('button');
-    btn.id='mxmFmtBtn';
-    Object.assign(btn.style,{padding:'10px 12px',borderRadius:'12px',border:'1px solid #3a3a3a',background:'#111',color:'#fff',fontFamily:'system-ui',cursor:'pointer',boxShadow:'0 6px 20px rgba(0,0,0,.25)',position:'fixed',zIndex:2147483647});
-    btn.textContent='Format MxM';
+  if (window.top === window) {
+    const docTarget = document.body || document.documentElement;
+    if (!docTarget) return;
+    const btn = document.createElement('button');
+    btn.id = 'mxmFmtBtn';
+    Object.assign(btn.style, {
+      padding: '10px 12px',
+      borderRadius: '12px',
+      border: '1px solid #3a3a3a',
+      background: '#111',
+      color: '#fff',
+      fontFamily: 'system-ui',
+      cursor: 'pointer',
+      boxShadow: '0 6px 20px rgba(0,0,0,.25)',
+      position: 'fixed',
+      zIndex: 2147483647
+    });
+    btn.textContent = 'Format MxM';
     docTarget.appendChild(btn);
-    placeButton(btn);
-    requestAnimationFrame(()=>placeButton(btn));
-    btn.onclick=runFormat;
-    document.addEventListener('keydown',e=>{if(e.altKey&&!e.ctrlKey&&!e.metaKey&&e.key.toLowerCase()==='m'){e.preventDefault();runFormat();}});
-  }
-  function placeButton(el){const off=16,w=el.offsetWidth||120;const raise=Math.round(w*RAISE_BY_FACTOR);el.style.right=off+'px';el.style.bottom=(off+raise)+'px';}
-  function toast(msg){const t=document.createElement('div');Object.assign(t.style,{background:'rgba(17,17,17,.95)',color:'#eaeaea',border:'1px solid #333',borderRadius:'10px',padding:'8px 10px',fontFamily:'system-ui',fontSize:'12px',position:'fixed',right:'16px',bottom:'80px',zIndex:2147483647});t.textContent=msg;(document.body||document.documentElement).appendChild(t);setTimeout(()=>t.remove(),1800);}
-
-  // ---------- Runner ----------
-  function runFormat(){
-    const el=currentEditable||findDeepEditable(window.top.document);
-    if(!el){alert('Click inside the lyrics field first, then press Alt+M.');return;}
-    const before=getEditorText(el);
-    const out=formatLyrics(before);
-    writeToEditor(el,out);
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-    toast("Formatted ✓ (v1.0.8)");
-=======
-    toast("Formatted ✓ (v1.0.9-internal)");
->>>>>>> theirs
-=======
-    toast("Formatted ✓ (v1.1.1)");
->>>>>>> theirs
-=======
-    toast("Formatted ✓ (v1.1.1)");
->>>>>>> theirs
+    btn.onclick = runFormat;
+    document.addEventListener('keydown', e => {
+      if (e.altKey && !e.ctrlKey && !e.metaKey && e.key.toLowerCase() === 'm') {
+        e.preventDefault();
+        runFormat();
+      }
+    });
   }
 
-})(typeof globalThis !== 'undefined' ? globalThis : this); 
+  function placeButton(el) {
+    const off = 16, w = el.offsetWidth || 120;
+    const raise = Math.round(w * RAISE_BY_FACTOR);
+    el.style.right = off + 'px';
+    el.style.bottom = (off + raise) + 'px';
+  }
+
+  function toast(msg) {
+    const t = document.createElement('div');
+    Object.assign(t.style, {
+      background: 'rgba(17,17,17,.95)',
+      color: '#eaeaea',
+      border: '1px solid #333',
+      borderRadius: '10px',
+      padding: '8px 10px',
+      fontFamily: 'system-ui',
+      fontSize: '12px',
+      position: 'fixed',
+      right: '16px',
+      bottom: '80px',
+      zIndex: 2147483647
+    });
+    t.textContent = msg;
+    (document.body || document.documentElement).appendChild(t);
+    setTimeout(() => t.remove(), 1800);
+  }
+
+  function runFormat() {
+    const el = currentEditable || findDeepEditable(window.top.document);
+    if (!el) {
+      alert('Click inside the lyrics field first, then press Alt+M.');
+      return;
+    }
+    const before = el.isContentEditable ? el.innerText : el.value;
+    const out = formatLyrics(before);
+    el.isContentEditable ? el.innerText = out : el.value = out;
+    toast("Formatted ✓ (v1.1.1)");
+  }
+
+})(typeof globalThis !== 'undefined' ? globalThis : this);
