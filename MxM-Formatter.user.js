@@ -223,12 +223,14 @@
 
     // ---------- Final Sanitation ----------
     x = x
-      .replace(/([,;!?])([A-Za-z])/g, "$1 $2")      // space after punctuation
+      .replace(/([,;!?])([^\s])/g, "$1 $2")          // space after punctuation when a non-space follows
       .replace(/ +/g, " ")                           // collapse multiple spaces
-      .replace(/[ \t]+([,.;!?()])/g, "$1")           // preserve newlines, remove only spaces before punctuation
+      .replace(/[ \t]+([,.;!?\)])/g, "$1")           // preserve newlines, remove only spaces before punctuation (except before "(")
+      .replace(/([!?])\s*(?=\()/g, "$1 ")            // ensure space between !/? and following "("
       .replace(/([A-Za-z])\(/g, "$1 (")              // space before (
       .replace(/\)([A-Za-z])/g, ") $1")              // space after )
       .replace(/\( +/g, "(").replace(/ +\)/g, ")")
+      .replace(/,(\s*\))/g, "$1")                   // remove commas immediately before a closing parenthesis
       .replace(/[ \t]+\n/g, "\n")
       .trim();
 
