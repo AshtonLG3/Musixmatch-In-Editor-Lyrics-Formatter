@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const RAISE_BY_FACTOR = 1.5;
+  const SCRIPT_VERSION = '1.1.6';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: false };
@@ -270,15 +270,22 @@
   if(window.top===window){
     const btn=document.createElement('button');
     btn.id='mxmFmtBtn';
-    Object.assign(btn.style,{padding:'10px 12px',borderRadius:'12px',border:'1px solid #3a3a3a',background:'#111',color:'#fff',fontFamily:'system-ui',cursor:'pointer',boxShadow:'0 6px 20px rgba(0,0,0,.25)',position:'fixed',zIndex:2147483647});
+    btn.type='button';
     btn.textContent='Format MxM';
+    btn.setAttribute('aria-label','Format lyrics (Alt+M)');
+    Object.assign(btn.style,{padding:'10px 14px',borderRadius:'12px',border:'1px solid #303030',background:'linear-gradient(135deg,#181818,#101010)',color:'#f9f9f9',fontFamily:'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',fontSize:'13px',letterSpacing:'0.3px',cursor:'pointer',position:'fixed',zIndex:2147483647,transition:'transform .18s ease, box-shadow .18s ease'});
+    btn.addEventListener('mouseenter',()=>{btn.style.transform='translateY(-2px)';btn.style.boxShadow='0 10px 24px rgba(0,0,0,.32)';});
+    btn.addEventListener('mouseleave',()=>{btn.style.transform='';btn.style.boxShadow='0 6px 18px rgba(0,0,0,.28)';});
+    btn.addEventListener('focus',()=>{btn.style.boxShadow='0 0 0 3px rgba(255,255,255,.18)';});
+    btn.addEventListener('blur',()=>{btn.style.boxShadow='0 6px 18px rgba(0,0,0,.28)';});
+    btn.style.boxShadow='0 6px 18px rgba(0,0,0,.28)';
     document.documentElement.appendChild(btn);
     placeButton(btn);
     btn.onclick=runFormat;
     document.addEventListener('keydown',e=>{if(e.altKey&&!e.ctrlKey&&!e.metaKey&&e.key.toLowerCase()==='m'){e.preventDefault();runFormat();}});
   }
-  function placeButton(el){const off=16,w=el.offsetWidth||120;const raise=Math.round(w*RAISE_BY_FACTOR);el.style.right=off+'px';el.style.bottom=(off+raise)+'px';}
-  function toast(msg){const t=document.createElement('div');Object.assign(t.style,{background:'rgba(17,17,17,.95)',color:'#eaeaea',border:'1px solid #333',borderRadius:'10px',padding:'8px 10px',fontFamily:'system-ui',fontSize:'12px',position:'fixed',right:'16px',bottom:'80px',zIndex:2147483647});t.textContent=msg;document.documentElement.appendChild(t);setTimeout(()=>t.remove(),1800);}
+  function placeButton(el){el.style.right='16px';el.style.bottom='32px';}
+  function toast(msg){const t=document.createElement('div');Object.assign(t.style,{background:'rgba(17,17,17,.95)',color:'#eaeaea',border:'1px solid #333',borderRadius:'10px',padding:'8px 10px',fontFamily:'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',fontSize:'12px',position:'fixed',right:'16px',bottom:'80px',zIndex:2147483647,boxShadow:'0 8px 22px rgba(0,0,0,.35)'});t.setAttribute('role','status');t.setAttribute('aria-live','polite');t.textContent=msg;document.documentElement.appendChild(t);setTimeout(()=>t.remove(),1800);}
 
   // ---------- Runner ----------
   function runFormat(){
@@ -287,7 +294,7 @@
     const before=getEditorText(el);
     const out=formatLyrics(before);
     writeToEditor(el,out);
-    toast("Formatted ✓ (v1.1.3)");
+    toast(`Formatted ✓ (v${SCRIPT_VERSION})`);
   }
 
 })(typeof globalThis !== 'undefined' ? globalThis : this); 

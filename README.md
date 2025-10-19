@@ -1,66 +1,88 @@
-<p align="center">
-  <img src="img/header.png" width="80%" alt="Musixmatch In-Editor Lyrics Formatter header">
-</p>
+# 🎵 Musixmatch In-Editor Lyrics Formatter
 
-# 🎵 Musixmatch In-Editor Lyrics Formatter (EN)
+> Turbo-charge your Musixmatch Studio workflow with one keystroke. The formatter cleans, normalises, and standardises English lyrics so they comply with the community guidelines before you hit **Submit**.
 
-> A powerful userscript for Musixmatch editors and curators that instantly cleans, formats, and standardizes English lyrics to meet community style guidelines.  
-> Format an entire song with a single keystroke or click!
+![Floating “Format MxM” button inside Musixmatch Studio](img/formatter-ui.png)
 
 ---
 
-### 🚀 Features
-
-- ✅ Auto-formats lyrics directly in **Musixmatch Studio**
-- ✅ Enforces capitalization, punctuation, and stylistic rules
-- ✅ Auto-handles tags (`#VERSE`, `#CHORUS`, etc.)
-- ✅ Smart comma and spacing normalization
-- ✅ Backing vocal grouping logic
-- ✅ Version sync automation between `.user.js` and `.meta.js`
-
----
-
-### 🧠 How It Works
-
-This userscript injects into:
-https://curators.musixmatch.com/*
-https://curators-beta.musixmatch.com/*
-
-It standardizes all lyrics to Musixmatch guidelines as you edit.  
-Headers are synchronized automatically across both script files when committing updates.
+## Table of contents
+- [Features](#features)
+- [Installation](#installation)
+- [Usage](#usage)
+- [What gets formatted?](#what-gets-formatted)
+- [Troubleshooting](#troubleshooting)
+- [Development](#development)
+- [Authors](#authors)
+- [License](#license)
 
 ---
 
-### 🛠 Installation
+## Features
+- ✅ Instantly formats lyrics inside **Musixmatch Studio** (including the beta environment)
+- ✅ Harmonises capitalisation, punctuation, spacing, and section tags
+- ✅ Normalises dialogue, interjections, and bracketed sections
+- ✅ Handles backing vocal grouping and common contraction edge-cases
+- ✅ Converts numbers intelligently while respecting dates and timestamps
+- ✅ Offers both a floating **Format MxM** button and the **Alt&nbsp;+&nbsp;M** keyboard shortcut
 
-1. Install a userscript manager:  
-   - [Tampermonkey](https://tampermonkey.net/) or  
+---
+
+## Installation
+1. **Install a userscript manager** (choose one):
+   - [Tampermonkey](https://tampermonkey.net/)
    - [Violentmonkey](https://violentmonkey.github.io/)
+2. **Install the formatter script:**
+   - 👉 [Click here to install or update](https://github.com/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/raw/main/MxM-Formatter.user.js)
+3. Tampermonkey/Violentmonkey will track new releases automatically using the accompanying `.meta.js` manifest.
 
-2. Click below to install or update automatically:  
-   👉 [**Install Formatter Script**](https://github.com/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/raw/main/MxM-Formatter.user.js)
-
-3. Tampermonkey will automatically check for updates using the `.meta.js` manifest.
-
----
-
-### 🧩 Developer Automation
-
-Each commit automatically:
-- 🧾 Syncs version headers between `.meta.js` and `.user.js`
-- 🏷 Tags the commit (e.g., `v1.1.6`)
-- 🚀 Publishes a GitHub Release with the commit message as the changelog
-- 📦 Optionally attaches `.user.js` as a downloadable release asset (next step below 👇)
+> **Updating:** when a new release is published, the userscript manager prompts you to accept the update. No manual download is required.
 
 ---
 
-### 🧑‍💻 Authors
+## Usage
+- Open any lyric sheet in Musixmatch Studio.
+- Click inside the editable lyrics area once.
+- Either press **Alt&nbsp;+&nbsp;M** *or* click the floating **Format MxM** button in the bottom-right corner.
+- A toast confirmation (e.g. `Formatted ✓ (v1.1.6)`) appears once the text has been cleaned.
 
+If nothing happens, make sure the lyrics textarea still has focus. The formatter will display an alert if it cannot find an active editor field.
+
+---
+
+## What gets formatted?
+The script exposes a `formatLyrics` function that performs dozens of targeted clean-up rules, including:
+
+- **Whitespace and punctuation** – trims trailing spaces, collapses blank lines, and removes stray punctuation at line endings.
+- **Section tags** – transforms `[Verse 1]`-style markers into canonical `#VERSE`, `#CHORUS`, `#BRIDGE`, etc.
+- **Contractions & slang** – standardises entries such as `cuz → 'cause`, `imma → I'ma`, and fixes mixed-case `'til` usage.
+- **Interjections & dialogue** – inserts missing commas after `Oh`, `Yeah`, `Whoa`, etc. when they introduce a line.
+- **Parentheses** – ensures appropriate spacing around opening and closing brackets.
+- **Number treatment** – converts numerals `0–10` to words unless the line contains times, dates, or decades. When the optional *aggressive numbers* flag is enabled (stored in `localStorage` under `mxmFmtSettings.v105`), words from eleven to ninety-nine will flip to numerals instead.
+
+These transformations are safe to re-run—executing the formatter multiple times will not mangle already corrected text.
+
+---
+
+## Troubleshooting
+- **The button covers interface elements** – drag the browser window wider or zoom out slightly. The button automatically anchors 32&nbsp;px from the bottom-right corner and should stay clear of Studio controls.
+- **No toast appears** – ensure you have focus inside a Musixmatch lyric field. The script only acts on the active editable element.
+- **Conflicting shortcuts** – if another tool uses Alt&nbsp;+&nbsp;M, rely on the floating button instead. Shortcut customisation is planned for a future update.
+
+---
+
+## Development
+- The userscript is written in vanilla JavaScript and exports `formatLyrics` for use in Node-based tests or other tooling.
+- Version information lives in both `MxM-Formatter.user.js` and `MxM-Formatter.meta.js`. Update them together before releasing.
+- After editing the script, run your preferred lint/tests (for example `node` scripts) and bump the `@version` header prior to publishing a new release.
+
+---
+
+## Authors
 - **Vincas Stepankevičius**
 - **Richard Mangezi Muketa**
 
 ---
 
-### 🪪 License
-
-MIT License — Free to use, modify, and share.
+## License
+Released under the MIT License — free to use, modify, and share.
