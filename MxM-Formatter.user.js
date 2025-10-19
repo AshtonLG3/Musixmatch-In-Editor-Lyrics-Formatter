@@ -119,7 +119,11 @@
       .replace(/\n{3,}/g, "\n\n")
       .replace(/[\u2019\u2018\u0060\u00b4]/gu, "'")
       .replace(/[\u2013\u2014]/gu, "-")
+<<<<<<< ours
       (/[\u0435\u0415]/g, m => m === "\u0415" ? "E" : "e")
+=======
+      .replace(/[\u0435\u0415]/g, m => m === "\u0415" ? "E" : "e")
+>>>>>>> theirs
       .replace(/[\u{1F300}-\u{1FAFF}\u{FE0F}\u2600-\u26FF\u2700-\u27BF\u2669-\u266F]/gu, "");
 
     // Section tags
