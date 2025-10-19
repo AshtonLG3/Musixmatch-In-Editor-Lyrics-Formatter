@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.2
+// @version      1.1.3
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Vincas Stepankevičius & Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -93,8 +93,11 @@
   function applyNumberRules(text) {
     const lines = text.split('\n');
     for (let i = 0; i < lines.length; i++) {
-      const numCount = (lines[i].match(/\b\d+\b/g) || []).length;
-      const useNumerals = numCount >= 3 || /\b(19|20)\d{2}\b|['’]\d0s|\d{1,2}:\d{2}\s*(?:a\.m\.|p\.m\.)/i.test(lines[i]);
+      const currentLine = lines[i];
+      const numCount = (currentLine.match(/\b\d+\b/g) || []).length;
+      const useNumerals =
+        numCount >= 3 ||
+        /\b(19|20)\d{2}\b|['’]\d0s|\d{1,2}:\d{2}\s*(?:a\.m\.|p\.m\.)/i.test(currentLine);
       if (useNumerals && settings.aggressiveNumbers) {
         lines[i] = currentLine;
       } else {
@@ -119,11 +122,7 @@
       .replace(/\n{3,}/g, "\n\n")
       .replace(/[\u2019\u2018\u0060\u00b4]/gu, "'")
       .replace(/[\u2013\u2014]/gu, "-")
-<<<<<<< ours
-      (/[\u0435\u0415]/g, m => m === "\u0415" ? "E" : "e")
-=======
-      .replace(/[\u0435\u0415]/g, m => m === "\u0415" ? "E" : "e")
->>>>>>> theirs
+      .replace(/[\u0435\u0415]/g, m => (m === "\u0415" ? "E" : "e"))
       .replace(/[\u{1F300}-\u{1FAFF}\u{FE0F}\u2600-\u26FF\u2700-\u27BF\u2669-\u266F]/gu, "");
 
     // Section tags
@@ -210,6 +209,9 @@
     // Capitalize after ? or !
     x = x.replace(/([!?])\s*([a-z])/g, (_, a, b) => a + " " + b.toUpperCase());
 
+    // Capitalize first letter of each line (ignoring leading whitespace)
+    x = x.replace(/(^|\n)(\s*)([a-z])/g, (_, boundary, space, letter) => boundary + space + letter.toUpperCase());
+
     // BV lowercase (except I)
     x = x.replace(/([a-z])\(/g, "$1 (");
     x = x.replace(/\(([^()]+)\)/g, (m, inner) => {
@@ -282,7 +284,7 @@
     const before=getEditorText(el);
     const out=formatLyrics(before);
     writeToEditor(el,out);
-    toast("Formatted ✓ (v1.1.2)");
+    toast("Formatted ✓ (v1.1.3)");
   }
 
 })(typeof globalThis !== 'undefined' ? globalThis : this); 
