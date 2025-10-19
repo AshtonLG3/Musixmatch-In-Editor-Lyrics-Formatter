@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="img/header.png" width="80%" alt="Musixmatch In-Editor Formatter header">
+</p>
+
 # 🎵 Musixmatch In-Editor Lyrics Formatter (EN)
 
 > A powerful userscript for Musixmatch editors and curators that instantly cleans, formats, and standardizes English lyrics to meet community style guidelines.  
