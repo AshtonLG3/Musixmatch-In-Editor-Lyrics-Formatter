@@ -81,7 +81,7 @@
   function words11to99ToNumerals(line) {
     line = line.replace(/\b(eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen)\b/gi,
       (w, raw) => String(WORD_TO_NUM_11_19[raw.toLowerCase()]));
-    line = line.replace(/\b(twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)(?:[-\s](one|two|three|four|five|six|seven|eight|nine))?\b/gi,
+    line = line.replace(/\b(twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)(?:[-\s]*(one|two|three|four|five|six|seven|eight|nine))?\b/gi,
       (_, tensRaw, onesRaw) => {
         let n = WORD_TO_TENS[tensRaw.toLowerCase()];
         if (onesRaw) n += WORD_TO_ONES[onesRaw.toLowerCase()];
@@ -94,10 +94,11 @@
     for (let i = 0; i < lines.length; i++) {
       const numCount = (lines[i].match(/\b\d+\b/g) || []).length;
       const useNumerals = numCount >= 3 || /\b(19|20)\d{2}\b|['’]\d0s|\d{1,2}:\d{2}\s*(?:a\.m\.|p\.m\.)/i.test(lines[i]);
+       let currentLine = words11to99ToNumerals(lines[i]);
       if (useNumerals && settings.aggressiveNumbers) {
-        lines[i] = words11to99ToNumerals(lines[i]);
+        lines[i] = currentLine;
       } else {
-        let L = numerals0to10ToWords(lines[i]);
+        let L = numerals0to10ToWords(currentLine);
         if (settings.aggressiveNumbers) L = words11to99ToNumerals(L);
         lines[i] = L;
       }
@@ -118,6 +119,7 @@
       .replace(/\n{3,}/g, "\n\n")
       .replace(/[\u2019\u2018\u0060\u00b4]/gu, "'")
       .replace(/[\u2013\u2014]/gu, "-")
+      .replace(/[\u0435\u0415]/g, m => m === "\u0415" ? "E" : "e")
       .replace(/[\u{1F300}-\u{1FAFF}\u{FE0F}\u2600-\u26FF\u2700-\u27BF\u2669-\u266F]/gu, "");
 
     // Section tags
