@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="img/header.png" width="80%" alt="Musixmatch In-Editor Formatter header">
+  <img src="img/header.png" width="80%" alt="Musixmatch In-Editor Lyrics Formatter header">
 </p>
 
 # 🎵 Musixmatch In-Editor Lyrics Formatter (EN)
