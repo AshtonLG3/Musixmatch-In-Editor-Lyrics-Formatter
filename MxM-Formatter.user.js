@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.3
+// @version      1.1.4
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Vincas Stepankevičius & Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -145,9 +145,12 @@
     x = x
       .replace(/\bcuz\b/gi, "'cause")
       .replace(/\bcos\b/gi, "'cause")
-      .replace(/\btill\b/gi, m => {
-        if (m === m.toUpperCase()) return "'TIL";
-        if (m[0] === m[0].toUpperCase()) return "'Til";
+      .replace(/(?<!['\w])ti(?:ll|l)(?:')?(?!\w)/gi, (m, offset, str) => {
+        const prev = offset > 0 ? str[offset - 1] : '';
+        if (prev === "'" || prev === "\u2019") return m;
+        const base = m.replace(/'/g, "");
+        if (base === base.toUpperCase()) return "'TIL";
+        if (base[0] === base[0].toUpperCase()) return "'Til";
         return "'til";
       })
       .replace(/\bimma\b/gi, "I'ma")
