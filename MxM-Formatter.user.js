@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.7
+// @version      1.1.8
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Vincas Stepankevičius & Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.7';
+  const SCRIPT_VERSION = '1.1.8';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: false };
@@ -267,6 +267,44 @@
   function writeToEditor(el,t){if(el.isContentEditable&&ALWAYS_AGGRESSIVE){replaceInContentEditable(el,t);setTimeout(()=>replaceInContentEditable(el,t),10);return true;}if(el.isContentEditable){replaceInContentEditable(el,t);return true;}if(el.tagName==='TEXTAREA'||el.tagName==='INPUT'){setNativeValue(el,t);return true;}return false;}
 
   // ---------- UI ----------
+  const BUTTON_RIGHT_OFFSET = 16;
+  const BUTTON_BASE_BOTTOM = 32;
+  const BUTTON_GAP_PX = 12;
+  const MAX_CONFLICT_RIGHT_PX = 240;
+  const REPOSITION_INTERVAL_MS = 250;
+  const REPOSITION_ATTEMPTS = 6;
+  const RAISE_BY_FACTOR = 1.5;
+  let latestButtonBottom = BUTTON_BASE_BOTTOM;
+
+  function computeBottomOffset(el) {
+    const doc = el?.ownerDocument;
+    const win = doc?.defaultView;
+    if (!doc || !win) return BUTTON_BASE_BOTTOM;
+    let requiredBottom = BUTTON_BASE_BOTTOM;
+    const elements = doc.querySelectorAll('*');
+    for (const node of elements) {
+      if (!(node instanceof win.HTMLElement) || node === el) continue;
+      const style = win.getComputedStyle(node);
+      if (style.position !== 'fixed') continue;
+      const rect = node.getBoundingClientRect();
+      if (rect.width < 1 || rect.height < 1) continue;
+      const bottom = parseFloat(style.bottom);
+      const right = parseFloat(style.right);
+      if (!Number.isFinite(bottom) || !Number.isFinite(right)) continue;
+      if (right > MAX_CONFLICT_RIGHT_PX) continue;
+      const candidate = bottom + rect.height * RAISE_BY_FACTOR + BUTTON_GAP_PX;
+      if (candidate > requiredBottom) requiredBottom = candidate;
+    }
+    return Math.round(requiredBottom);
+  }
+
+  function placeButton(el){
+    if(!el) return;
+    el.style.right=`${BUTTON_RIGHT_OFFSET}px`;
+    latestButtonBottom=computeBottomOffset(el);
+    el.style.bottom=`${latestButtonBottom}px`;
+  }
+
   if(window.top===window){
     const btn=document.createElement('button');
     btn.id='mxmFmtBtn';
@@ -281,11 +319,26 @@
     btn.style.boxShadow='0 6px 18px rgba(0,0,0,.28)';
     document.documentElement.appendChild(btn);
     placeButton(btn);
+    let repositionCount=0;
+    const intervalId=window.setInterval(()=>{
+      repositionCount++;
+      placeButton(btn);
+      if(repositionCount>=REPOSITION_ATTEMPTS) window.clearInterval(intervalId);
+    },REPOSITION_INTERVAL_MS);
+    window.addEventListener('resize',()=>placeButton(btn));
     btn.onclick=runFormat;
     document.addEventListener('keydown',e=>{if(e.altKey&&!e.ctrlKey&&!e.metaKey&&e.key.toLowerCase()==='m'){e.preventDefault();runFormat();}});
   }
-  function placeButton(el){el.style.right='16px';el.style.bottom='32px';}
-  function toast(msg){const t=document.createElement('div');Object.assign(t.style,{background:'rgba(17,17,17,.95)',color:'#eaeaea',border:'1px solid #333',borderRadius:'10px',padding:'8px 10px',fontFamily:'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',fontSize:'12px',position:'fixed',right:'16px',bottom:'80px',zIndex:2147483647,boxShadow:'0 8px 22px rgba(0,0,0,.35)'});t.setAttribute('role','status');t.setAttribute('aria-live','polite');t.textContent=msg;document.documentElement.appendChild(t);setTimeout(()=>t.remove(),1800);}
+  function toast(msg){
+    const t=document.createElement('div');
+    const toastBottom=Math.max(latestButtonBottom+48,BUTTON_BASE_BOTTOM+48);
+    Object.assign(t.style,{background:'rgba(17,17,17,.95)',color:'#eaeaea',border:'1px solid #333',borderRadius:'10px',padding:'8px 10px',fontFamily:'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',fontSize:'12px',position:'fixed',right:`${BUTTON_RIGHT_OFFSET}px`,bottom:`${toastBottom}px`,zIndex:2147483647,boxShadow:'0 8px 22px rgba(0,0,0,.35)'});
+    t.setAttribute('role','status');
+    t.setAttribute('aria-live','polite');
+    t.textContent=msg;
+    document.documentElement.appendChild(t);
+    setTimeout(()=>t.remove(),1800);
+  }
 
   // ---------- Runner ----------
   function runFormat(){
