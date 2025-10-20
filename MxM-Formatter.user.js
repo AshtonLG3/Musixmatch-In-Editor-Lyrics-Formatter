@@ -268,7 +268,7 @@
 
   // ---------- UI ----------
   const BUTTON_RIGHT_OFFSET = 16;
-  const BUTTON_BASE_BOTTOM = 112;
+  const BUTTON_BASE_BOTTOM = 116;
   const BUTTON_GAP_PX = 12;
   const MAX_CONFLICT_RIGHT_PX = 240;
   const REPOSITION_INTERVAL_MS = 250;
