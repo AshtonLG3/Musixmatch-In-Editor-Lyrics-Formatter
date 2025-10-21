@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.17
+// @version      1.1.18
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Vincas Stepankevičius & Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.17';
+  const SCRIPT_VERSION = '1.1.18';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -590,33 +590,43 @@
     shortcutTrackedDocs.add(doc);
   }
 
-  const UI_INIT_FLAG='__mxmFmtUiInit';
-  if(uiDocument?.documentElement&&!uiWindow[UI_INIT_FLAG]){
-    uiWindow[UI_INIT_FLAG]=true;
-    const existing=uiDocument.getElementById('mxmFmtBtn');
-    const btn=existing||uiDocument.createElement('button');
-    btn.id='mxmFmtBtn';
-    btn.type='button';
-    btn.textContent='Format MxM';
-    btn.setAttribute('aria-label','Format lyrics (Alt+M)');
-    Object.assign(btn.style,{padding:'10px 14px',borderRadius:'12px',border:'1px solid #303030',background:'linear-gradient(135deg,#181818,#101010)',color:'#f9f9f9',fontFamily:'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',fontSize:'13px',letterSpacing:'0.3px',cursor:'pointer',position:'fixed',zIndex:2147483647,transition:'transform .18s ease, box-shadow .18s ease'});
-    btn.addEventListener('mouseenter',()=>{btn.style.transform='translateY(-2px)';btn.style.boxShadow='0 10px 24px rgba(0,0,0,.32)';});
-    btn.addEventListener('mouseleave',()=>{btn.style.transform='';btn.style.boxShadow='0 6px 18px rgba(0,0,0,.28)';});
-    btn.addEventListener('focus',()=>{btn.style.boxShadow='0 0 0 3px rgba(255,255,255,.18)';});
-    btn.addEventListener('blur',()=>{btn.style.boxShadow='0 6px 18px rgba(0,0,0,.28)';});
-    btn.style.boxShadow='0 6px 18px rgba(0,0,0,.28)';
-    if(!existing) uiDocument.documentElement.appendChild(btn);
-    placeButton(btn);
-    let repositionCount=0;
-    const intervalId=uiWindow.setInterval(()=>{
-      repositionCount++;
+  if(uiDocument?.documentElement){
+    const buttonParent=uiDocument.body||uiDocument.documentElement;
+    if(buttonParent){
+      let btn=uiDocument.getElementById('mxmFmtBtn');
+      const isNew=!btn;
+      if(!btn){
+        btn=uiDocument.createElement('button');
+        btn.id='mxmFmtBtn';
+        btn.type='button';
+        btn.textContent='Format MxM';
+        btn.setAttribute('aria-label','Format lyrics (Alt+M)');
+        Object.assign(btn.style,{padding:'10px 14px',borderRadius:'12px',border:'1px solid #303030',background:'linear-gradient(135deg,#181818,#101010)',color:'#f9f9f9',fontFamily:'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',fontSize:'13px',letterSpacing:'0.3px',cursor:'pointer',position:'fixed',zIndex:2147483647,transition:'transform .18s ease, box-shadow .18s ease'});
+        btn.addEventListener('mouseenter',()=>{btn.style.transform='translateY(-2px)';btn.style.boxShadow='0 10px 24px rgba(0,0,0,.32)';});
+        btn.addEventListener('mouseleave',()=>{btn.style.transform='';btn.style.boxShadow='0 6px 18px rgba(0,0,0,.28)';});
+        btn.addEventListener('focus',()=>{btn.style.boxShadow='0 0 0 3px rgba(255,255,255,.18)';});
+        btn.addEventListener('blur',()=>{btn.style.boxShadow='0 6px 18px rgba(0,0,0,.28)';});
+        buttonParent.appendChild(btn);
+      }else if(!btn.isConnected){
+        buttonParent.appendChild(btn);
+      }
+      btn.style.boxShadow='0 6px 18px rgba(0,0,0,.28)';
+      btn.style.position='fixed';
+      btn.style.zIndex='2147483647';
       placeButton(btn);
-      if(repositionCount>=REPOSITION_ATTEMPTS) uiWindow.clearInterval(intervalId);
-    },REPOSITION_INTERVAL_MS);
-    uiWindow.addEventListener('resize',()=>placeButton(btn));
-    btn.onclick=runFormat;
-    bindShortcutListener(document);
-    if(uiDocument!==document) bindShortcutListener(uiDocument);
+      if(isNew){
+        let repositionCount=0;
+        const intervalId=(uiWindow||window).setInterval(()=>{
+          repositionCount++;
+          placeButton(btn);
+          if(repositionCount>=REPOSITION_ATTEMPTS)(uiWindow||window).clearInterval(intervalId);
+        },REPOSITION_INTERVAL_MS);
+        (uiWindow||window).addEventListener('resize',()=>placeButton(btn));
+      }
+      btn.onclick=runFormat;
+      bindShortcutListener(document);
+      if(uiDocument!==document) bindShortcutListener(uiDocument);
+    }
   }
   function toast(msg){
     if(!uiDocument) return;
