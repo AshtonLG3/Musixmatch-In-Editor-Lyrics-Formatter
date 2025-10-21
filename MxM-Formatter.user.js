@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.19
+// @version      1.1.20
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Vincas Stepankevičius & Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.19';
+  const SCRIPT_VERSION = '1.1.20';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -449,8 +449,8 @@
     x = applyNumberRules(x);
     x = applyNoCommaRules(x);
 
-    // Capitalize after ? or !
-    x = x.replace(/([!?])\s*([a-z])/g, (_, a, b) => a + " " + b.toUpperCase());
+    // Capitalize after ? only
+    x = x.replace(/(\?)\s*([a-z])/g, (_, q, letter) => q + " " + letter.toUpperCase());
 
     // Capitalize first letter of each line (ignoring leading whitespace)
     x = x.replace(/(^|\n)(\s*)([a-z])/g, (_, boundary, space, letter) => boundary + space + letter.toUpperCase());
