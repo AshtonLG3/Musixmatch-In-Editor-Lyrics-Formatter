@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.10
+// @version      1.1.11
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Vincas Stepankevičius & Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.10';
+  const SCRIPT_VERSION = '1.1.11';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: false };
@@ -109,6 +109,199 @@
     return lines.join('\n');
   }
 
+  const NO_INTERJECTION_FOLLOWERS = new Set([
+    "i","i'm","im","i'd","i'll","i've","imma",
+    "you","you're","youre","u","ya","y'all","yall","ya'll",
+    "he","she","we","they","it","it's","its",
+    "there","there's","theres","this","that","these","those",
+    "dont","don't","do","does","did","didn't","didnt",
+    "cant","can't","cannot","wont","won't","wouldnt","wouldn't",
+    "shouldnt","shouldn't","couldnt","couldn't","aint","ain't",
+    "never","ever","please","thanks","thank","sorry",
+    "sir","ma'am","maam","bro","dude","man","girl","boy","baby","babe","darling","honey",
+    "stop","wait","listen","hold","hang","come","comeon","c'mon","let","lets","let's",
+    "leave","gimme","gonna","gotta","no","nah"
+  ]);
+
+  const NO_INTERJECTION_PRECEDERS = new Set([
+    "i","im","i'm","you","u","ya","y'all","yall","ya'll",
+    "he","she","we","they","it","me","him","her","us","them",
+    "myself","yourself","herself","himself","itself","ourselves","themselves","yourselves",
+    "somebody","someone","everybody","everyone","anybody","anyone","nobody",
+    "something","anything","everything","nothing","nothin","anythin",
+    "cant","can't","cannot","dont","don't","didnt","didn't","wont","won't",
+    "wouldnt","wouldn't","shouldnt","shouldn't","couldnt","couldn't","aint","ain't",
+    "never","ever","nah","nope"
+  ]);
+
+  const NO_TRAILING_SKIP_PREV = new Set([
+    "say","says","said","tell","tells","told","ask","asks","asked",
+    "reply","replies","replied","yell","yells","yelled","shout","shouts","shouted",
+    "scream","screams","screamed","whisper","whispers","whispered"
+  ]);
+
+  const NO_QUOTE_CHARS = "\"'“”‘’";
+
+  function shouldCommaAfterNo(str, idx) {
+    let i = idx;
+    while (i < str.length && (str[i] === ' ' || str[i] === '\t')) i++;
+    while (i < str.length && NO_QUOTE_CHARS.includes(str[i])) i++;
+    if (i >= str.length) return false;
+    if (str[i] === '\n') return false;
+    if (str[i] === ',') return false;
+    if (/[.!?;:)]/.test(str[i])) return false;
+    const match = str.slice(i).match(/^([A-Za-z']+)/);
+    if (!match) return false;
+    const nextLower = match[1].toLowerCase();
+    return NO_INTERJECTION_FOLLOWERS.has(nextLower);
+  }
+
+  function hasNoCueBefore(str, idx, limit = 4) {
+    let checked = 0;
+    for (let i = idx - 1; i >= 0 && checked < limit; ) {
+      while (i >= 0 && /\s/.test(str[i])) i--;
+      if (i < 0) break;
+      const ch = str[i];
+      if (ch === '\n' || /[.!?]/.test(ch)) break;
+      if (!/[A-Za-z']/.test(ch)) {
+        i--;
+        continue;
+      }
+      let end = i + 1;
+      while (i >= 0 && /[A-Za-z']/.test(str[i])) i--;
+      const word = str.slice(i + 1, end);
+      if (!word) continue;
+      checked++;
+      if (NO_INTERJECTION_PRECEDERS.has(word.toLowerCase())) return true;
+    }
+    return false;
+  }
+
+  function applyNoCommaRules(text) {
+    if (!text) return text;
+
+    text = text.replace(/\b([Nn]o)([ \t]+)(?=[Nn]o\b)/g, (_, word) => word + ', ');
+
+    text = text.replace(/(^|\n)(\s*)([Nn]o)\b(?!\s*,)/g, (match, boundary, spaces, word, offset, str) => {
+      const afterIndex = offset + match.length;
+      if (shouldCommaAfterNo(str, afterIndex)) return boundary + spaces + word + ',';
+      return match;
+    });
+
+    text = text.replace(/,([ \t]+)([Nn]o)\b(?!\s*,)([ \t]+)([A-Za-z']+)/g,
+      (match, preSpaces, noWord, postSpaces, nextWord, offset, str) => {
+        const noStart = offset + 1 + preSpaces.length;
+        if (!shouldCommaAfterNo(str, noStart + noWord.length)) return match;
+        return `, ${noWord}, ${nextWord}`;
+      });
+
+    text = text.replace(/(\b[\w'"]+)([ \t]+)([Nn]o)\b(?!\s*,)([ \t]+)([A-Za-z']+)/g,
+      (match, prevWord, preSpaces, noWord, postSpaces, nextWord, offset, str) => {
+        const noStart = offset + prevWord.length + preSpaces.length;
+        if (!shouldCommaAfterNo(str, noStart + noWord.length)) return match;
+        const prevLower = prevWord.toLowerCase();
+        const before = NO_TRAILING_SKIP_PREV.has(prevLower)
+          ? `${prevWord} ${noWord}`
+          : `${prevWord}, ${noWord}`;
+        return `${before}, ${nextWord}`;
+      });
+
+    text = text.replace(/(\b[\w'"]+)([ \t]+)([Nn]o)(?=(?:\s*[.!?](?:\s|$)|\s*$))/g,
+      (match, prevWord, spaces, noWord, offset, str) => {
+        const noStart = offset + prevWord.length + spaces.length;
+        const prevLower = prevWord.toLowerCase();
+        if (NO_TRAILING_SKIP_PREV.has(prevLower)) return match;
+        if (!hasNoCueBefore(str, noStart)) return match;
+        return `${prevWord}, ${noWord}`;
+      });
+
+    return text;
+  }
+
+  const LOOSE_EM_PREV_BLOCKERS = new Set([
+    "i","im","i'm","i'd","i'll","i've","imma"
+  ]);
+
+  const LOOSE_EM_QUESTION_WORDS = new Set([
+    "who","what","when","where","why","how"
+  ]);
+
+  const LOOSE_EM_NEXT_BLOCKERS = new Set([
+    "i","im","i'm","i'd","i'll","i've","imma","we"
+  ]);
+
+  function findPreviousWord(str, index) {
+    let i = index - 1;
+    while (i >= 0 && /\s/.test(str[i])) i--;
+    while (i >= 0 && !/[A-Za-z']/.test(str[i])) {
+      if (str[i] === '\n') return null;
+      i--;
+    }
+    if (i < 0) return null;
+    let end = i + 1;
+    while (i >= 0 && /[A-Za-z']/.test(str[i])) i--;
+    const word = str.slice(i + 1, end);
+    return word ? { word, start: i + 1, end } : null;
+  }
+
+  function findNextWord(str, index) {
+    let i = index;
+    while (i < str.length && /\s/.test(str[i])) i++;
+    while (i < str.length && !/[A-Za-z']/.test(str[i])) {
+      if (str[i] === '\n') return null;
+      i++;
+    }
+    if (i >= str.length) return null;
+    const start = i;
+    while (i < str.length && /[A-Za-z']/.test(str[i])) i++;
+    const word = str.slice(start, i);
+    return word ? { word, start, end: i } : null;
+  }
+
+  function shouldConvertLooseVariant(str, start, wordLower, length) {
+    const prev = findPreviousWord(str, start);
+    if (!prev) return false;
+    const prevLower = prev.word.toLowerCase();
+    if (LOOSE_EM_PREV_BLOCKERS.has(prevLower)) return false;
+    if (wordLower === 'am') {
+      if (LOOSE_EM_QUESTION_WORDS.has(prevLower)) return false;
+      const next = findNextWord(str, start + length);
+      if (next && LOOSE_EM_NEXT_BLOCKERS.has(next.word.toLowerCase())) return false;
+    }
+    return true;
+  }
+
+  function shouldConvertThem(str, start, length) {
+    const prev = findPreviousWord(str, start);
+    return Boolean(prev);
+  }
+
+  function standardEmForCase(original) {
+    const bare = original.replace(/^[’'`]/, '');
+    if (!bare) return "'em";
+    if (bare === bare.toUpperCase()) return "'EM";
+    if (bare[0] === bare[0].toUpperCase()) return "'Em";
+    return "'em";
+  }
+
+  function normalizeEmPronouns(text) {
+    if (!text) return text;
+
+    text = text.replace(/\b[’'`]?em\b/gi, match => standardEmForCase(match));
+
+    text = text.replace(/\b(them|um|m|am)\b/gi, (match, word, offset, str) => {
+      const lower = word.toLowerCase();
+      if (lower === 'them') {
+        if (!shouldConvertThem(str, offset, match.length)) return match;
+        return standardEmForCase(match);
+      }
+      if (!shouldConvertLooseVariant(str, offset, lower, match.length)) return match;
+      return standardEmForCase(match);
+    });
+
+    return text;
+  }
+
   // ---------- Formatter ----------
   function formatLyrics(input) {
     if (!input) return "";
@@ -174,16 +367,19 @@
 
     x = x.replace(/(-\s+)'til\b/g, (_, prefix) => prefix + "'Til");
 
+    x = normalizeEmPronouns(x);
+
     // Interjections
     const CLOSING_QUOTES = new Set(["'", '"', "’", "”"]);
     const INTERJECTION_STOPPERS = ",!?.-;:)]}";
-    x = x.replace(/\b(oh|yeah|whoa|ooh)\b/gi, (m, _, off, str) => {
+    x = x.replace(/\b(oh|ah|yeah)h+\b/gi, (match, base) => base);
+    x = x.replace(/\b(oh|ah|yeah|whoa|ooh)\b/gi, (m, _, off, str) => {
       const after = str.slice(off + m.length);
-      if (/^\s*$/.test(after)) return m;
+      if (/^\s*$/.test(after)) return m + ',';
 
       let idx = 0;
       while (idx < after.length && /\s/.test(after[idx])) idx++;
-      if (idx >= after.length) return m;
+      if (idx >= after.length) return m + ',';
 
       if (after[idx] === ',') return m;
 
@@ -199,7 +395,7 @@
       return m + ',';
     });
 
-    x = x.replace(/\b(oh|yeah|whoa|ooh)\b\s*,\s*(?=\))/gi, '$1');
+    x = x.replace(/\b(oh|ah|yeah|whoa|ooh)\b\s*,\s*(?=\))/gi, '$1');
 
     // Dropped-G
     const dropped = ["nothin","somethin","anythin","comin","goin","playin","lovin","talkin","walkin","feelin","runnin","workin","doin"];
@@ -208,6 +404,8 @@
 
     // Numbers
     x = applyNumberRules(x);
+
+    x = applyNoCommaRules(x);
 
     // Capitalize after ? or !
     x = x.replace(/([!?])\s*([a-z])/g, (_, a, b) => a + " " + b.toUpperCase());
@@ -229,7 +427,13 @@
     // Smart comma relocation: only move if there's text after ")", otherwise remove
     x = x.replace(/,\s*\(([^)]*?)\)(?=\s*\S)/g, ' ($1),'); // if content follows, move comma after ")"
     x = x.replace(/,\s*\(([^)]*?)\)\s*$/gm, ' ($1)');     // if line ends after ")", remove comma
-    x = x.replace(/,\s*$/gm, "");
+    x = x.replace(/,\s*$/gm, (match, offset, str) => {
+      const lineStart = str.lastIndexOf('\n', offset);
+      const start = lineStart === -1 ? 0 : lineStart + 1;
+      const line = str.slice(start, offset).trim();
+      if (/^(?:oh|ah|yeah|whoa|ooh)$/i.test(line)) return match;
+      return '';
+    });
 
 
     // ---------- Final Sanitation ----------
