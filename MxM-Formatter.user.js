@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.20
+// @version      1.1.21
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Vincas Stepankevičius & Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.20';
+  const SCRIPT_VERSION = '1.1.21';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -153,6 +153,56 @@
       const clockPart = isAllCaps ? " O'CLOCK" : " o'clock";
       return normalizedWord + clockPart;
     });
+  }
+
+  const WORD_TO_DIGIT_TIME = {
+    zero: 0,
+    one: 1,
+    two: 2,
+    three: 3,
+    four: 4,
+    five: 5,
+    six: 6,
+    seven: 7,
+    eight: 8,
+    nine: 9,
+    ten: 10,
+    eleven: 11,
+    twelve: 12
+  };
+
+  const AMPM_HOUR_WORDS = new Set(Object.keys(WORD_TO_DIGIT_TIME));
+  const MERIDIEM_PATTERN = '(?:a|p)\\s*\\.?\\s*m\\.?';
+  const MERIDIEM_TRAIL = '(?=$|[^A-Za-z0-9_])';
+  const DIGIT_TIME_RE = new RegExp(`\\b(\\d{1,2})(?:\\s*[:.]\\s*(\\d{1,2}))?\\s*(${MERIDIEM_PATTERN})${MERIDIEM_TRAIL}`, 'gi');
+  const WORD_TIME_RE = new RegExp(`\\b(${Object.keys(WORD_TO_DIGIT_TIME).join('|')})\\b\\s*(${MERIDIEM_PATTERN})${MERIDIEM_TRAIL}`, 'gi');
+
+  function normalizeAmPmTimes(text) {
+    if (!text) return text;
+
+    const normalizeMeridiem = token => {
+      const match = token.match(/[ap]/i);
+      const letter = match ? match[0].toLowerCase() : 'a';
+      return letter === 'a' ? 'a.m.' : 'p.m.';
+    };
+
+    text = text.replace(DIGIT_TIME_RE, (match, hourRaw, minuteRaw, meridiemToken) => {
+      const hour = parseInt(hourRaw, 10);
+      if (!Number.isFinite(hour) || hour > 12) return match;
+      if (minuteRaw && minuteRaw.length > 2) return match;
+      const minute = minuteRaw ? minuteRaw.padStart(2, '0') : null;
+      const meridiem = normalizeMeridiem(meridiemToken);
+      return minute ? `${hour}:${minute} ${meridiem}` : `${hour} ${meridiem}`;
+    });
+
+    text = text.replace(WORD_TIME_RE, (match, hourWord, meridiemToken) => {
+      const hour = WORD_TO_DIGIT_TIME[hourWord.toLowerCase()];
+      if (hour === undefined) return match;
+      const meridiem = normalizeMeridiem(meridiemToken);
+      return `${hour} ${meridiem}`;
+    });
+
+    return text;
   }
 
   const NO_INTERJECTION_FOLLOWERS = new Set([
@@ -295,9 +345,56 @@
     return word ? { word, start, end: i } : null;
   }
 
+  function hasNumericTimeBefore(str, start) {
+    let i = start - 1;
+    while (i >= 0 && /\s/.test(str[i])) i--;
+    let j = i;
+    let foundDigits = false;
+    while (j >= 0 && /[0-9]/.test(str[j])) {
+      foundDigits = true;
+      j--;
+    }
+    if (foundDigits) return true;
+    if (j >= 0 && (str[j] === ':' || str[j] === '.')) {
+      let k = j - 1;
+      while (k >= 0 && /\s/.test(str[k])) k--;
+      let hourDigits = false;
+      while (k >= 0 && /[0-9]/.test(str[k])) {
+        hourDigits = true;
+        k--;
+      }
+      if (hourDigits) return true;
+    }
+    return false;
+  }
+
+  function isLikelyTimeMeridiem(str, start, wordLower, length) {
+    if (wordLower !== 'am' && wordLower !== 'm') return false;
+    if (hasNumericTimeBefore(str, start)) return true;
+    if (wordLower === 'am') {
+      const prevWord = findPreviousWord(str, start);
+      if (prevWord && AMPM_HOUR_WORDS.has(prevWord.word.toLowerCase())) return true;
+      return false;
+    }
+
+    let i = start - 1;
+    while (i >= 0 && /\s/.test(str[i])) i--;
+    while (i >= 0 && str[i] === '.') {
+      i--;
+      while (i >= 0 && /\s/.test(str[i])) i--;
+    }
+    if (i >= 0 && /[ap]/i.test(str[i])) {
+      let before = i - 1;
+      while (before >= 0 && /\s/.test(str[before])) before--;
+      if (before < 0 || !/[A-Za-z]/.test(str[before])) return true;
+    }
+    return false;
+  }
+
   function shouldConvertLooseVariant(str, start, wordLower, length) {
     const prevChar = start > 0 ? str[start - 1] : '';
     if (prevChar === "'" || prevChar === "`" || prevChar === "’") return false;
+    if (isLikelyTimeMeridiem(str, start, wordLower, length)) return false;
     const prev = findPreviousWord(str, start);
     if (!prev) return false;
     const prevLower = prev.word.toLowerCase();
@@ -409,6 +506,7 @@
 
     x = x.replace(/(-\s+)'til\b/g, (_, prefix) => prefix + "'Til");
 
+    x = normalizeAmPmTimes(x);
     x = normalizeEmPronouns(x);
 
     // Interjections
