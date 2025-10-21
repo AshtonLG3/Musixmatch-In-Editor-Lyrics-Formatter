@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.24
+// @version      1.1.25
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Vincas Stepankevičius & Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.24';
+  const SCRIPT_VERSION = '1.1.25';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -555,6 +555,21 @@
     return text;
   }
 
+  function normalizeStructureTags(text) {
+    if (!text) return text;
+
+    return text
+      .replace(/(^|\n)\s*intro\s*(?=\n)/gi, (_, boundary) => boundary + "#INTRO")
+      .replace(/(^|\n)\s*verse\s*(?=\n)/gi, (_, boundary) => boundary + "#VERSE")
+      .replace(/(^|\n)\s*pre[- ]?chorus\s*(?=\n)/gi, (_, boundary) => boundary + "#PRE-CHORUS")
+      .replace(/(^|\n)\s*chorus\s*(?=\n)/gi, (_, boundary) => boundary + "#CHORUS")
+      .replace(/(^|\n)\s*post[- ]?chorus\s*(?=\n)/gi, (_, boundary) => boundary + "#HOOK")
+      .replace(/(^|\n)\s*hook\s*(?=\n)/gi, (_, boundary) => boundary + "#HOOK")
+      .replace(/(^|\n)\s*bridge\s*(?=\n)/gi, (_, boundary) => boundary + "#BRIDGE")
+      .replace(/(^|\n)\s*(ad[- ]?libs?|spoken)\s*(?=\n)/gi, (_, boundary) => boundary + "#HOOK")
+      .replace(/(^|\n)\s*outro\s*(?=\n)/gi, (_, boundary) => boundary + "#OUTRO");
+  }
+
   // ---------- Formatter ----------
   function formatLyrics(input) {
     if (!input) return "";
@@ -583,6 +598,8 @@
       if (/^outro/.test(t)) return "#OUTRO";
       return "#" + String(raw).toUpperCase().replace(/\d+/g, "").replace(/ +/g, "-");
     });
+
+    x = normalizeStructureTags(x);
 
     // Remove end-line punctuation
     x = x.replace(/[.,;:\-]+(?=[ \t]*\n)/g, "");
