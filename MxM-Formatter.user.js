@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.15
+// @version      1.1.16
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Vincas Stepankevičius & Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.15';
+  const SCRIPT_VERSION = '1.1.16';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -52,6 +52,10 @@
   const WORD_TO_NUM_11_19 = { eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19 };
   const WORD_TO_TENS = { twenty:20,thirty:30,forty:40,fifty:50,sixty:60,seventy:70,eighty:80,ninety:90 };
   const WORD_TO_ONES = { one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9 };
+  const OCLOCK_DIGIT_TO_WORD = {
+    1:"one",2:"two",3:"three",4:"four",5:"five",6:"six",7:"seven",8:"eight",9:"nine",10:"ten",11:"eleven",12:"twelve"
+  };
+  const OCLOCK_WORD_SET = new Set(Object.values(OCLOCK_DIGIT_TO_WORD));
 
   function isTimeContext(line, _s, e) {
     const after = line.slice(e);
@@ -64,6 +68,10 @@
   function isDecadeNumeric(line, _s, e) {
     const after = line.slice(e);
     return /^['’]s\b/.test(after);
+  }
+  function isOClockFollowing(line, e) {
+    const after = line.slice(e);
+    return /^\s*(?:o\s+clock|oclock|o['’]clock)\b/i.test(after);
   }
   function numerals0to10ToWords(line) {
     const re = /\b(0|1|2|3|4|5|6|7|8|9|10)\b/g;
@@ -80,9 +88,16 @@
   }
   function words11to99ToNumerals(line) {
     line = line.replace(/\b(eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen)\b/gi,
-      (w, raw) => String(WORD_TO_NUM_11_19[raw.toLowerCase()]));
+      (w, raw, offset, str) => {
+        const end = offset + w.length;
+        if (isOClockFollowing(str, end)) return w;
+        return String(WORD_TO_NUM_11_19[raw.toLowerCase()]);
+      });
     line = line.replace(/\b(twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)(?:[-\s]+(one|two|three|four|five|six|seven|eight|nine)|(one|two|three|four|five|six|seven|eight|nine))?\b/gi,
-      (_, tensRaw, onesWithSep, onesBare) => {
+      (_, tensRaw, onesWithSep, onesBare, offset, str) => {
+        const match = _;
+        const end = offset + match.length;
+        if (isOClockFollowing(str, end)) return match;
         let n = WORD_TO_TENS[tensRaw.toLowerCase()];
         const onesRaw = onesWithSep || onesBare;
         if (onesRaw) n += WORD_TO_ONES[onesRaw.toLowerCase()];
@@ -109,6 +124,36 @@
     return lines.join('\n');
   }
 
+  function normalizeOClock(text) {
+    if (!text) return text;
+    const re = /\b(?:(\d{1,2})|(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve))(\s*o\s*clock)\b/gi;
+    return text.replace(re, (match, digit, word, tail) => {
+      let baseWord;
+      if (digit) {
+        const num = parseInt(digit, 10);
+        baseWord = OCLOCK_DIGIT_TO_WORD[num];
+        if (!baseWord) return match;
+      } else {
+        const lower = word.toLowerCase();
+        if (!OCLOCK_WORD_SET.has(lower)) return match;
+        baseWord = lower;
+      }
+      let normalizedWord;
+      if (word) {
+        if (word === word.toUpperCase()) normalizedWord = baseWord.toUpperCase();
+        else if (word[0] === word[0].toUpperCase()) normalizedWord = baseWord[0].toUpperCase() + baseWord.slice(1);
+        else normalizedWord = baseWord;
+      } else {
+        normalizedWord = baseWord;
+      }
+      const tailLetters = tail.replace(/[^A-Za-z]/g, '');
+      const isAllCaps = tailLetters && tailLetters === tailLetters.toUpperCase();
+      if (!word && isAllCaps) normalizedWord = normalizedWord.toUpperCase();
+      const clockPart = isAllCaps ? " O'CLOCK" : " o'clock";
+      return normalizedWord + clockPart;
+    });
+  }
+
   const NO_INTERJECTION_FOLLOWERS = new Set([
     "i","i'm","im","i'd","i'll","i've","imma",
     "you","you're","youre","u","ya","y'all","yall","ya'll",
@@ -124,7 +169,7 @@
   ]);
 
   const NO_INTERJECTION_PRECEDERS = new Set([
-    "i","im","i'm","you","u","ya","y'all","yall","ya'll",
+    "i","im","i'm","i'ma","you","u","ya","y'all","yall","ya'll",
     "he","she","we","they","it","me","him","her","us","them",
     "myself","yourself","herself","himself","itself","ourselves","themselves","yourselves",
     "somebody","someone","everybody","everyone","anybody","anyone","nobody",
@@ -422,6 +467,7 @@
 
     // Numbers
     x = applyNumberRules(x);
+    x = normalizeOClock(x);
 
     x = applyNoCommaRules(x);
 
