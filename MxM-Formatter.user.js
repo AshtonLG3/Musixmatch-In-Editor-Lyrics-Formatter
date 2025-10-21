@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.18
+// @version      1.1.19
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Vincas Stepankevičius & Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.18';
+  const SCRIPT_VERSION = '1.1.19';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -128,7 +128,7 @@
 
   function normalizeOClock(text) {
     if (!text) return text;
-    const re = /\b(?:(\d{1,2})|(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve))(\s*o\s*clock)\b/gi;
+    const re = /\b(?:(\d{1,2})|(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve))\s*(o['’]?\s*clock)\b/gi;
     return text.replace(re, (match, digit, word, tail) => {
       let baseWord;
       if (digit) {
@@ -143,14 +143,13 @@
       let normalizedWord;
       if (word) {
         if (word === word.toUpperCase()) normalizedWord = baseWord.toUpperCase();
-        else if (word[0] === word[0].toUpperCase()) normalizedWord = baseWord[0].toUpperCase() + baseWord.slice(1);
         else normalizedWord = baseWord;
       } else {
         normalizedWord = baseWord;
       }
       const tailLetters = tail.replace(/[^A-Za-z]/g, '');
       const isAllCaps = tailLetters && tailLetters === tailLetters.toUpperCase();
-      if (!word && isAllCaps) normalizedWord = normalizedWord.toUpperCase();
+      if (isAllCaps) normalizedWord = normalizedWord.toUpperCase();
       const clockPart = isAllCaps ? " O'CLOCK" : " o'clock";
       return normalizedWord + clockPart;
     });
@@ -195,6 +194,38 @@
   function applyNoCommaRules(text) {
     if (!text) return text;
 
+    // Exempt idioms like "Say no more" from added commas
+    text = text.replace(/\b(Say|Told|Telling|Tell|Tells)\s+no\s+more\b/gi, m => m);
+
+    text = text.replace(
+      /(\b[\w'"]+)(\s*,\s*|\s+)([Nn][Oo])(\s+)([A-Za-z']+)/g,
+      (match, prevWord, separator, noWord, postSpace, nextWord, offset, str) => {
+        if (separator.includes('\n') || postSpace.includes('\n')) return match;
+        const noStart = offset + prevWord.length + separator.length;
+        if (!shouldCommaAfterNo(str, noStart + noWord.length)) return match;
+
+        const nextLower = nextWord.toLowerCase();
+        const prevLower = prevWord.replace(/^["']/,'').toLowerCase();
+
+        if (nextLower === 'more' && /^(say|told|telling|tell|tells)$/.test(prevLower)) {
+          return match;
+        }
+
+        const hasCommaBefore = separator.includes(',');
+        const before = hasCommaBefore
+          ? `${prevWord}, ${noWord}`
+          : (NO_TRAILING_SKIP_PREV.has(prevLower)
+            ? `${prevWord} ${noWord}`
+            : `${prevWord}, ${noWord}`);
+
+        if (NO_INTERJECTION_FOLLOWERS.has(nextLower)) {
+          return `${before}, ${nextWord}`;
+        }
+
+        return `${before} ${nextWord}`;
+      }
+    );
+
     text = text.replace(/\b([Nn][Oo])([ \t]+)(?=[Nn][Oo]\b)/g, (_, word) => word + ', ');
 
     text = text.replace(/(\.\.\.|…)([ \t]+)([Nn][Oo])\b(?!\s*,)/g,
@@ -217,24 +248,6 @@
       if (shouldCommaAfterNo(str, afterIndex)) return boundary + spaces + word + ',';
       return match;
     });
-
-    text = text.replace(/,([ \t]+)([Nn][Oo])\b(?!\s*,)([ \t]+)([A-Za-z']+)/g,
-      (match, preSpaces, noWord, postSpaces, nextWord, offset, str) => {
-        const noStart = offset + 1 + preSpaces.length;
-        if (!shouldCommaAfterNo(str, noStart + noWord.length)) return match;
-        return `, ${noWord}, ${nextWord}`;
-      });
-
-    text = text.replace(/(\b[\w'"]+)([ \t]+)([Nn][Oo])\b(?!\s*,)([ \t]+)([A-Za-z']+)/g,
-      (match, prevWord, preSpaces, noWord, postSpaces, nextWord, offset, str) => {
-        const noStart = offset + prevWord.length + preSpaces.length;
-        if (!shouldCommaAfterNo(str, noStart + noWord.length)) return match;
-        const prevLower = prevWord.toLowerCase();
-        const before = NO_TRAILING_SKIP_PREV.has(prevLower)
-          ? `${prevWord} ${noWord}`
-          : `${prevWord}, ${noWord}`;
-        return `${before}, ${nextWord}`;
-      });
 
     text = text.replace(/(\b[\w'"]+)([ \t]+)([Nn][Oo])(?=(?:\s*[.!?](?:\s|$)|\s*$))/g,
       (_match, prevWord, _spaces, noWord) => `${prevWord}, ${noWord}`);
@@ -431,10 +444,9 @@
     const reDropped = new RegExp("\\b(" + dropped.join("|") + ")(?!['’])\\b", "gi");
     x = x.replace(reDropped, m => m + "'");
 
-    // Numbers
-    x = applyNumberRules(x);
+    // Numbers & timing logic
     x = normalizeOClock(x);
-
+    x = applyNumberRules(x);
     x = applyNoCommaRules(x);
 
     // Capitalize after ? or !
