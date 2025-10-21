@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.22
+// @version      1.1.23
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Vincas Stepankevičius & Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.22';
+  const SCRIPT_VERSION = '1.1.23';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -227,6 +227,32 @@
 
   const NO_QUOTE_CHARS = "\"'“”‘’";
   const NO_BETWEEN_WORDS_RE = /((?:['’]?)[A-Za-z0-9][^\s,.;!?()#"]*)([ \t]+)([Nn][Oo])([ \t]+)((?:['’]?)[A-Za-z0-9][^\s,.;!?()#"]*)/g;
+  const NO_FILLER_REMOVE_RE =
+    /(\b(?:yeah|yea|yah|ya|yup|yep|yuh)\b)(\s*,?\s+)([Nn][Oo])(\s+)((?:['’]?)[A-Za-z0-9][^\s,.;!?()#"]*)/gi;
+
+  function normalizeNoBoundaryWord(word, removeLeading) {
+    if (!word) return '';
+    let out = word;
+    if (removeLeading) out = out.replace(/^['’"]+/, '');
+    else out = out.replace(/['’"]+$/, '');
+    return out.toLowerCase();
+  }
+
+  function isNumericToken(token) {
+    return token !== '' && /^\d+$/.test(token);
+  }
+
+  function shouldIsolateStandaloneNo(prevWord, nextWord) {
+    if (!nextWord) return false;
+    const prevLower = normalizeNoBoundaryWord(prevWord, true);
+    const nextLower = normalizeNoBoundaryWord(nextWord, false);
+    if (!nextLower) return false;
+    if (nextLower === 'no') return false;
+    if (prevLower === 'no') return false;
+    if (isNumericToken(prevLower) || isNumericToken(nextLower)) return true;
+    if (NO_INTERJECTION_FOLLOWERS.has(nextLower)) return true;
+    return false;
+  }
 
   function shouldCommaAfterNo(str, idx) {
     let i = idx;
@@ -249,6 +275,18 @@
     text = text.replace(/\b(Say|Told|Telling|Tell|Tells)\s+no\s+more\b/gi, m => m);
 
     text = text.replace(
+      NO_FILLER_REMOVE_RE,
+      (match, fillerWord, separator, _noWord, postSpaces, nextWord) => {
+        if (separator.includes('\n') || postSpaces.includes('\n')) return match;
+        const nextLower = nextWord.replace(/['’"]+$/, '').toLowerCase();
+        if (nextLower === 'no') return match;
+        if (NO_INTERJECTION_FOLLOWERS.has(nextLower)) return match;
+        const normalizedSeparator = separator.includes(',') ? ', ' : ' ';
+        return `${fillerWord}${normalizedSeparator}${nextWord}`;
+      }
+    );
+
+    text = text.replace(
       NO_BETWEEN_WORDS_RE,
       (match, prevWord, preSpaces, noWord, postSpaces, nextWord) => {
         if (preSpaces.includes('\n') || postSpaces.includes('\n')) return match;
@@ -256,6 +294,8 @@
         const prevLower = prevWord.replace(/^['’"]+/, '').toLowerCase();
         const nextLower = nextWord.replace(/['’"]+$/, '').toLowerCase();
         if (nextLower === 'more' && /^(say|told|telling|tell|tells)$/.test(prevLower)) return match;
+
+        if (!shouldIsolateStandaloneNo(prevWord, nextWord)) return match;
 
         return `${prevWord}, ${noWord}, ${nextWord}`;
       }
@@ -270,6 +310,8 @@
         const nextLower = nextWord.replace(/['’"]+$/, '').toLowerCase();
         if (nextLower === 'more' && /^(say|told|telling|tell|tells)$/.test(prevLower)) return match;
 
+        if (!shouldIsolateStandaloneNo(prevWord, nextWord)) return match;
+
         return `${prevWord}, ${noWord}, ${nextWord}`;
       }
     );
@@ -282,6 +324,8 @@
         const prevLower = prevWord.replace(/^['’"]+/, '').toLowerCase();
         const nextLower = nextWord.replace(/['’"]+$/, '').toLowerCase();
         if (nextLower === 'more' && /^(say|told|telling|tell|tells)$/.test(prevLower)) return match;
+
+        if (!shouldIsolateStandaloneNo(prevWord, nextWord)) return match;
 
         return `${prevWord}, ${noWord}, ${nextWord}`;
       }
@@ -300,6 +344,8 @@
         if (nextLower === 'more' && /^(say|told|telling|tell|tells)$/.test(prevLower)) {
           return match;
         }
+
+        if (!shouldIsolateStandaloneNo(prevWord, nextWord)) return match;
 
         const hasCommaBefore = separator.includes(',');
         const before = hasCommaBefore
@@ -345,14 +391,15 @@
     return text;
   }
 
-  const QUESTION_FOLLOWING_QUOTES = new Set(["'", '"', '‘', '’', '“', '”']);
+  const SENTENCE_ENDER_FOLLOWING_QUOTES = new Set(["'", '"', '‘', '’', '“', '”']);
 
-  function capitalizeAfterQuestionMarks(text) {
+  function capitalizeAfterSentenceEnders(text) {
     if (!text) return text;
     const chars = Array.from(text);
-    const isSpace = c => c === ' ' || c === '\t';
+    const isSpace = c => c === ' ' || c === '\t' || c === '\n';
     for (let i = 0; i < chars.length; i++) {
-      if (chars[i] !== '?') continue;
+      const ch = chars[i];
+      if (ch !== '?' && ch !== '!') continue;
       let j = i + 1;
       while (j < chars.length && isSpace(chars[j])) j++;
       let k = j;
@@ -360,7 +407,7 @@
         k++;
         while (k < chars.length && isSpace(chars[k])) k++;
       }
-      while (k < chars.length && QUESTION_FOLLOWING_QUOTES.has(chars[k])) k++;
+      while (k < chars.length && SENTENCE_ENDER_FOLLOWING_QUOTES.has(chars[k])) k++;
       if (k < chars.length && chars[k] >= 'a' && chars[k] <= 'z') {
         chars[k] = chars[k].toUpperCase();
       }
@@ -580,8 +627,8 @@
     // Interjections
     const CLOSING_QUOTES = new Set(["'", '"', "’", "”"]);
     const INTERJECTION_STOPPERS = ",!?.-;:)]}";
-    x = x.replace(/\b(oh|ah|yeah)h+\b(?=[\s,!.?]|$)/gi, (match, base) => base);
-    x = x.replace(/\b(oh|ah|yeah|whoa|ooh)\b/gi, (m, _, off, str) => {
+    x = x.replace(/\b(oh|ah|yeah|uh)h+\b(?=[\s,!.?\)]|$)/gi, (match, base) => base);
+    x = x.replace(/\b(oh|ah|yeah|whoa|ooh|uh)\b/gi, (m, _, off, str) => {
       const after = str.slice(off + m.length);
       if (/^\s*$/.test(after)) return m + ',';
 
@@ -603,7 +650,7 @@
       return m + ',';
     });
 
-    x = x.replace(/\b(oh|ah|yeah|whoa|ooh)\b\s*,\s*(?=\))/gi, '$1');
+    x = x.replace(/\b(oh|ah|yeah|whoa|ooh|uh)\b\s*,\s*(?=\))/gi, '$1');
 
     // Dropped-G
     const dropped = ["nothin","somethin","anythin","comin","goin","playin","lovin","talkin","walkin","feelin","runnin","workin","doin"];
@@ -614,6 +661,9 @@
     x = normalizeOClock(x);
     x = applyNumberRules(x);
     x = applyNoCommaRules(x);
+
+    // Remove stray spaces that appear immediately before punctuation marks
+    x = x.replace(/[ \t]+([!?.,;:])/g, '$1');
 
     // Standalone pronoun fixes
     x = ensureStandaloneICapitalized(x);
@@ -632,8 +682,8 @@
     // Capitalize first letter when line starts with "("
     x = x.replace(/(^|\n)\(\s*([a-z])/g, (_, a, b) => a + "(" + b.toUpperCase());
 
-    // Capitalize words following question marks (after parentheses normalization)
-    x = capitalizeAfterQuestionMarks(x);
+    // Capitalize words following question or exclamation marks (after parentheses normalization)
+    x = capitalizeAfterSentenceEnders(x);
 
     // Smart comma relocation: only move if there's text after ")", otherwise remove
     x = x.replace(/,\s*\(([^)]*?)\)(?=\s*\S)/g, ' ($1),'); // if content follows, move comma after ")"
