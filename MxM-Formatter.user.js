@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.23
+// @version      1.1.24
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Vincas Stepankevičius & Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.23';
+  const SCRIPT_VERSION = '1.1.24';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -589,8 +589,8 @@
 
     // Contractions
     x = x
-      .replace(/\bcuz\b/gi, "'cause")
-      .replace(/\bcos\b/gi, "'cause")
+      .replace(/(^|\r?\n)c(?:uz|os|oz)\b/gi, (match, boundary) => `${boundary}'Cause`)
+      .replace(/(?<![\r\n])(?<=\s)c(?:uz|os|oz)\b/gi, "'cause")
       .replace(/(?<!['\w])ti(?:ll|l)(?:')?(?!\w)/gi, (m, offset, str) => {
         const prev = offset > 0 ? str[offset - 1] : '';
         if (prev === "'" || prev === "\u2019") return m;
