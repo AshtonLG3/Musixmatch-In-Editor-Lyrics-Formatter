@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.14
+// @version      1.1.15
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Vincas Stepankevičius & Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.14';
+  const SCRIPT_VERSION = '1.1.15';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -156,9 +156,8 @@
     return NO_INTERJECTION_FOLLOWERS.has(nextLower);
   }
 
-  function hasNoCueBefore(str, idx, limit = 4) {
-    let checked = 0;
-    for (let i = idx - 1; i >= 0 && checked < limit; ) {
+  function hasNoCueBefore(str, idx) {
+    for (let i = idx - 1; i >= 0; ) {
       while (i >= 0 && /\s/.test(str[i])) i--;
       if (i < 0) break;
       const ch = str[i];
@@ -171,7 +170,6 @@
       while (i >= 0 && /[A-Za-z']/.test(str[i])) i--;
       const word = str.slice(i + 1, end);
       if (!word) continue;
-      checked++;
       if (NO_INTERJECTION_PRECEDERS.has(word.toLowerCase())) return true;
     }
     return false;
@@ -304,7 +302,9 @@
   function normalizeEmPronouns(text) {
     if (!text) return text;
 
-    text = text.replace(/\b[’'`]?em\b/gi, match => standardEmForCase(match));
+    text = text.replace(/(^|[^A-Za-z0-9_])([’'`]?em)\b/gi, (match, boundary, word) =>
+      boundary + standardEmForCase(word)
+    );
 
     text = text.replace(/\b(them|um|m|am)\b/gi, (match, word, offset, str) => {
       const lower = word.toLowerCase();
