@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.12
+// @version      1.1.14
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Vincas Stepankevičius & Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.12';
+  const SCRIPT_VERSION = '1.1.14';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -182,6 +182,21 @@
 
     text = text.replace(/\b([Nn]o)([ \t]+)(?=[Nn]o\b)/g, (_, word) => word + ', ');
 
+    text = text.replace(/(\.\.\.|…)([ \t]+)([Nn]o)\b(?!\s*,)/g,
+      (match, dots, spaces, noWord, offset, str) => {
+        const noStart = offset + dots.length + spaces.length;
+        const afterIndex = noStart + noWord.length;
+        if (shouldCommaAfterNo(str, afterIndex)) return `${dots}, ${noWord}`;
+
+        let i = afterIndex;
+        while (i < str.length && /\s/.test(str[i])) i++;
+        while (i < str.length && NO_QUOTE_CHARS.includes(str[i])) i++;
+        if (i >= str.length || str[i] === '\n') return `${dots}, ${noWord}`;
+        if (/[.!?;:)]/.test(str[i])) return `${dots}, ${noWord}`;
+
+        return match;
+      });
+
     text = text.replace(/(^|\n)(\s*)([Nn]o)\b(?!\s*,)/g, (match, boundary, spaces, word, offset, str) => {
       const afterIndex = offset + match.length;
       if (shouldCommaAfterNo(str, afterIndex)) return boundary + spaces + word + ',';
@@ -259,6 +274,8 @@
   }
 
   function shouldConvertLooseVariant(str, start, wordLower, length) {
+    const prevChar = start > 0 ? str[start - 1] : '';
+    if (prevChar === "'" || prevChar === "`" || prevChar === "’") return false;
     const prev = findPreviousWord(str, start);
     if (!prev) return false;
     const prevLower = prev.word.toLowerCase();

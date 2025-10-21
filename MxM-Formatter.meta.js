@@ -1,7 +1,11 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
+<<<<<<< ours
 // @version      1.1.12
+=======
+// @version      1.1.13
+>>>>>>> theirs
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Vincas Stepankevičius & Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
