@@ -18,7 +18,7 @@
   const SCRIPT_VERSION = '1.1.11';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
-  const defaults = { showPanel: true, aggressiveNumbers: false };
+  const defaults = { showPanel: true, aggressiveNumbers: true };
 
   function loadSettings() {
     if (!hasWindow) return { ...defaults };
@@ -348,6 +348,7 @@
       })
       .replace(/\bimma\b/gi, "I'ma")
       .replace(/\bima\b/gi, "I'ma")
+      .replace(/\bim\b/gi, "I'm")
       .replace(/\bdont\b/gi, "don't")
       .replace(/\bcant\b/gi, "can't")
       .replace(/\bwont\b/gi, "won't")
@@ -372,7 +373,7 @@
     // Interjections
     const CLOSING_QUOTES = new Set(["'", '"', "’", "”"]);
     const INTERJECTION_STOPPERS = ",!?.-;:)]}";
-    x = x.replace(/\b(oh|ah|yeah)h+\b/gi, (match, base) => base);
+    x = x.replace(/\b(oh|ah|yeah)h+\b(?=[\s,!.?]|$)/gi, (match, base) => base);
     x = x.replace(/\b(oh|ah|yeah|whoa|ooh)\b/gi, (m, _, off, str) => {
       const after = str.slice(off + m.length);
       if (/^\s*$/.test(after)) return m + ',';
