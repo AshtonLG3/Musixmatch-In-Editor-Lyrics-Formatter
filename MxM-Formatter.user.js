@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.16
+// @version      1.1.17
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Vincas Stepankevičius & Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.16';
+  const SCRIPT_VERSION = '1.1.17';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -31,6 +31,8 @@
   }
 
   const settings = loadSettings();
+  const focusTrackedDocs = new WeakSet();
+  const shortcutTrackedDocs = new WeakSet();
 
   // ---------- Dynamic Focus Tracker ----------
   let currentEditable = null;
@@ -168,17 +170,6 @@
     "leave","gimme","gonna","gotta","no","nah"
   ]);
 
-  const NO_INTERJECTION_PRECEDERS = new Set([
-    "i","im","i'm","i'ma","you","u","ya","y'all","yall","ya'll",
-    "he","she","we","they","it","me","him","her","us","them",
-    "myself","yourself","herself","himself","itself","ourselves","themselves","yourselves",
-    "somebody","someone","everybody","everyone","anybody","anyone","nobody",
-    "something","anything","everything","nothing","nothin","anythin",
-    "cant","can't","cannot","dont","don't","didnt","didn't","wont","won't",
-    "wouldnt","wouldn't","shouldnt","shouldn't","couldnt","couldn't","aint","ain't",
-    "never","ever","nah","nope"
-  ]);
-
   const NO_TRAILING_SKIP_PREV = new Set([
     "say","says","said","tell","tells","told","ask","asks","asked",
     "reply","replies","replied","yell","yells","yelled","shout","shouts","shouted",
@@ -201,31 +192,12 @@
     return NO_INTERJECTION_FOLLOWERS.has(nextLower);
   }
 
-  function hasNoCueBefore(str, idx) {
-    for (let i = idx - 1; i >= 0; ) {
-      while (i >= 0 && /\s/.test(str[i])) i--;
-      if (i < 0) break;
-      const ch = str[i];
-      if (ch === '\n' || /[.!?]/.test(ch)) break;
-      if (!/[A-Za-z']/.test(ch)) {
-        i--;
-        continue;
-      }
-      let end = i + 1;
-      while (i >= 0 && /[A-Za-z']/.test(str[i])) i--;
-      const word = str.slice(i + 1, end);
-      if (!word) continue;
-      if (NO_INTERJECTION_PRECEDERS.has(word.toLowerCase())) return true;
-    }
-    return false;
-  }
-
   function applyNoCommaRules(text) {
     if (!text) return text;
 
-    text = text.replace(/\b([Nn]o)([ \t]+)(?=[Nn]o\b)/g, (_, word) => word + ', ');
+    text = text.replace(/\b([Nn][Oo])([ \t]+)(?=[Nn][Oo]\b)/g, (_, word) => word + ', ');
 
-    text = text.replace(/(\.\.\.|…)([ \t]+)([Nn]o)\b(?!\s*,)/g,
+    text = text.replace(/(\.\.\.|…)([ \t]+)([Nn][Oo])\b(?!\s*,)/g,
       (match, dots, spaces, noWord, offset, str) => {
         const noStart = offset + dots.length + spaces.length;
         const afterIndex = noStart + noWord.length;
@@ -240,20 +212,20 @@
         return match;
       });
 
-    text = text.replace(/(^|\n)(\s*)([Nn]o)\b(?!\s*,)/g, (match, boundary, spaces, word, offset, str) => {
+    text = text.replace(/(^|\n)(\s*)([Nn][Oo])\b(?!\s*,)/g, (match, boundary, spaces, word, offset, str) => {
       const afterIndex = offset + match.length;
       if (shouldCommaAfterNo(str, afterIndex)) return boundary + spaces + word + ',';
       return match;
     });
 
-    text = text.replace(/,([ \t]+)([Nn]o)\b(?!\s*,)([ \t]+)([A-Za-z']+)/g,
+    text = text.replace(/,([ \t]+)([Nn][Oo])\b(?!\s*,)([ \t]+)([A-Za-z']+)/g,
       (match, preSpaces, noWord, postSpaces, nextWord, offset, str) => {
         const noStart = offset + 1 + preSpaces.length;
         if (!shouldCommaAfterNo(str, noStart + noWord.length)) return match;
         return `, ${noWord}, ${nextWord}`;
       });
 
-    text = text.replace(/(\b[\w'"]+)([ \t]+)([Nn]o)\b(?!\s*,)([ \t]+)([A-Za-z']+)/g,
+    text = text.replace(/(\b[\w'"]+)([ \t]+)([Nn][Oo])\b(?!\s*,)([ \t]+)([A-Za-z']+)/g,
       (match, prevWord, preSpaces, noWord, postSpaces, nextWord, offset, str) => {
         const noStart = offset + prevWord.length + preSpaces.length;
         if (!shouldCommaAfterNo(str, noStart + noWord.length)) return match;
@@ -264,14 +236,8 @@
         return `${before}, ${nextWord}`;
       });
 
-    text = text.replace(/(\b[\w'"]+)([ \t]+)([Nn]o)(?=(?:\s*[.!?](?:\s|$)|\s*$))/g,
-      (match, prevWord, spaces, noWord, offset, str) => {
-        const noStart = offset + prevWord.length + spaces.length;
-        const prevLower = prevWord.toLowerCase();
-        if (NO_TRAILING_SKIP_PREV.has(prevLower)) return match;
-        if (!hasNoCueBefore(str, noStart)) return match;
-        return `${prevWord}, ${noWord}`;
-      });
+    text = text.replace(/(\b[\w'"]+)([ \t]+)([Nn][Oo])(?=(?:\s*[.!?](?:\s|$)|\s*$))/g,
+      (_match, prevWord, _spaces, noWord) => `${prevWord}, ${noWord}`);
 
     return text;
   }
@@ -522,19 +488,64 @@
 
   if (!hasWindow) return;
 
-  window.addEventListener("focusin", e => {
-    const el = e.target;
-    if (el.isContentEditable || el.tagName === "TEXTAREA" || el.getAttribute("role") === "textbox")
-      currentEditable = el;
-  });
+  function bindFocusTracker(doc) {
+    if (!doc || focusTrackedDocs.has(doc)) return;
+    doc.addEventListener("focusin", e => {
+      const el = e.target;
+      if (el?.isContentEditable || el?.tagName === "TEXTAREA" || el?.getAttribute?.("role") === "textbox")
+        currentEditable = el;
+    });
+    focusTrackedDocs.add(doc);
+  }
 
   // ---------- Editor I/O ----------
   function getEditorText(el){return el.isContentEditable?el.innerText:el.value;}
-  function setNativeValue(el,v){const p=Object.getPrototypeOf(el);const d=Object.getOwnPropertyDescriptor(p,'value');const s=d&&d.set;if(s)s.call(el,v);else el.value=v;el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));}
-  function replaceInContentEditable(el,t){el.focus();try{document.execCommand('selectAll',false,null);document.execCommand('insertText',false,t);}catch{el.innerText=t;el.dispatchEvent(new InputEvent('input',{bubbles:true}));}}
+  function setNativeValue(el,v){
+    const ownerDoc=el?.ownerDocument||document;
+    const ownerWin=ownerDoc?.defaultView||window;
+    const p=Object.getPrototypeOf(el);
+    const d=Object.getOwnPropertyDescriptor(p,'value');
+    const s=d&&d.set;
+    if(s)s.call(el,v);else el.value=v;
+    const EventCtor=ownerWin?.Event||Event;
+    el.dispatchEvent(new EventCtor('input',{bubbles:true}));
+    el.dispatchEvent(new EventCtor('change',{bubbles:true}));
+  }
+  function replaceInContentEditable(el,t){
+    const ownerDoc=el?.ownerDocument||document;
+    const ownerWin=ownerDoc?.defaultView||window;
+    el.focus();
+    try{
+      ownerDoc.execCommand('selectAll',false,null);
+      ownerDoc.execCommand('insertText',false,t);
+    }catch{
+      el.innerText=t;
+      const InputCtor=ownerWin?.InputEvent
+        || (typeof InputEvent!=='undefined'?InputEvent:undefined)
+        || ownerWin?.Event
+        || Event;
+      el.dispatchEvent(new InputCtor('input',{bubbles:true}));
+    }
+  }
   function writeToEditor(el,t){if(el.isContentEditable&&ALWAYS_AGGRESSIVE){replaceInContentEditable(el,t);setTimeout(()=>replaceInContentEditable(el,t),10);return true;}if(el.isContentEditable){replaceInContentEditable(el,t);return true;}if(el.tagName==='TEXTAREA'||el.tagName==='INPUT'){setNativeValue(el,t);return true;}return false;}
 
   // ---------- UI ----------
+  function resolveUiContext() {
+    if (!hasWindow) return { doc: null, win: null };
+    try {
+      const topWin = window.top;
+      if (topWin && topWin.document) return { doc: topWin.document, win: topWin };
+    } catch {
+      /* ignore cross-origin access errors */
+    }
+    return { doc: document, win: window };
+  }
+
+  const { doc: uiDocument, win: uiWindowCandidate } = resolveUiContext();
+  const uiWindow = uiDocument?.defaultView || uiWindowCandidate || window;
+  bindFocusTracker(document);
+  if (uiDocument && uiDocument !== document) bindFocusTracker(uiDocument);
+
   const BUTTON_RIGHT_OFFSET = 16;
   const BUTTON_BASE_BOTTOM = 146;
   const BUTTON_GAP_PX = 12;
@@ -573,8 +584,17 @@
     el.style.bottom=`${latestButtonBottom}px`;
   }
 
-  if(window.top===window){
-    const btn=document.createElement('button');
+  function bindShortcutListener(doc){
+    if(!doc || shortcutTrackedDocs.has(doc)) return;
+    doc.addEventListener('keydown',e=>{if(e.altKey&&!e.ctrlKey&&!e.metaKey&&e.key.toLowerCase()==='m'){e.preventDefault();runFormat();}});
+    shortcutTrackedDocs.add(doc);
+  }
+
+  const UI_INIT_FLAG='__mxmFmtUiInit';
+  if(uiDocument?.documentElement&&!uiWindow[UI_INIT_FLAG]){
+    uiWindow[UI_INIT_FLAG]=true;
+    const existing=uiDocument.getElementById('mxmFmtBtn');
+    const btn=existing||uiDocument.createElement('button');
     btn.id='mxmFmtBtn';
     btn.type='button';
     btn.textContent='Format MxM';
@@ -585,32 +605,35 @@
     btn.addEventListener('focus',()=>{btn.style.boxShadow='0 0 0 3px rgba(255,255,255,.18)';});
     btn.addEventListener('blur',()=>{btn.style.boxShadow='0 6px 18px rgba(0,0,0,.28)';});
     btn.style.boxShadow='0 6px 18px rgba(0,0,0,.28)';
-    document.documentElement.appendChild(btn);
+    if(!existing) uiDocument.documentElement.appendChild(btn);
     placeButton(btn);
     let repositionCount=0;
-    const intervalId=window.setInterval(()=>{
+    const intervalId=uiWindow.setInterval(()=>{
       repositionCount++;
       placeButton(btn);
-      if(repositionCount>=REPOSITION_ATTEMPTS) window.clearInterval(intervalId);
+      if(repositionCount>=REPOSITION_ATTEMPTS) uiWindow.clearInterval(intervalId);
     },REPOSITION_INTERVAL_MS);
-    window.addEventListener('resize',()=>placeButton(btn));
+    uiWindow.addEventListener('resize',()=>placeButton(btn));
     btn.onclick=runFormat;
-    document.addEventListener('keydown',e=>{if(e.altKey&&!e.ctrlKey&&!e.metaKey&&e.key.toLowerCase()==='m'){e.preventDefault();runFormat();}});
+    bindShortcutListener(document);
+    if(uiDocument!==document) bindShortcutListener(uiDocument);
   }
   function toast(msg){
-    const t=document.createElement('div');
+    if(!uiDocument) return;
+    const t=uiDocument.createElement('div');
     const toastBottom=Math.max(latestButtonBottom+48,BUTTON_BASE_BOTTOM+48);
     Object.assign(t.style,{background:'rgba(17,17,17,.95)',color:'#eaeaea',border:'1px solid #333',borderRadius:'10px',padding:'8px 10px',fontFamily:'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',fontSize:'12px',position:'fixed',right:`${BUTTON_RIGHT_OFFSET}px`,bottom:`${toastBottom}px`,zIndex:2147483647,boxShadow:'0 8px 22px rgba(0,0,0,.35)'});
     t.setAttribute('role','status');
     t.setAttribute('aria-live','polite');
     t.textContent=msg;
-    document.documentElement.appendChild(t);
-    setTimeout(()=>t.remove(),1800);
+    uiDocument.documentElement.appendChild(t);
+    (uiWindow||window).setTimeout(()=>t.remove(),1800);
   }
 
   // ---------- Runner ----------
   function runFormat(){
-    const el=currentEditable||findDeepEditable(window.top.document);
+    const searchDoc=uiDocument||document;
+    const el=currentEditable||findDeepEditable(searchDoc);
     if(!el){alert('Click inside the lyrics field first, then press Alt+M.');return;}
     const before=getEditorText(el);
     const out=formatLyrics(before);
