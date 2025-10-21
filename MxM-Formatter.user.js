@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.25
+// @version      1.1.26
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Vincas Stepankevičius & Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.25';
+  const SCRIPT_VERSION = '1.1.26';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -33,6 +33,8 @@
   const settings = loadSettings();
   const focusTrackedDocs = new WeakSet();
   const shortcutTrackedDocs = new WeakSet();
+
+  const INSTRUMENTAL_PHRASE_RE = /^(?:instrumental(?:\s+(?:break|bridge|outro|interlude|solo))?)$/i;
 
   // ---------- Dynamic Focus Tracker ----------
   let currentEditable = null;
@@ -570,6 +572,95 @@
       .replace(/(^|\n)\s*outro\s*(?=\n)/gi, (_, boundary) => boundary + "#OUTRO");
   }
 
+  function normalizeInstrumentalSections(text) {
+    if (!text) return text;
+
+    const lines = text.split('\n');
+
+    for (let i = 0; i < lines.length; i++) {
+      const raw = lines[i];
+      const trimmed = raw.trim();
+      if (!trimmed) continue;
+      if (trimmed === '#INSTRUMENTAL') {
+        lines[i] = '#INSTRUMENTAL';
+        continue;
+      }
+
+      let normalized = trimmed.replace(/^[\[(]+/, '').replace(/[\])]+$/, '').trim();
+      normalized = normalized.replace(/^[\-–—:]+\s*/, '').replace(/\s*[\-–—:]+$/, '');
+      normalized = normalized.replace(/[.,!?;:]+$/g, '').trim();
+
+      if (normalized && INSTRUMENTAL_PHRASE_RE.test(normalized)) {
+        lines[i] = '#INSTRUMENTAL';
+      }
+    }
+
+    while (true) {
+      let firstIdx = -1;
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].trim() !== '') {
+          firstIdx = i;
+          break;
+        }
+      }
+      if (firstIdx === -1) break;
+      if (lines[firstIdx].trim() === '#INSTRUMENTAL') {
+        lines.splice(0, firstIdx + 1);
+        continue;
+      }
+      break;
+    }
+
+    while (true) {
+      let lastIdx = -1;
+      for (let i = lines.length - 1; i >= 0; i--) {
+        if (lines[i].trim() !== '') {
+          lastIdx = i;
+          break;
+        }
+      }
+      if (lastIdx === -1) break;
+      if (lines[lastIdx].trim() === '#INSTRUMENTAL') {
+        lines.splice(lastIdx);
+        continue;
+      }
+      break;
+    }
+
+    const result = [];
+    for (const raw of lines) {
+      const trimmed = raw.trim();
+      if (trimmed === '#INSTRUMENTAL') {
+        while (result.length && result[result.length - 1].trim() === '') result.pop();
+        result.push('#INSTRUMENTAL');
+      } else {
+        result.push(raw);
+      }
+    }
+
+    return result.join('\n');
+  }
+
+  function enforceStructureTagSpacing(text) {
+    if (!text) return text;
+
+    const lines = text.split('\n');
+    const result = [];
+
+    for (const raw of lines) {
+      const trimmed = raw.trim();
+      if (trimmed.startsWith('#') && trimmed !== '#INSTRUMENTAL') {
+        while (result.length && result[result.length - 1].trim() === '') result.pop();
+        if (result.length) result.push('');
+        result.push(trimmed);
+      } else {
+        result.push(raw);
+      }
+    }
+
+    return result.join('\n');
+  }
+
   // ---------- Formatter ----------
   function formatLyrics(input) {
     if (!input) return "";
@@ -596,6 +687,7 @@
       if (/^bridge/.test(t)) return "#BRIDGE";
       if (/^(hook|refrain|post-chorus|postchorus|drop|break|interlude)/.test(t)) return "#HOOK";
       if (/^outro/.test(t)) return "#OUTRO";
+      if (/^instrumental(?:\s+(?:break|bridge|outro|interlude|solo))?/.test(t)) return "#INSTRUMENTAL";
       return "#" + String(raw).toUpperCase().replace(/\d+/g, "").replace(/ +/g, "-");
     });
 
@@ -603,6 +695,8 @@
 
     // Remove end-line punctuation
     x = x.replace(/[.,;:\-]+(?=[ \t]*\n)/g, "");
+
+    x = normalizeInstrumentalSections(x);
 
     // Contractions
     x = x
@@ -701,6 +795,8 @@
 
     // Capitalize words following question or exclamation marks (after parentheses normalization)
     x = capitalizeAfterSentenceEnders(x);
+
+    x = enforceStructureTagSpacing(x);
 
     // Smart comma relocation: only move if there's text after ")", otherwise remove
     x = x.replace(/,\s*\(([^)]*?)\)(?=\s*\S)/g, ' ($1),'); // if content follows, move comma after ")"
