@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.21
+// @version      1.1.22
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Vincas Stepankevičius & Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.21';
+  const SCRIPT_VERSION = '1.1.22';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -226,6 +226,7 @@
   ]);
 
   const NO_QUOTE_CHARS = "\"'“”‘’";
+  const NO_BETWEEN_WORDS_RE = /((?:['’]?)[A-Za-z0-9][^\s,.;!?()#"]*)([ \t]+)([Nn][Oo])([ \t]+)((?:['’]?)[A-Za-z0-9][^\s,.;!?()#"]*)/g;
 
   function shouldCommaAfterNo(str, idx) {
     let i = idx;
@@ -246,6 +247,45 @@
 
     // Exempt idioms like "Say no more" from added commas
     text = text.replace(/\b(Say|Told|Telling|Tell|Tells)\s+no\s+more\b/gi, m => m);
+
+    text = text.replace(
+      NO_BETWEEN_WORDS_RE,
+      (match, prevWord, preSpaces, noWord, postSpaces, nextWord) => {
+        if (preSpaces.includes('\n') || postSpaces.includes('\n')) return match;
+
+        const prevLower = prevWord.replace(/^['’"]+/, '').toLowerCase();
+        const nextLower = nextWord.replace(/['’"]+$/, '').toLowerCase();
+        if (nextLower === 'more' && /^(say|told|telling|tell|tells)$/.test(prevLower)) return match;
+
+        return `${prevWord}, ${noWord}, ${nextWord}`;
+      }
+    );
+
+    text = text.replace(
+      /((?:['’]?)[A-Za-z0-9][^\s,.;!?()#"]*)(\s*,\s*)([Nn][Oo])([ \t]+)((?:['’]?)[A-Za-z0-9][^\s,.;!?()#"]*)/g,
+      (match, prevWord, commaBlock, noWord, postSpaces, nextWord) => {
+        if (postSpaces.includes('\n')) return match;
+
+        const prevLower = prevWord.replace(/^['’"]+/, '').toLowerCase();
+        const nextLower = nextWord.replace(/['’"]+$/, '').toLowerCase();
+        if (nextLower === 'more' && /^(say|told|telling|tell|tells)$/.test(prevLower)) return match;
+
+        return `${prevWord}, ${noWord}, ${nextWord}`;
+      }
+    );
+
+    text = text.replace(
+      /((?:['’]?)[A-Za-z0-9][^\s,.;!?()#"]*)([ \t]+)([Nn][Oo])(\s*,\s*)((?:['’]?)[A-Za-z0-9][^\s,.;!?()#"]*)/g,
+      (match, prevWord, preSpaces, noWord, commaBlock, nextWord) => {
+        if (preSpaces.includes('\n')) return match;
+
+        const prevLower = prevWord.replace(/^['’"]+/, '').toLowerCase();
+        const nextLower = nextWord.replace(/['’"]+$/, '').toLowerCase();
+        if (nextLower === 'more' && /^(say|told|telling|tell|tells)$/.test(prevLower)) return match;
+
+        return `${prevWord}, ${noWord}, ${nextWord}`;
+      }
+    );
 
     text = text.replace(
       /(\b[\w'"]+)(\s*,\s*|\s+)([Nn][Oo])(\s+)([A-Za-z']+)/g,
@@ -303,6 +343,34 @@
       (_match, prevWord, _spaces, noWord) => `${prevWord}, ${noWord}`);
 
     return text;
+  }
+
+  const QUESTION_FOLLOWING_QUOTES = new Set(["'", '"', '‘', '’', '“', '”']);
+
+  function capitalizeAfterQuestionMarks(text) {
+    if (!text) return text;
+    const chars = Array.from(text);
+    const isSpace = c => c === ' ' || c === '\t';
+    for (let i = 0; i < chars.length; i++) {
+      if (chars[i] !== '?') continue;
+      let j = i + 1;
+      while (j < chars.length && isSpace(chars[j])) j++;
+      let k = j;
+      while (k < chars.length && chars[k] === '(') {
+        k++;
+        while (k < chars.length && isSpace(chars[k])) k++;
+      }
+      while (k < chars.length && QUESTION_FOLLOWING_QUOTES.has(chars[k])) k++;
+      if (k < chars.length && chars[k] >= 'a' && chars[k] <= 'z') {
+        chars[k] = chars[k].toUpperCase();
+      }
+    }
+    return chars.join('');
+  }
+
+  function ensureStandaloneICapitalized(text) {
+    if (!text) return text;
+    return text.replace(/\bi\b/g, 'I');
   }
 
   const LOOSE_EM_PREV_BLOCKERS = new Set([
@@ -547,8 +615,8 @@
     x = applyNumberRules(x);
     x = applyNoCommaRules(x);
 
-    // Capitalize after ? only
-    x = x.replace(/(\?)\s*([a-z])/g, (_, q, letter) => q + " " + letter.toUpperCase());
+    // Standalone pronoun fixes
+    x = ensureStandaloneICapitalized(x);
 
     // Capitalize first letter of each line (ignoring leading whitespace)
     x = x.replace(/(^|\n)(\s*)([a-z])/g, (_, boundary, space, letter) => boundary + space + letter.toUpperCase());
@@ -563,6 +631,9 @@
 
     // Capitalize first letter when line starts with "("
     x = x.replace(/(^|\n)\(\s*([a-z])/g, (_, a, b) => a + "(" + b.toUpperCase());
+
+    // Capitalize words following question marks (after parentheses normalization)
+    x = capitalizeAfterQuestionMarks(x);
 
     // Smart comma relocation: only move if there's text after ")", otherwise remove
     x = x.replace(/,\s*\(([^)]*?)\)(?=\s*\S)/g, ' ($1),'); // if content follows, move comma after ")"
