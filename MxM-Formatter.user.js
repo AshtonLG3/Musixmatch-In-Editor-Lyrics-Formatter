@@ -611,14 +611,332 @@
     // Interjections
     const CLOSING_QUOTES = new Set(["'", '"', "’", "”"]);
     const INTERJECTION_STOPPERS = ",!?.-;:)]}";
+    const WELL_ALLOWED_PRECEDERS = new Set([
+      "oh",
+      "ah",
+      "yeah",
+      "yea",
+      "yah",
+      "uh",
+      "um",
+      "huh",
+      "hmm",
+      "mm",
+      "aw",
+      "aww",
+      "awww",
+      "gee",
+      "gosh",
+      "hey",
+      "and",
+      "but",
+      "so",
+      "yet",
+      "or",
+      "anyway",
+      "anyways",
+      "well"
+    ]);
+    const WELL_PRECEDER_WORDS = new Set([
+      "a",
+      "an",
+      "the",
+      "this",
+      "that",
+      "these",
+      "those",
+      "my",
+      "your",
+      "his",
+      "her",
+      "their",
+      "our",
+      "its",
+      "some",
+      "any",
+      "such",
+      "each",
+      "every",
+      "too",
+      "very",
+      "so",
+      "as",
+      "quite",
+      "pretty",
+      "rather",
+      "really",
+      "real",
+      "feel",
+      "feels",
+      "felt",
+      "feeling",
+      "do",
+      "does",
+      "did",
+      "doing",
+      "done",
+      "to",
+      "am",
+      "is",
+      "are",
+      "was",
+      "were",
+      "be",
+      "been",
+      "being",
+      "stay",
+      "stays",
+      "stayed",
+      "staying",
+      "keep",
+      "keeps",
+      "kept",
+      "keeping",
+      "remain",
+      "remains",
+      "remained",
+      "remaining",
+      "seem",
+      "seems",
+      "seemed",
+      "seeming",
+      "sound",
+      "sounds",
+      "sounded",
+      "sounding",
+      "look",
+      "looks",
+      "looked",
+      "looking",
+      "become",
+      "becomes",
+      "became",
+      "becoming",
+      "grow",
+      "grows",
+      "grew",
+      "growing",
+      "live",
+      "lives",
+      "lived",
+      "living",
+      "work",
+      "works",
+      "worked",
+      "working",
+      "play",
+      "plays",
+      "played",
+      "playing"
+    ]);
+    const WELL_CLAUSE_STARTERS = new Set([
+      "i",
+      "im",
+      "id",
+      "ill",
+      "ive",
+      "you",
+      "youre",
+      "youd",
+      "youll",
+      "youve",
+      "ya",
+      "yall",
+      "yous",
+      "youse",
+      "he",
+      "hes",
+      "hed",
+      "hell",
+      "she",
+      "shes",
+      "shed",
+      "shell",
+      "we",
+      "were",
+      "wed",
+      "well",
+      "weve",
+      "they",
+      "theyre",
+      "theyd",
+      "theyll",
+      "theyve",
+      "it",
+      "its",
+      "itd",
+      "itll",
+      "this",
+      "that",
+      "these",
+      "those",
+      "there",
+      "theres",
+      "therell",
+      "thered",
+      "thereve",
+      "therere",
+      "who",
+      "whos",
+      "what",
+      "whats",
+      "where",
+      "wheres",
+      "when",
+      "whens",
+      "why",
+      "whys",
+      "how",
+      "hows",
+      "the",
+      "a",
+      "an",
+      "another",
+      "all",
+      "someone",
+      "somebody",
+      "anyone",
+      "anybody",
+      "everyone",
+      "everybody",
+      "nobody",
+      "nothing",
+      "something",
+      "anything",
+      "everything",
+      "so",
+      "then",
+      "now",
+      "anyway",
+      "anyways",
+      "anyhow",
+      "anyhoo",
+      "guess",
+      "maybe",
+      "perhaps",
+      "alright",
+      "alrighty",
+      "allright",
+      "okay",
+      "ok",
+      "okey",
+      "uh",
+      "oh",
+      "well",
+      "right",
+      "listen",
+      "look",
+      "hey",
+      "hi",
+      "hello",
+      "yo",
+      "dude",
+      "man",
+      "girl",
+      "boy",
+      "baby",
+      "honey",
+      "buddy",
+      "sir",
+      "maam",
+      "ladies",
+      "folks",
+      "guys",
+      "people",
+      "kid",
+      "kids",
+      "partner",
+      "friend",
+      "friends",
+      "gimme",
+      "lemme",
+      "dear",
+      "cause",
+      "because",
+      "cuz",
+      "cos",
+      "coz",
+      "if",
+      "when",
+      "whenever",
+      "while",
+      "since",
+      "once",
+      "after",
+      "before",
+      "for",
+      "and",
+      "but",
+      "or",
+      "yet",
+      "though",
+      "let",
+      "lets",
+      "gonna",
+      "please",
+      "cmon",
+      "come",
+      "should",
+      "shoulda",
+      "shouldve",
+      "shouldnt",
+      "could",
+      "coulda",
+      "couldve",
+      "couldnt",
+      "would",
+      "woulda",
+      "wouldve",
+      "wouldnt",
+      "might",
+      "mighta",
+      "mightve",
+      "mightnt",
+      "may",
+      "must",
+      "mustve",
+      "mustnt",
+      "shall",
+      "shant",
+      "can",
+      "cant",
+      "cannot",
+      "won",
+      "wont",
+      "will",
+      "did",
+      "didnt",
+      "do",
+      "dont",
+      "does",
+      "doesnt",
+      "done",
+      "doing",
+      "ain",
+      "aint",
+      "is",
+      "isnt",
+      "are",
+      "arent",
+      "was",
+      "wasnt",
+      "were",
+      "werent",
+      "have",
+      "havent",
+      "has",
+      "hasnt",
+      "had",
+      "hadnt"
+    ]);
     x = x.replace(/\b(oh|ah|yeah|uh)h+\b(?=[\s,!.?\)]|$)/gi, (match, base) => base);
-    x = x.replace(/\b(oh|ah|yeah|whoa|ooh|uh|well)\b(?!,)/gi, (m, _, off, str) => {
+    x = x.replace(/\b(oh|ah|yeah|whoa|ooh|uh|well)\b(?!,)/gi, (m, word, off, str) => {
       const after = str.slice(off + m.length);
-      if (/^\s*$/.test(after)) return m + ',';
+      const lower = word.toLowerCase();
 
       let idx = 0;
       while (idx < after.length && /\s/.test(after[idx])) idx++;
-      if (idx >= after.length) return m + ',';
+      if (idx >= after.length) return lower === "well" ? m : m + ',';
 
       if (after[idx] === ',') return m;
 
@@ -629,7 +947,59 @@
         if (after[idx] === ',') return m;
       }
 
+      if (idx >= after.length) return m;
+
       const next = after[idx];
+
+      if (lower === "well") {
+        const before = str.slice(0, off);
+        const trimmedBefore = before.replace(/\s+$/, '');
+        const prevChar = trimmedBefore.slice(-1);
+        const prevWordMatch = trimmedBefore.match(/([A-Za-z'’]+)[^A-Za-z'’]*$/);
+        const prevWord = prevWordMatch ? prevWordMatch[1].replace(/^['’]+/, '').toLowerCase() : null;
+
+        if (prevWord && WELL_PRECEDER_WORDS.has(prevWord)) return m;
+        if (prevChar && /[A-Za-z0-9]/.test(prevChar) && (!prevWord || !WELL_ALLOWED_PRECEDERS.has(prevWord))) return m;
+        if (INTERJECTION_STOPPERS.includes(next)) return m;
+
+        let clauseIdx = idx;
+        while (clauseIdx < after.length && '([{'.includes(after[clauseIdx])) {
+          clauseIdx++;
+          while (clauseIdx < after.length && /\s/.test(after[clauseIdx])) clauseIdx++;
+        }
+
+        while (clauseIdx < after.length && CLOSING_QUOTES.has(after[clauseIdx])) {
+          clauseIdx++;
+          while (clauseIdx < after.length && /\s/.test(after[clauseIdx])) clauseIdx++;
+        }
+
+        if (clauseIdx >= after.length) return m;
+
+        const clauseStart = after.slice(clauseIdx);
+        const nextWordMatch = clauseStart.match(/^([A-Za-z'’]+)/);
+        if (!nextWordMatch) return m;
+
+        let candidate = nextWordMatch[1].toLowerCase().replace(/[’]/g, "'");
+        candidate = candidate.replace(/^'+/, '');
+        if (!candidate) return m;
+
+        const forms = new Set([candidate]);
+        const noApos = candidate.replace(/'/g, '');
+        forms.add(noApos);
+        const noSuffix = candidate.replace(/(?:'ll|'re|'ve|'d|'m|'s)$/g, '');
+        if (noSuffix && noSuffix !== candidate) {
+          forms.add(noSuffix);
+          forms.add(noSuffix.replace(/'/g, ''));
+        }
+
+        for (const form of forms) {
+          const normalized = form.replace(/'/g, '');
+          if (normalized && WELL_CLAUSE_STARTERS.has(normalized)) return m + ',';
+        }
+
+        return m;
+      }
+
       if (INTERJECTION_STOPPERS.includes(next)) return m;
       return m + ',';
     });
