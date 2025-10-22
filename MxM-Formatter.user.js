@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.27
+// @version      1.1.28
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.27';
+  const SCRIPT_VERSION = '1.1.28';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -421,9 +421,31 @@
     return text.replace(/\bi\b/g, 'I');
   }
 
+  const HYPHEN_CHARS = new Set(['-', '\u2010', '\u2011', '\u2012', '\u2013', '\u2014', '\u2212']);
+  const LETTER_RE = /[A-Za-z]/;
+  const HYPHENATED_EM_TOKEN = '\uF000';
+
   function normalizeEmPronouns(text) {
     if (!text) return text;
-    return text.replace(/(^|\s)(?<!')em\b/gi, "$1'em");
+    return text.replace(/\bem\b/gi, (match, offset, str) => {
+      const prevIndex = offset - 1;
+      if (prevIndex >= 0) {
+        const prevChar = str[prevIndex];
+        if (!/\s/.test(prevChar)) return match;
+
+        let lookback = prevIndex;
+        while (lookback >= 0 && /\s/.test(str[lookback])) lookback--;
+        if (lookback >= 0 && HYPHEN_CHARS.has(str[lookback])) {
+          const gap = str.slice(lookback + 1, offset);
+          if (/\r|\n/.test(gap)) {
+            let beforeHyphen = lookback - 1;
+            while (beforeHyphen >= 0 && /\s/.test(str[beforeHyphen])) beforeHyphen--;
+            if (beforeHyphen >= 0 && LETTER_RE.test(str[beforeHyphen])) return match;
+          }
+        }
+      }
+      return "'em";
+    });
   }
 
   function normalizeStructureTags(text) {
@@ -534,6 +556,7 @@
   function formatLyrics(input) {
     if (!input) return "";
     let x = ("\n" + input.trim() + "\n");
+    const hyphenatedEmTokens = [];
 
     // Clean + normalize
     x = x
@@ -561,6 +584,12 @@
     });
 
     x = normalizeStructureTags(x);
+
+    x = x.replace(/([A-Za-z])-(?:[ \t]*)(\r?\n)(\s*)(em\b)/gi, (match, letter, newline, spaces, word) => {
+      const token = `${HYPHENATED_EM_TOKEN}${hyphenatedEmTokens.length}${HYPHENATED_EM_TOKEN}`;
+      hyphenatedEmTokens.push(word);
+      return `${letter}-${newline}${spaces}${token}`;
+    });
 
     // Remove end-line punctuation
     x = x.replace(/[.,;:\-]+(?=[ \t]*\n)/g, "");
@@ -607,6 +636,11 @@
 
     x = normalizeAmPmTimes(x);
     x = normalizeEmPronouns(x);
+
+    if (hyphenatedEmTokens.length) {
+      const tokenRe = new RegExp(`${HYPHENATED_EM_TOKEN}(\\d+)${HYPHENATED_EM_TOKEN}`, 'g');
+      x = x.replace(tokenRe, (_, idx) => hyphenatedEmTokens[Number(idx)] ?? 'em');
+    }
 
     // Interjections
     const CLOSING_QUOTES = new Set(["'", '"', "’", "”"]);
