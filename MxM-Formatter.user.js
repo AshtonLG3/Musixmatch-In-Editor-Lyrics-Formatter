@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.28
+// @version      1.1.29
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.28';
+  const SCRIPT_VERSION = '1.1.29';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -1082,13 +1082,6 @@
       return ` (${inner}),`;
     });
     x = x.replace(/,\s*\(([^)]*?)\)\s*$/gm, ' ($1)');     // if line ends after ")", remove comma
-    x = x.replace(/,\s*$/gm, (match, offset, str) => {
-      const lineStart = str.lastIndexOf('\n', offset);
-      const start = lineStart === -1 ? 0 : lineStart + 1;
-      const line = str.slice(start, offset).trim();
-      if (/^(?:oh|ah|yeah|whoa|ooh|uh|well)$/i.test(line)) return match;
-      return '';
-    });
 
 
     // ---------- Final Sanitation ----------
@@ -1100,9 +1093,21 @@
       .replace(/([A-Za-z])\(/g, "$1 (")              // space before (
       .replace(/\)([A-Za-z])/g, ") $1")              // space after )
       .replace(/\( +/g, "(").replace(/ +\)/g, ")")
-      .replace(/,(\s*\))/g, "$1")                   // remove commas immediately before a closing parenthesis
-      .replace(/[ \t]+\n/g, "\n")
-      .trim();
+      .replace(/,(\s*\))/g, "$1");                   // remove commas immediately before a closing parenthesis
+
+    // 1️⃣ Remove trailing commas from line endings entirely
+    x = x.replace(/,+\s*$/gm, "");
+
+    // 2️⃣ Ensure exactly one blank line before structure tags if previous line ends with yeah/oh/whoa
+    x = x.replace(
+      /(?<=\b(?:yeah|oh|whoa))\s*\n(?=#(?:INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))/gim,
+      "\n\n"
+    );
+
+    // 3️⃣ Prevent multiple blank lines from stacking between sections
+    x = x.replace(/\n{3,}/g, "\n\n");
+
+    x = x.replace(/[ \t]+\n/g, "\n").trim();
 
     return x;
   }
