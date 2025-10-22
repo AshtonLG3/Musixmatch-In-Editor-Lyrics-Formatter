@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.26
+// @version      1.1.27
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.26';
+  const SCRIPT_VERSION = '1.1.27';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -173,7 +173,6 @@
     twelve: 12
   };
 
-  const AMPM_HOUR_WORDS = new Set(Object.keys(WORD_TO_DIGIT_TIME));
   const MERIDIEM_PATTERN = '(?:a|p)\\s*\\.?\\s*m\\.?';
   const MERIDIEM_TRAIL = '(?=$|[^A-Za-z0-9_])';
   const DIGIT_TIME_RE = new RegExp(`\\b(\\d{1,2})(?:\\s*[:.]\\s*(\\d{1,2}))?\\s*(${MERIDIEM_PATTERN})${MERIDIEM_TRAIL}`, 'gi');
@@ -422,139 +421,9 @@
     return text.replace(/\bi\b/g, 'I');
   }
 
-  const LOOSE_EM_PREV_BLOCKERS = new Set([
-    "i","im","i'm","i'd","i'll","i've","imma"
-  ]);
-
-  const LOOSE_EM_QUESTION_WORDS = new Set([
-    "who","what","when","where","why","how"
-  ]);
-
-  const LOOSE_EM_NEXT_BLOCKERS = new Set([
-    "i","im","i'm","i'd","i'll","i've","imma","we"
-  ]);
-
-  function findPreviousWord(str, index) {
-    let i = index - 1;
-    while (i >= 0 && /\s/.test(str[i])) i--;
-    while (i >= 0 && !/[A-Za-z']/.test(str[i])) {
-      if (str[i] === '\n') return null;
-      i--;
-    }
-    if (i < 0) return null;
-    let end = i + 1;
-    while (i >= 0 && /[A-Za-z']/.test(str[i])) i--;
-    const word = str.slice(i + 1, end);
-    return word ? { word, start: i + 1, end } : null;
-  }
-
-  function findNextWord(str, index) {
-    let i = index;
-    while (i < str.length && /\s/.test(str[i])) i++;
-    while (i < str.length && !/[A-Za-z']/.test(str[i])) {
-      if (str[i] === '\n') return null;
-      i++;
-    }
-    if (i >= str.length) return null;
-    const start = i;
-    while (i < str.length && /[A-Za-z']/.test(str[i])) i++;
-    const word = str.slice(start, i);
-    return word ? { word, start, end: i } : null;
-  }
-
-  function hasNumericTimeBefore(str, start) {
-    let i = start - 1;
-    while (i >= 0 && /\s/.test(str[i])) i--;
-    let j = i;
-    let foundDigits = false;
-    while (j >= 0 && /[0-9]/.test(str[j])) {
-      foundDigits = true;
-      j--;
-    }
-    if (foundDigits) return true;
-    if (j >= 0 && (str[j] === ':' || str[j] === '.')) {
-      let k = j - 1;
-      while (k >= 0 && /\s/.test(str[k])) k--;
-      let hourDigits = false;
-      while (k >= 0 && /[0-9]/.test(str[k])) {
-        hourDigits = true;
-        k--;
-      }
-      if (hourDigits) return true;
-    }
-    return false;
-  }
-
-  function isLikelyTimeMeridiem(str, start, wordLower, length) {
-    if (wordLower !== 'am' && wordLower !== 'm') return false;
-    if (hasNumericTimeBefore(str, start)) return true;
-    if (wordLower === 'am') {
-      const prevWord = findPreviousWord(str, start);
-      if (prevWord && AMPM_HOUR_WORDS.has(prevWord.word.toLowerCase())) return true;
-      return false;
-    }
-
-    let i = start - 1;
-    while (i >= 0 && /\s/.test(str[i])) i--;
-    while (i >= 0 && str[i] === '.') {
-      i--;
-      while (i >= 0 && /\s/.test(str[i])) i--;
-    }
-    if (i >= 0 && /[ap]/i.test(str[i])) {
-      let before = i - 1;
-      while (before >= 0 && /\s/.test(str[before])) before--;
-      if (before < 0 || !/[A-Za-z]/.test(str[before])) return true;
-    }
-    return false;
-  }
-
-  function shouldConvertLooseVariant(str, start, wordLower, length) {
-    const prevChar = start > 0 ? str[start - 1] : '';
-    if (prevChar === "'" || prevChar === "`" || prevChar === "’") return false;
-    if (isLikelyTimeMeridiem(str, start, wordLower, length)) return false;
-    const prev = findPreviousWord(str, start);
-    if (!prev) return false;
-    const prevLower = prev.word.toLowerCase();
-    if (LOOSE_EM_PREV_BLOCKERS.has(prevLower)) return false;
-    if (wordLower === 'am') {
-      if (LOOSE_EM_QUESTION_WORDS.has(prevLower)) return false;
-      const next = findNextWord(str, start + length);
-      if (next && LOOSE_EM_NEXT_BLOCKERS.has(next.word.toLowerCase())) return false;
-    }
-    return true;
-  }
-
-  function shouldConvertThem(str, start, length) {
-    const prev = findPreviousWord(str, start);
-    return Boolean(prev);
-  }
-
-  function standardEmForCase(original) {
-    const bare = original.replace(/^[’'`]/, '');
-    if (!bare) return "'em";
-    if (bare === bare.toUpperCase()) return "'EM";
-    if (bare[0] === bare[0].toUpperCase()) return "'Em";
-    return "'em";
-  }
-
   function normalizeEmPronouns(text) {
     if (!text) return text;
-
-    text = text.replace(/(^|[^A-Za-z0-9_])([’'`]?em)\b/gi, (match, boundary, word) =>
-      boundary + standardEmForCase(word)
-    );
-
-    text = text.replace(/\b(them|um|m|am)\b/gi, (match, word, offset, str) => {
-      const lower = word.toLowerCase();
-      if (lower === 'them') {
-        if (!shouldConvertThem(str, offset, match.length)) return match;
-        return standardEmForCase(match);
-      }
-      if (!shouldConvertLooseVariant(str, offset, lower, match.length)) return match;
-      return standardEmForCase(match);
-    });
-
-    return text;
+    return text.replace(/(^|\s)(?<!')em\b/gi, "$1'em");
   }
 
   function normalizeStructureTags(text) {
@@ -698,6 +567,10 @@
 
     x = normalizeInstrumentalSections(x);
 
+    x = x
+      .replace(/#INSTRUMENTAL\s*\n*/g, "#INSTRUMENTAL\n\n")
+      .replace(/\n{3,}/g, "\n\n");
+
     // Contractions
     x = x
       .replace(/(^|\r?\n)c(?:uz|os|oz)\b/gi, (match, boundary) => `${boundary}'Cause`)
@@ -739,7 +612,7 @@
     const CLOSING_QUOTES = new Set(["'", '"', "’", "”"]);
     const INTERJECTION_STOPPERS = ",!?.-;:)]}";
     x = x.replace(/\b(oh|ah|yeah|uh)h+\b(?=[\s,!.?\)]|$)/gi, (match, base) => base);
-    x = x.replace(/\b(oh|ah|yeah|whoa|ooh|uh)\b/gi, (m, _, off, str) => {
+    x = x.replace(/\b(oh|ah|yeah|whoa|ooh|uh|well)\b(?!,)/gi, (m, _, off, str) => {
       const after = str.slice(off + m.length);
       if (/^\s*$/.test(after)) return m + ',';
 
@@ -761,7 +634,7 @@
       return m + ',';
     });
 
-    x = x.replace(/\b(oh|ah|yeah|whoa|ooh|uh)\b\s*,\s*(?=\))/gi, '$1');
+    x = x.replace(/\b(oh|ah|yeah|whoa|ooh|uh|well)\b\s*,\s*(?=\))/gi, '$1');
 
     // Dropped-G
     const dropped = ["nothin","somethin","anythin","comin","goin","playin","lovin","talkin","walkin","feelin","runnin","workin","doin"];
@@ -798,14 +671,18 @@
 
     x = enforceStructureTagSpacing(x);
 
-    // Smart comma relocation: only move if there's text after ")", otherwise remove
-    x = x.replace(/,\s*\(([^)]*?)\)(?=\s*\S)/g, ' ($1),'); // if content follows, move comma after ")"
+    // Smart comma relocation: only move if there's text after ")" (idempotent), otherwise remove
+    x = x.replace(/,\s*\(([^)]*?)\)(?=\s*\S)/g, (match, inner, offset, str) => {
+      const afterIdx = offset + match.length;
+      if (str[afterIdx] === ',') return match;
+      return ` (${inner}),`;
+    });
     x = x.replace(/,\s*\(([^)]*?)\)\s*$/gm, ' ($1)');     // if line ends after ")", remove comma
     x = x.replace(/,\s*$/gm, (match, offset, str) => {
       const lineStart = str.lastIndexOf('\n', offset);
       const start = lineStart === -1 ? 0 : lineStart + 1;
       const line = str.slice(start, offset).trim();
-      if (/^(?:oh|ah|yeah|whoa|ooh)$/i.test(line)) return match;
+      if (/^(?:oh|ah|yeah|whoa|ooh|uh|well)$/i.test(line)) return match;
       return '';
     });
 
