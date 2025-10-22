@@ -1,8 +1,8 @@
 # 🎵 Musixmatch In-Editor Lyrics Formatter
 
-![Downloads](https://img.shields.io/github/downloads/AshtonLG3/MxM-In-Editor-Formatter/total.svg)
-![Version](https://img.shields.io/github/v/release/AshtonLG3/MxM-In-Editor-Formatter)
-![License](https://img.shields.io/github/license/AshtonLG3/MxM-In-Editor-Formatter)
+![Downloads](https://img.shields.io/github/downloads/AshtonLG3/MxM-Formatter/total.svg)
+![Version](https://img.shields.io/github/v/release/AshtonLG3/MxM-Formatter)
+![License](https://img.shields.io/github/license/AshtonLG3/MxM-Formatter)
 
 > Turbo-charge your Musixmatch Studio workflow with one keystroke. The formatter cleans, normalises, and standardises English lyrics so they comply with the community guidelines before you hit **Submit**.
 
