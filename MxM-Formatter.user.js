@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.29
+// @version      1.1.31
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.29';
+  const SCRIPT_VERSION = '1.1.31';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -602,8 +602,34 @@
 
     // Contractions
     x = x
-      .replace(/(^|\r?\n)c(?:uz|os|oz)\b/gi, (match, boundary) => `${boundary}'Cause`)
-      .replace(/(?<![\r\n])(?<=\s)c(?:uz|os|oz)\b/gi, "'cause")
+      .replace(/'?c(?:uz|os|oz)\b/gi, (match, offset, str) => {
+        const prevChar = offset > 0 ? str[offset - 1] : '';
+        const nextIndex = offset + match.length;
+        const nextChar = nextIndex < str.length ? str[nextIndex] : '';
+
+        if (/\w/.test(prevChar) || /\w/.test(nextChar)) return match;
+
+        const hasLeadingApostrophe = match[0] === "'" || match[0] === "\u2019";
+        const core = hasLeadingApostrophe ? match.slice(1) : match;
+        const firstChar = core[0] ?? '';
+        const isAllUpper = core === core.toUpperCase();
+        const isTitleCase = firstChar !== '' && firstChar === firstChar.toUpperCase();
+        const isLineStart = offset === 0 || prevChar === '\n' || prevChar === '\r';
+
+        if (isAllUpper) return "'CAUSE";
+        if (isLineStart) return "'Cause";
+        if (isTitleCase) return "'Cause";
+        return "'cause";
+      })
+      .replace(/\bcause\b/gi, (match, offset, str) => {
+        if (offset > 0) {
+          const prev = str[offset - 1];
+          if (prev === "'" || prev === "\u2019") return match;
+        }
+        if (match === match.toUpperCase()) return "'CAUSE";
+        if (match[0] === match[0].toUpperCase()) return "'Cause";
+        return "'cause";
+      })
       .replace(/(?<!['\w])ti(?:ll|l)(?:')?(?!\w)/gi, (m, offset, str) => {
         const prev = offset > 0 ? str[offset - 1] : '';
         if (prev === "'" || prev === "\u2019") return m;
