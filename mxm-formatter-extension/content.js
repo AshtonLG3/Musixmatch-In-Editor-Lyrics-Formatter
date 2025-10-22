@@ -6,6 +6,14 @@
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
 
+  const extensionDefaults = {
+    lang: "EN",
+    autoLowercase: false,
+    fixBackingVocals: true,
+    showFloatingButton: false
+  };
+  const extensionOptions = { ...extensionDefaults };
+
   function loadSettings() {
     if (!hasWindow) return { ...defaults };
     try {
@@ -539,7 +547,7 @@
   }
 
   // ---------- Formatter ----------
-  function formatLyrics(input) {
+  function formatLyrics(input, _options = {}) {
     if (!input) return "";
     let x = ("\n" + input.trim() + "\n");
     const hyphenatedEmTokens = [];
@@ -1232,44 +1240,141 @@
     shortcutTrackedDocs.add(doc);
   }
 
-  if(uiDocument?.documentElement){
+  function ensureShortcutListeners(){
+    bindShortcutListener(document);
+    if(uiDocument && uiDocument!==document) bindShortcutListener(uiDocument);
+  }
+
+  let floatingButton=null;
+  let floatingButtonIntervalId=null;
+  let floatingButtonResizeHandler=null;
+
+  function createFloatingButton(){
+    if(!uiDocument?.documentElement) return;
     const buttonParent=uiDocument.body||uiDocument.documentElement;
-    if(buttonParent){
-      let btn=uiDocument.getElementById('mxmFmtBtn');
-      const isNew=!btn;
-      if(!btn){
-        btn=uiDocument.createElement('button');
-        btn.id='mxmFmtBtn';
-        btn.type='button';
-        btn.textContent='Format MxM';
-        btn.setAttribute('aria-label','Format lyrics (Alt+M)');
-        Object.assign(btn.style,{padding:'10px 14px',borderRadius:'12px',border:'1px solid #303030',background:'linear-gradient(135deg,#181818,#101010)',color:'#f9f9f9',fontFamily:'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',fontSize:'13px',letterSpacing:'0.3px',cursor:'pointer',position:'fixed',zIndex:2147483647,transition:'transform .18s ease, box-shadow .18s ease'});
-        btn.addEventListener('mouseenter',()=>{btn.style.transform='translateY(-2px)';btn.style.boxShadow='0 10px 24px rgba(0,0,0,.32)';});
-        btn.addEventListener('mouseleave',()=>{btn.style.transform='';btn.style.boxShadow='0 6px 18px rgba(0,0,0,.28)';});
-        btn.addEventListener('focus',()=>{btn.style.boxShadow='0 0 0 3px rgba(255,255,255,.18)';});
-        btn.addEventListener('blur',()=>{btn.style.boxShadow='0 6px 18px rgba(0,0,0,.28)';});
-        buttonParent.appendChild(btn);
-      }else if(!btn.isConnected){
-        buttonParent.appendChild(btn);
-      }
-      btn.style.boxShadow='0 6px 18px rgba(0,0,0,.28)';
-      btn.style.position='fixed';
-      btn.style.zIndex='2147483647';
+    if(!buttonParent) return;
+
+    let btn=floatingButton||uiDocument.getElementById('mxmFmtBtn');
+    if(!btn){
+      btn=uiDocument.createElement('button');
+      btn.id='mxmFmtBtn';
+      btn.type='button';
+      btn.textContent='Format MxM';
+      btn.setAttribute('aria-label','Format lyrics (Alt+M)');
+      Object.assign(btn.style,{padding:'10px 14px',borderRadius:'12px',border:'1px solid #303030',background:'linear-gradient(135deg,#181818,#101010)',color:'#f9f9f9',fontFamily:'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',fontSize:'13px',letterSpacing:'0.3px',cursor:'pointer',position:'fixed',zIndex:2147483647,transition:'transform .18s ease, box-shadow .18s ease'});
+      btn.addEventListener('mouseenter',()=>{btn.style.transform='translateY(-2px)';btn.style.boxShadow='0 10px 24px rgba(0,0,0,.32)';});
+      btn.addEventListener('mouseleave',()=>{btn.style.transform='';btn.style.boxShadow='0 6px 18px rgba(0,0,0,.28)';});
+      btn.addEventListener('focus',()=>{btn.style.boxShadow='0 0 0 3px rgba(255,255,255,.18)';});
+      btn.addEventListener('blur',()=>{btn.style.boxShadow='0 6px 18px rgba(0,0,0,.28)';});
+    }
+
+    if(!btn.isConnected) buttonParent.appendChild(btn);
+
+    btn.style.boxShadow='0 6px 18px rgba(0,0,0,.28)';
+    btn.style.position='fixed';
+    btn.style.zIndex='2147483647';
+    placeButton(btn);
+
+    const hostWindow=uiWindow||window;
+    if(floatingButtonIntervalId){
+      hostWindow.clearInterval(floatingButtonIntervalId);
+      floatingButtonIntervalId=null;
+    }
+    let repositionCount=0;
+    floatingButtonIntervalId=hostWindow.setInterval(()=>{
+      repositionCount++;
       placeButton(btn);
-      if(isNew){
-        let repositionCount=0;
-        const intervalId=(uiWindow||window).setInterval(()=>{
-          repositionCount++;
-          placeButton(btn);
-          if(repositionCount>=REPOSITION_ATTEMPTS)(uiWindow||window).clearInterval(intervalId);
-        },REPOSITION_INTERVAL_MS);
-        (uiWindow||window).addEventListener('resize',()=>placeButton(btn));
+      if(repositionCount>=REPOSITION_ATTEMPTS){
+        hostWindow.clearInterval(floatingButtonIntervalId);
+        floatingButtonIntervalId=null;
       }
-      btn.onclick=runFormat;
-      bindShortcutListener(document);
-      if(uiDocument!==document) bindShortcutListener(uiDocument);
+    },REPOSITION_INTERVAL_MS);
+
+    if(floatingButtonResizeHandler){
+      hostWindow.removeEventListener('resize',floatingButtonResizeHandler);
+    }
+    floatingButtonResizeHandler=()=>placeButton(btn);
+    hostWindow.addEventListener('resize',floatingButtonResizeHandler);
+
+    btn.onclick=()=>runFormat();
+    floatingButton=btn;
+    ensureShortcutListeners();
+  }
+
+  function removeFloatingButton(){
+    const hostWindow=uiWindow||window;
+    if(floatingButtonIntervalId){
+      hostWindow.clearInterval(floatingButtonIntervalId);
+      floatingButtonIntervalId=null;
+    }
+    if(floatingButtonResizeHandler){
+      hostWindow.removeEventListener('resize',floatingButtonResizeHandler);
+      floatingButtonResizeHandler=null;
+    }
+    const btn=floatingButton||uiDocument?.getElementById('mxmFmtBtn');
+    if(btn?.isConnected) btn.remove();
+    floatingButton=null;
+    latestButtonBottom=BUTTON_BASE_BOTTOM;
+  }
+
+  function syncFloatingButtonVisibility(){
+    if(extensionOptions.showFloatingButton) createFloatingButton();
+    else removeFloatingButton();
+  }
+
+  function applyExtensionOptions(updates={}){
+    if(!updates || typeof updates!=='object') return;
+    const prevShow=extensionOptions.showFloatingButton;
+    if(Object.prototype.hasOwnProperty.call(updates,'lang') && typeof updates.lang==='string')
+      extensionOptions.lang=updates.lang;
+    if(Object.prototype.hasOwnProperty.call(updates,'autoLowercase'))
+      extensionOptions.autoLowercase=Boolean(updates.autoLowercase);
+    if(Object.prototype.hasOwnProperty.call(updates,'fixBackingVocals'))
+      extensionOptions.fixBackingVocals=Boolean(updates.fixBackingVocals);
+    let showChanged=false;
+    if(Object.prototype.hasOwnProperty.call(updates,'showFloatingButton')){
+      const nextShow=Boolean(updates.showFloatingButton);
+      showChanged=nextShow!==prevShow;
+      extensionOptions.showFloatingButton=nextShow;
+    }
+    if(showChanged) syncFloatingButtonVisibility();
+    else if(extensionOptions.showFloatingButton && !floatingButton) createFloatingButton();
+  }
+
+  function initializeExtensionOptions(){
+    ensureShortcutListeners();
+    syncFloatingButtonVisibility();
+    const chromeStorage=typeof chrome!=='undefined'?chrome.storage:undefined;
+    if(!chromeStorage?.sync) return;
+
+    chromeStorage.sync.get(['mxmLang','mxmLower','mxmBV','mxmButton'],data=>{
+      const payload=data||{};
+      applyExtensionOptions({
+        lang: payload.mxmLang || extensionDefaults.lang,
+        autoLowercase: Boolean(payload.mxmLower),
+        fixBackingVocals: payload.mxmBV ?? extensionDefaults.fixBackingVocals,
+        showFloatingButton: Boolean(payload.mxmButton)
+      });
+    });
+
+    if(chromeStorage.onChanged?.addListener){
+      chromeStorage.onChanged.addListener((changes,area)=>{
+        if(area!=='sync') return;
+        const updates={};
+        if(Object.prototype.hasOwnProperty.call(changes,'mxmLang'))
+          updates.lang=changes.mxmLang.newValue || extensionDefaults.lang;
+        if(Object.prototype.hasOwnProperty.call(changes,'mxmLower'))
+          updates.autoLowercase=Boolean(changes.mxmLower.newValue);
+        if(Object.prototype.hasOwnProperty.call(changes,'mxmBV'))
+          updates.fixBackingVocals=changes.mxmBV.newValue ?? extensionDefaults.fixBackingVocals;
+        if(Object.prototype.hasOwnProperty.call(changes,'mxmButton'))
+          updates.showFloatingButton=Boolean(changes.mxmButton.newValue);
+        if(Object.keys(updates).length) applyExtensionOptions(updates);
+      });
     }
   }
+
+  initializeExtensionOptions();
   function toast(msg){
     if(!uiDocument) return;
     const t=uiDocument.createElement('div');
@@ -1283,24 +1388,39 @@
   }
 
   // ---------- Runner ----------
-  function runFormat(){
+  function runFormat(passedOptions){
+    if(passedOptions && typeof passedOptions==='object'){
+      const updates={};
+      if(Object.prototype.hasOwnProperty.call(passedOptions,'lang') && typeof passedOptions.lang==='string')
+        updates.lang=passedOptions.lang;
+      if(Object.prototype.hasOwnProperty.call(passedOptions,'autoLowercase'))
+        updates.autoLowercase=Boolean(passedOptions.autoLowercase);
+      if(Object.prototype.hasOwnProperty.call(passedOptions,'fixBackingVocals'))
+        updates.fixBackingVocals=Boolean(passedOptions.fixBackingVocals);
+      if(Object.prototype.hasOwnProperty.call(passedOptions,'showFloatingButton'))
+        updates.showFloatingButton=Boolean(passedOptions.showFloatingButton);
+      if(Object.keys(updates).length) applyExtensionOptions(updates);
+    }
+
     const searchDoc=uiDocument||document;
     const el=currentEditable||findDeepEditable(searchDoc);
     if(!el){alert('Click inside the lyrics field first, then press Alt+M.');return;}
     const before=getEditorText(el);
-    const out=formatLyrics(before);
+    const effectiveOptions={...extensionOptions};
+    let out=formatLyrics(before,effectiveOptions);
+    if(effectiveOptions.autoLowercase) out=out.toLowerCase();
     writeToEditor(el,out);
     toast(`Formatted ✓ (v${SCRIPT_VERSION})`);
   }
 
   // Listen for popup-triggered Format Lyrics
-  window.runFormat = window.runFormat || function() {
-    const event = new CustomEvent('mxmFormatRequest');
+  window.runFormat = window.runFormat || function(options) {
+    const event = new CustomEvent('mxmFormatRequest', { detail: options || null });
     document.dispatchEvent(event);
   };
 
-  document.addEventListener('mxmFormatRequest', () => {
-    if (typeof runFormat === 'function') runFormat();
+  document.addEventListener('mxmFormatRequest', (evt) => {
+    if (typeof runFormat === 'function') runFormat(evt?.detail);
   });
 
 })(typeof globalThis !== 'undefined' ? globalThis : this);
