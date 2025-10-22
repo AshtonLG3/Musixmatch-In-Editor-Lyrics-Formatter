@@ -33,6 +33,8 @@
 ---
 
 ## Installation
+> **One-click setup:** [Install Tampermonkey *and* the formatter in one step](https://www.tampermonkey.net/?ext=dhdg&downloadURL=https://raw.githubusercontent.com/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/main/MxM-Formatter.user.js). The Tampermonkey site will guide you through adding the extension (if needed) and then import the userscript automatically.
+
 1. **Install a userscript manager** (choose one):
    - [Tampermonkey](https://tampermonkey.net/)
    - [Violentmonkey](https://violentmonkey.github.io/)
