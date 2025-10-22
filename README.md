@@ -79,7 +79,6 @@ These transformations are safe to re-run—executing the formatter multiple time
 ---
 
 ## Authors
-- **Vincas Stepankevičius**
 - **Richard Mangezi Muketa**
 
 ---
