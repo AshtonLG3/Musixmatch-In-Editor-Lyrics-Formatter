@@ -24,7 +24,7 @@
     lang: "EN",
     autoLowercase: false,
     fixBackingVocals: true,
-    showFloatingButton: false
+    showFloatingButton: true
   };
   const extensionOptions = { ...extensionDefaults };
 
