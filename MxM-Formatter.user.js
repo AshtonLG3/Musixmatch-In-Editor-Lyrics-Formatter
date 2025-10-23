@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.33
+// @version      1.1.34
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
-// @author       Vincas Stepankevičius & Richard Mangezi Muketa
+// @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
 // @match        https://curators-beta.musixmatch.com/*
 // @run-at       document-idle
@@ -15,16 +15,21 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.33';
+  const SCRIPT_VERSION = '1.1.34';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
+
+  const runningAsExtension =
+    typeof chrome !== 'undefined' &&
+    typeof chrome.runtime === 'object' &&
+    !!chrome.runtime?.id;
 
   const extensionDefaults = {
     lang: "EN",
     autoLowercase: false,
     fixBackingVocals: true,
-    showFloatingButton: false
+    showFloatingButton: !runningAsExtension // show button for userscript installs
   };
   const extensionOptions = { ...extensionDefaults };
 
