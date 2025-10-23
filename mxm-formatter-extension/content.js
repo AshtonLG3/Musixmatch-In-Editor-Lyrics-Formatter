@@ -1,7 +1,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.33';
+  const SCRIPT_VERSION = '1.1.35';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -602,8 +602,25 @@
         let line = contractionLines[i];
         line = line.replace(/\bgunna\b/gi, "gonna");
         line = line.replace(/\bgon\b(?!['\u2019])/gi, "gon'");
-        line = line.replace(/^'?cause\b/i, "'Cause");
-        line = line.replace(/\b[Cc]ause\b/g, (match, offset, str) => {
+        line = line.replace(/'?c(?:uz|os|oz)\b/gi, (match, offset, str) => {
+          const prevChar = offset > 0 ? str[offset - 1] : '';
+          const nextIndex = offset + match.length;
+          const nextChar = nextIndex < str.length ? str[nextIndex] : '';
+          if (/\w/.test(prevChar) || /\w/.test(nextChar)) return match;
+
+          const hasLeadingApostrophe = match[0] === "'" || match[0] === "\u2019";
+          const core = hasLeadingApostrophe ? match.slice(1) : match;
+          const firstChar = core[0] ?? '';
+          const isAllUpper = core === core.toUpperCase();
+          const isTitleCase = firstChar !== '' && firstChar === firstChar.toUpperCase();
+          const isLineStart = offset === 0;
+
+          if (isAllUpper) return "'CAUSE";
+          if (isLineStart) return "'Cause";
+          if (isTitleCase) return "'Cause";
+          return "'cause";
+        });
+        line = line.replace(/\bcause\b/gi, (match, offset, str) => {
           const prev = offset > 0 ? str[offset - 1] : '';
           if (prev === "'" || prev === "\u2019") return match;
           if (match === match.toUpperCase()) return "'CAUSE";
@@ -613,7 +630,11 @@
         line = line.replace(/\b'til\b/gi, "'til");
         line = line.replace(/\bimma\b/gi, "I'ma");
         line = line.replace(/\bim'ma\b/gi, "I'ma");
-        line = line.replace(/\bem'?\b/gi, "'em");
+        line = line.replace(/\bem'(?!\w)/gi, (match, offset, str) => {
+          const prev = offset > 0 ? str[offset - 1] : '';
+          if (prev === "'" || prev === "\u2019") return match;
+          return "'em";
+        });
         contractionLines[i] = line;
       }
       x = contractionLines.join('\n');
