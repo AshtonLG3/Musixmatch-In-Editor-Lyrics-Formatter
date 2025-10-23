@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.32
+// @version      1.1.33
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Vincas Stepankevičius & Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.32';
+  const SCRIPT_VERSION = '1.1.33';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -609,35 +609,32 @@
       .replace(/\n{3,}/g, "\n\n");
 
     // Contractions
-    x = x
-      .replace(/'?c(?:uz|os|oz)\b/gi, (match, offset, str) => {
-        const prevChar = offset > 0 ? str[offset - 1] : '';
-        const nextIndex = offset + match.length;
-        const nextChar = nextIndex < str.length ? str[nextIndex] : '';
-
-        if (/\w/.test(prevChar) || /\w/.test(nextChar)) return match;
-
-        const hasLeadingApostrophe = match[0] === "'" || match[0] === "\u2019";
-        const core = hasLeadingApostrophe ? match.slice(1) : match;
-        const firstChar = core[0] ?? '';
-        const isAllUpper = core === core.toUpperCase();
-        const isTitleCase = firstChar !== '' && firstChar === firstChar.toUpperCase();
-        const isLineStart = offset === 0 || prevChar === '\n' || prevChar === '\r';
-
-        if (isAllUpper) return "'CAUSE";
-        if (isLineStart) return "'Cause";
-        if (isTitleCase) return "'Cause";
-        return "'cause";
-      })
-      .replace(/\bcause\b/gi, (match, offset, str) => {
-        if (offset > 0) {
-          const prev = str[offset - 1];
+    // --- Contraction normalization block ---
+    {
+      const contractionLines = x.split('\n');
+      for (let i = 0; i < contractionLines.length; i++) {
+        let line = contractionLines[i];
+        line = line.replace(/\bgunna\b/gi, "gonna");
+        line = line.replace(/\bgon\b(?!['\u2019])/gi, "gon'");
+        line = line.replace(/^'?cause\b/i, "'Cause");
+        line = line.replace(/\b[Cc]ause\b/g, (match, offset, str) => {
+          const prev = offset > 0 ? str[offset - 1] : '';
           if (prev === "'" || prev === "\u2019") return match;
-        }
-        if (match === match.toUpperCase()) return "'CAUSE";
-        if (match[0] === match[0].toUpperCase()) return "'Cause";
-        return "'cause";
-      })
+          if (match === match.toUpperCase()) return "'CAUSE";
+          if (match[0] === match[0].toUpperCase()) return "'Cause";
+          return "'cause";
+        });
+        line = line.replace(/\b'til\b/gi, "'til");
+        line = line.replace(/\bimma\b/gi, "I'ma");
+        line = line.replace(/\bim'ma\b/gi, "I'ma");
+        line = line.replace(/\bem'?\b/gi, "'em");
+        contractionLines[i] = line;
+      }
+      x = contractionLines.join('\n');
+    }
+    // --- End contraction normalization block ---
+
+    x = x
       .replace(/(?<!['\w])ti(?:ll|l)(?:')?(?!\w)/gi, (m, offset, str) => {
         const prev = offset > 0 ? str[offset - 1] : '';
         if (prev === "'" || prev === "\u2019") return m;
@@ -646,17 +643,6 @@
         if (base[0] === base[0].toUpperCase()) return "'Til";
         return "'til";
       })
-      .replace(/\bgunna\b/gi, match => {
-        if (match === match.toUpperCase()) return "GONNA";
-        if (match[0] === match[0].toUpperCase()) return "Gonna";
-        return "gonna";
-      })
-      .replace(/\bgon\b(?!['\u2019])/gi, match => {
-        if (match === match.toUpperCase()) return "GON'";
-        if (match[0] === match[0].toUpperCase()) return "Gon'";
-        return "gon'";
-      })
-      .replace(/\bimma\b/gi, "I'ma")
       .replace(/\bima\b/gi, "I'ma")
       .replace(/\bim\b/gi, "I'm")
       .replace(/\bdont\b/gi, "don't")
