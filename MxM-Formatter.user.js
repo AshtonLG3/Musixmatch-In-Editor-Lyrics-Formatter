@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.35
+// @version      1.1.36
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.35';
+  const SCRIPT_VERSION = '1.1.36';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -1162,6 +1162,7 @@
       .replace(/([A-Za-z])\(/g, "$1 (")              // space before (
       .replace(/\)([A-Za-z])/g, ") $1")              // space after )
       .replace(/\( +/g, "(").replace(/ +\)/g, ")")
+      .replace(/,{2,}/g, ",")                        // collapse duplicate commas
       .replace(/,(\s*\))/g, "$1");                   // remove commas immediately before a closing parenthesis
 
     // 1️⃣ Remove trailing commas from line endings entirely
@@ -1176,7 +1177,11 @@
     // 3️⃣ Prevent multiple blank lines from stacking between sections
     x = x.replace(/\n{3,}/g, "\n\n");
 
-    x = x.replace(/[ \t]+\n/g, "\n").trim();
+    // 4️⃣ Remove stray indentation and trailing spaces on each line
+    x = x.replace(/^[ \t]+/gm, "");
+    x = x.replace(/[ \t]+$/gm, "");
+
+    x = x.trim();
 
     return x;
   }
