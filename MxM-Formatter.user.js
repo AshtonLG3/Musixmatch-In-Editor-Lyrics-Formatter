@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.31
+// @version      1.1.32
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Vincas Stepankevičius & Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.31';
+  const SCRIPT_VERSION = '1.1.32';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -646,6 +646,16 @@
         if (base[0] === base[0].toUpperCase()) return "'Til";
         return "'til";
       })
+      .replace(/\bgunna\b/gi, match => {
+        if (match === match.toUpperCase()) return "GONNA";
+        if (match[0] === match[0].toUpperCase()) return "Gonna";
+        return "gonna";
+      })
+      .replace(/\bgon\b(?!['\u2019])/gi, match => {
+        if (match === match.toUpperCase()) return "GON'";
+        if (match[0] === match[0].toUpperCase()) return "Gon'";
+        return "gon'";
+      })
       .replace(/\bimma\b/gi, "I'ma")
       .replace(/\bima\b/gi, "I'ma")
       .replace(/\bim\b/gi, "I'm")
@@ -1089,6 +1099,19 @@
 
     // Standalone pronoun fixes
     x = ensureStandaloneICapitalized(x);
+
+    // Ensure "'cause" is capitalized at the start of lines while respecting all-caps lines
+    x = x.replace(/(^|\n)(\s*)('?cause)\b/gi, (match, boundary, spaces, token, offset, str) => {
+      const tokenEnd = offset + boundary.length + spaces.length + token.length;
+      const lineEnd = str.indexOf('\n', tokenEnd);
+      const rest = lineEnd === -1 ? str.slice(tokenEnd) : str.slice(tokenEnd, lineEnd);
+      const hasLower = /[a-z]/.test(rest);
+      const hasUpper = /[A-Z]/.test(rest);
+      if ((hasUpper && !hasLower) || token === token.toUpperCase()) {
+        return boundary + spaces + "'CAUSE";
+      }
+      return boundary + spaces + "'Cause";
+    });
 
     // Capitalize first letter of each line (ignoring leading whitespace)
     x = x.replace(/(^|\n)(\s*)([a-z])/g, (_, boundary, space, letter) => boundary + space + letter.toUpperCase());
