@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.36
+// @version      1.1.37
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.36';
+  const SCRIPT_VERSION = '1.1.37';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -569,6 +569,19 @@
   function formatLyrics(input, _options = {}) {
     if (!input) return "";
     let x = ("\n" + input.trim() + "\n");
+    const preservedStandaloneParens = [];
+    const STANDALONE_PAREN_SENTINEL = "__MXM_SP__";
+
+    x = x.replace(/(^|\n)([^\S\n]*\([^\n]*\)[^\S\n]*)(?=\n)/g, (match, boundary, candidate) => {
+      const trimmed = candidate.trim();
+      if (trimmed.startsWith("(") && trimmed.endsWith(")") && !trimmed.includes("\n")) {
+        const placeholder = `${STANDALONE_PAREN_SENTINEL}${preservedStandaloneParens.length}__`;
+        preservedStandaloneParens.push(candidate);
+        return boundary + placeholder;
+      }
+      return match;
+    });
+
     const hyphenatedEmTokens = [];
 
     // Clean + normalize
@@ -1182,6 +1195,19 @@
     x = x.replace(/[ \t]+$/gm, "");
 
     x = x.trim();
+
+    if (preservedStandaloneParens.length > 0) {
+      const restoreRe = new RegExp(`${STANDALONE_PAREN_SENTINEL}(\\d+)__`, 'g');
+      x = x.replace(restoreRe, (_, idx) => {
+        const original = preservedStandaloneParens[Number(idx)];
+        return original === undefined ? '' : original;
+      });
+
+      x = x.replace(
+        /(?<=\b(?:yeah|oh|whoa))\s*\n(?=#(?:INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))/gim,
+        "\n\n"
+      );
+    }
 
     return x;
   }

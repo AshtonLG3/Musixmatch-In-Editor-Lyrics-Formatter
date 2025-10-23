@@ -46,6 +46,19 @@ if (typeof formatLyrics !== 'function') {
   throw new Error('MxM-Formatter.user.js did not export a formatLyrics function');
 }
 
+const standaloneParenthetical = '(Yeah, yeah, yeah)';
+const formattedStandalone = formatLyrics(standaloneParenthetical);
+if (formattedStandalone !== standaloneParenthetical) {
+  throw new Error('Standalone parenthetical line should remain unchanged after formatting');
+}
+
+const sampleBlock = 'Yeah\n(YEAH, YEAH)\nOh';
+const formattedBlock = formatLyrics(sampleBlock).split('\n');
+const preservedLine = formattedBlock[1];
+if (preservedLine !== '(YEAH, YEAH)') {
+  throw new Error('Standalone parenthetical lines inside multi-line blocks must retain original casing');
+}
+
 module.exports = {
   formatLyrics,
   version: metaVersion,
