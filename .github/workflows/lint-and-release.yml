@@ -5,21 +5,22 @@ on:
     branches:
       - main
   push:
-    branches:
-      - main
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
+    tags:
+      - 'v*'
 
 jobs:
   lint:
-    if: github.event_name == 'pull_request'
     name: Lint userscript files
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
       - name: Run Prettier formatting check
         run: |
@@ -31,9 +32,9 @@ jobs:
             "mxm-formatter-extension/**/*.js"
 
   release:
-    if: github.event_name == 'push'
     name: Tag and release userscript
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
     permissions:
       contents: write
     steps:
@@ -113,41 +114,5 @@ jobs:
             MxM-Formatter.meta.js
           fail_on_unmatched_files: true
           overwrite: true
-=======
-    branches: [ main ]
-  push:
-    tags:
-      - 'v*'
-
-jobs:
-  lint:
-    name: Lint userscript files
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Install ESLint
-        run: npm install eslint --global
-
-      - name: Run ESLint
-        run: eslint MxM-Formatter.user.js || true
-
-  release:
-    name: Tag and release userscript
-    needs: lint
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Upload UserScript to GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: MxM-Formatter.user.js
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
