@@ -2,7 +2,6 @@ name: Lint and Release Userscript
 
 on:
   pull_request:
-<<<<<<< ours
     branches:
       - main
   push:
