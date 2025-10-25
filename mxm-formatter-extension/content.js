@@ -1,7 +1,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.46';
+  const SCRIPT_VERSION = '1.1.47';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -1190,7 +1190,7 @@
 
     // ❌ Do not add, remove, or alter newlines anywhere
     // ✅ Only lowercase the first word after ")" (except I / I'm / I'ma)
-    x = x.replace(/\)\s+([A-Z][a-z]*)\b/g, (match, word) => {
+    x = x.replace(/\)[ \t]+([A-Z][a-z]*)\b/g, (match, word) => {
       const exceptions = ['I', "I'm", "I'ma"];
       return exceptions.includes(word) ? `) ${word}` : `) ${word.toLowerCase()}`;
     });
@@ -1212,14 +1212,14 @@
       })
       .replace(/ +/g, " ")                           // collapse multiple spaces
       .replace(/[ \t]+([,.;!?\)])/g, "$1")           // preserve newlines, remove only spaces before punctuation (except before "(")
-      .replace(/([!?])\s+(?=")/g, '$1')               // keep punctuation tight to closing quotes
+      .replace(/([!?])[ \t]+(?=")/g, '$1')            // keep punctuation tight to closing quotes
       .replace(/(?<=\S)"(?=[^\s"!.?,;:)\]])/g, '" ') // ensure space after closing quotes when followed by text
-      .replace(/([!?])\s*(?=\()/g, "$1 ")            // ensure space between !/? and following "("
+      .replace(/([!?])[ \t]*(?=\()/g, "$1 ")         // ensure space between !/? and following "("
       .replace(/([A-Za-z])\(/g, "$1 (")              // space before (
       .replace(/\)([A-Za-z])/g, ") $1")              // space after )
       .replace(/\( +/g, "(").replace(/ +\)/g, ")")
       .replace(/,{2,}/g, ",")                        // collapse duplicate commas
-      .replace(/,(\s*\))/g, "$1");                   // remove commas immediately before a closing parenthesis
+      .replace(/,([ \t]*\))/g, "$1");                // remove commas immediately before a closing parenthesis
 
     // 1️⃣ Remove trailing commas from line endings entirely
     x = x.replace(/,+\s*$/gm, "");
