@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.43
+// @version      1.1.44
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.43';
+  const SCRIPT_VERSION = '1.1.44';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -1199,14 +1199,10 @@
     x = x.replace(/,\s*\(([^)]*?)\)\s*$/gm, ' ($1)');     // if line ends after ")", remove comma
 
 
-    // ---------- Final Sanitation (Parenthetical Safe) ----------
+    // ---------- Final Sanitation (Strict Parenthetical Safe) ----------
 
-    // ✅ Do NOT create or destroy new lines for parentheses
-    // Simply merge accidental breaks that split them apart
-    x = x.replace(/ *\n+(?=\([^)]+\))/g, ' ');
-    x = x.replace(/(\([^)]+\)) *\n+/g, '$1 ');
-
-    // ✅ Lowercase first word after ")" unless it's I / I'm / I'ma
+    // ❌ Do not add, remove, or alter newlines anywhere
+    // ✅ Only lowercase the first word after ")" (except I / I'm / I'ma)
     x = x.replace(/\)\s+([A-Z][a-z]*)\b/g, (match, word) => {
       const exceptions = ['I', "I'm", "I'ma"];
       return exceptions.includes(word) ? `) ${word}` : `) ${word.toLowerCase()}`;
