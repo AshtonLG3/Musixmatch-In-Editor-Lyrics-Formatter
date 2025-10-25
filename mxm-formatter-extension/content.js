@@ -1,7 +1,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.41';
+  const SCRIPT_VERSION = '1.1.42';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -1181,7 +1181,41 @@
 
 
     // ---------- Final Sanitation ----------
-    x = x.replace(/(\([^)]+?\))\s*(?=\n?[^#\n(])/g, '$1\n');
+    x = x.replace(/\n?\s*(\([^)]+\))\s*\n?/g, (match, group, offset, str) => {
+      const startsWithNewline = match.startsWith('\n');
+      const endsWithNewline = match.endsWith('\n');
+
+      let prevIdx = offset - 1;
+      while (prevIdx >= 0 && str[prevIdx] === ' ') prevIdx--;
+      const prevChar = prevIdx >= 0 ? str[prevIdx] : '';
+      const hasTextBefore = prevIdx >= 0 && prevChar !== '\n' && prevChar !== '';
+
+      let nextIdx = offset + match.length;
+      while (nextIdx < str.length && str[nextIdx] === ' ') nextIdx++;
+      const nextChar = nextIdx < str.length ? str[nextIdx] : '';
+      const hasTextAfter =
+        nextIdx < str.length && nextChar !== '\n' && nextChar !== '(' && nextChar !== '#' && nextChar !== '';
+
+      if (!hasTextBefore && !hasTextAfter) {
+        let result = '';
+        if (startsWithNewline) result += '\n';
+        result += group;
+        if (endsWithNewline) result += '\n';
+        return result;
+      }
+
+      const prefix = startsWithNewline ? '\n' : hasTextBefore ? ' ' : '';
+      const suffix = hasTextAfter ? ' ' : endsWithNewline ? '\n' : '';
+      return `${prefix}${group}${suffix}`;
+    });
+
+    x = x.replace(
+      /\)\s+([A-Z][a-z]*)\b/g,
+      (match, word) => {
+        const exceptions = ['I', "I'm", "I'ma"];
+        return exceptions.includes(word) ? `) ${word}` : `) ${word.toLowerCase()}`;
+      }
+    );
 
     x = x
       .replace(/([,;!?])(\S)/g, (match, punct, next, offset, str) => {
