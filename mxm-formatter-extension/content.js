@@ -1181,33 +1181,7 @@
 
 
     // ---------- Final Sanitation ----------
-    x = x.replace(/\n?\s*(\([^)]+\))\s*\n?/g, (match, group, offset, str) => {
-      const startsWithNewline = match.startsWith('\n');
-      const endsWithNewline = match.endsWith('\n');
-
-      let prevIdx = offset - 1;
-      while (prevIdx >= 0 && str[prevIdx] === ' ') prevIdx--;
-      const prevChar = prevIdx >= 0 ? str[prevIdx] : '';
-      const hasTextBefore = prevIdx >= 0 && prevChar !== '\n' && prevChar !== '';
-
-      let nextIdx = offset + match.length;
-      while (nextIdx < str.length && str[nextIdx] === ' ') nextIdx++;
-      const nextChar = nextIdx < str.length ? str[nextIdx] : '';
-      const hasTextAfter =
-        nextIdx < str.length && nextChar !== '\n' && nextChar !== '(' && nextChar !== '#' && nextChar !== '';
-
-      if (!hasTextBefore && !hasTextAfter) {
-        let result = '';
-        if (startsWithNewline) result += '\n';
-        result += group;
-        if (endsWithNewline) result += '\n';
-        return result;
-      }
-
-      const prefix = startsWithNewline ? '\n' : hasTextBefore ? ' ' : '';
-      const suffix = hasTextAfter ? ' ' : endsWithNewline ? '\n' : '';
-      return `${prefix}${group}${suffix}`;
-    });
+    x = x.replace(/\n?\s*(\([^)]+\))\s*\n?/g, ' $1 ');
 
     x = x.replace(
       /\)\s+([A-Z][a-z]*)\b/g,
