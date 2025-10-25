@@ -1227,6 +1227,9 @@
       '$1\n\n'
     );
 
+    // Ensure yeah/closing parenthetical lines stay adjacent to following BV lines
+    x = x.replace(/((?:\)|\byeah\b)[,!?]*)\s*\n(?=\([^)]+\)\s*[a-z])/gi, '$1\n');
+
     // 3️⃣ Prevent multiple blank lines from stacking between sections
     x = x.replace(/\n{3,}/g, "\n\n");
 
