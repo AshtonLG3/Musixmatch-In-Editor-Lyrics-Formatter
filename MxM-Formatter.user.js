@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.40
+// @version      1.1.41
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.40';
+  const SCRIPT_VERSION = '1.1.41';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -90,38 +90,27 @@
     const after = line.slice(e);
     return /^\s*(?:o\s+clock|oclock|o['’]clock)\b/i.test(after);
   }
-  function findCountingSequenceRanges(line) {
-    if (!line) return [];
-    const ranges = [];
-    const seqRe = /(?:^|[^\d])((?:\d{1,2}(?:\s*,\s*|\s+)){1,}\d{1,2})(?=(?:[^\d]|$))/g;
-    let m;
-    while ((m = seqRe.exec(line)) !== null) {
-      const sequence = m[1];
-      const numbers = sequence.split(/(?:\s*,\s*|\s+)/).filter(Boolean);
-      if (numbers.length < 3) continue;
-      if (numbers.every(token => {
-        const value = Number(token);
-        return (
-          Number.isInteger(value) &&
-          value >= 0 &&
-          value <= 9
-        );
-      })) {
-        const start = seqRe.lastIndex - sequence.length;
-        ranges.push([start, start + sequence.length]);
-      }
-    }
-    return ranges;
+  function isCountingSequence(line) {
+    // Detects rhythmic count-offs like 1,2,3,4 or 1 2 3 4
+    return /^\s*(?:\d{1,2}[,\s]+){1,}\d{1,2}\s*$/.test(line.trim());
+  }
+
+  function spellOutCountSequence(line) {
+    // Convert each number (0–10) in a count sequence into its word form
+    const numWords = ["zero","one","two","three","four","five","six","seven","eight","nine","ten"];
+    return line
+      .replace(/\b(0|[1-9]|10)\b/g, (_, d) => numWords[Number(d)])
+      .replace(/([a-z])([a-z])/gi, (m, a, b) => a + b.toLowerCase()) // normalize casing
+      .replace(/(^|\s)([a-z])/g, (m, s, l) => s + l.toUpperCase())   // capitalize first if needed
+      .replace(/\s*,\s*/g, ", ")                                     // clean spacing after commas
+      .replace(/\s+/g, " ");                                         // collapse spaces
   }
   function numerals0to10ToWords(line) {
     const re = /\b(0|1|2|3|4|5|6|7|8|9|10)\b/g;
-    const skipRanges = findCountingSequenceRanges(line);
     let out = "", last = 0, m;
     while ((m = re.exec(line)) !== null) {
       const s = m.index, e = s + m[0].length, num = parseInt(m[0], 10);
-      const inCountingSequence = skipRanges.some(([start, end]) => s >= start && e <= end);
       if (
-        inCountingSequence ||
         isTimeContext(line, s, e) ||
         isDateContext(line, s, e) ||
         isDecadeNumeric(line, s, e)
@@ -157,6 +146,10 @@
     const lines = text.split('\n');
     for (let i = 0; i < lines.length; i++) {
       const currentLine = lines[i];
+      if (isCountingSequence(currentLine)) {
+        lines[i] = spellOutCountSequence(currentLine);
+        continue;
+      }
       const numCount = (currentLine.match(/\b\d+\b/g) || []).length;
       const useNumerals =
         numCount >= 3 ||
@@ -1177,7 +1170,9 @@
     });
 
     // Capitalize first letter of each line (ignoring leading whitespace)
-    x = x.replace(/(^|\n)(\s*)([a-z])/g, (_, boundary, space, letter) => boundary + space + letter.toUpperCase());
+    x = x.replace(/(^|\n)(\s*)(["'“”‘’]?)([a-z])/g, (_, boundary, space, quote, letter) =>
+      boundary + space + quote + letter.toUpperCase()
+    );
 
     // BV lowercase (except I)
     x = x.replace(/([a-z])\(/g, "$1 (");
@@ -1205,6 +1200,8 @@
 
 
     // ---------- Final Sanitation ----------
+    x = x.replace(/(\([^)]+?\))\s*(?=\n?[^#\n(])/g, '$1\n');
+
     x = x
       .replace(/([,;!?])(\S)/g, (match, punct, next, offset, str) => {
         if (/["?!]/.test(next)) return punct + next;
