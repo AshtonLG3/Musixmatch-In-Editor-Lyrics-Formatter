@@ -1,7 +1,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.38';
+  const SCRIPT_VERSION = '1.1.39';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -71,13 +71,44 @@
     const after = line.slice(e);
     return /^\s*(?:o\s+clock|oclock|o['’]clock)\b/i.test(after);
   }
+  function findCountingSequenceRanges(line) {
+    if (!line) return [];
+    const ranges = [];
+    const seqRe = /(?:^|[^\d])((?:\d{1,2}(?:\s*,\s*|\s+)){1,}\d{1,2})(?=(?:[^\d]|$))/g;
+    let m;
+    while ((m = seqRe.exec(line)) !== null) {
+      const sequence = m[1];
+      const numbers = sequence.split(/(?:\s*,\s*|\s+)/).filter(Boolean);
+      if (numbers.length < 3) continue;
+      if (numbers.every(token => {
+        const value = Number(token);
+        return (
+          Number.isInteger(value) &&
+          value >= 0 &&
+          value <= 9
+        );
+      })) {
+        const start = seqRe.lastIndex - sequence.length;
+        ranges.push([start, start + sequence.length]);
+      }
+    }
+    return ranges;
+  }
   function numerals0to10ToWords(line) {
     const re = /\b(0|1|2|3|4|5|6|7|8|9|10)\b/g;
+    const skipRanges = findCountingSequenceRanges(line);
     let out = "", last = 0, m;
     while ((m = re.exec(line)) !== null) {
       const s = m.index, e = s + m[0].length, num = parseInt(m[0], 10);
-      if (isTimeContext(line, s, e) || isDateContext(line, s, e) || isDecadeNumeric(line, s, e))
+      const inCountingSequence = skipRanges.some(([start, end]) => s >= start && e <= end);
+      if (
+        inCountingSequence ||
+        isTimeContext(line, s, e) ||
+        isDateContext(line, s, e) ||
+        isDecadeNumeric(line, s, e)
+      ) {
         out += line.slice(last, e);
+      }
       else out += line.slice(last, s) + NUM_WORDS_0_10[num];
       last = e;
     }
@@ -1100,6 +1131,13 @@
     x = applyNumberRules(x);
     x = applyNoCommaRules(x);
 
+    // Normalize "god damn" -> "goddamn" while respecting casing
+    x = x.replace(/\bgod\s+damn\b/gi, match => {
+      if (match === match.toUpperCase()) return 'GODDAMN';
+      if (match[0] === 'G') return 'Goddamn';
+      return 'goddamn';
+    });
+
     // Remove stray spaces that appear immediately before punctuation marks
     x = x.replace(/[ \t]+([!?.,;:])/g, '$1');
 
@@ -1149,9 +1187,24 @@
 
     // ---------- Final Sanitation ----------
     x = x
-      .replace(/([,;!?])([^\s])/g, "$1 $2")          // space after punctuation when a non-space follows
+      .replace(/([,;!?])(\S)/g, (match, punct, next, offset, str) => {
+        if (/["?!]/.test(next)) return punct + next;
+        const following = str[offset + match.length] || '';
+        if (
+          next === "'" &&
+          following &&
+          following.toLocaleLowerCase() !== following.toLocaleUpperCase()
+        ) {
+          return punct + ' ' + next;
+        }
+        const isLetter = next.toLocaleLowerCase() !== next.toLocaleUpperCase();
+        if (isLetter || /\d/.test(next)) return punct + ' ' + next;
+        return punct + next;
+      })
       .replace(/ +/g, " ")                           // collapse multiple spaces
       .replace(/[ \t]+([,.;!?\)])/g, "$1")           // preserve newlines, remove only spaces before punctuation (except before "(")
+      .replace(/([!?])\s+(?=")/g, '$1')               // keep punctuation tight to closing quotes
+      .replace(/(?<=\S)"(?=[^\s"!.?,;:)\]])/g, '" ') // ensure space after closing quotes when followed by text
       .replace(/([!?])\s*(?=\()/g, "$1 ")            // ensure space between !/? and following "("
       .replace(/([A-Za-z])\(/g, "$1 (")              // space before (
       .replace(/\)([A-Za-z])/g, ") $1")              // space after )
@@ -1162,10 +1215,10 @@
     // 1️⃣ Remove trailing commas from line endings entirely
     x = x.replace(/,+\s*$/gm, "");
 
-    // 2️⃣ Ensure exactly one blank line before structure tags if previous line ends with yeah/oh/whoa
+    // 2️⃣ Ensure a blank line before structure tags when previous stanza ends with yeah/oh/whoa/huh or ")"
     x = x.replace(
-      /(?<=\b(?:yeah|oh|whoa))\s*\n(?=#(?:INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))/gim,
-      "\n\n"
+      /(\b(?:yeah|oh|whoa|huh)\b|\))[ \t]*\n+(?=#(?:INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))/gim,
+      '$1\n\n'
     );
 
     // 3️⃣ Prevent multiple blank lines from stacking between sections
@@ -1185,8 +1238,8 @@
       });
 
       x = x.replace(
-        /(?<=\b(?:yeah|oh|whoa))\s*\n(?=#(?:INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))/gim,
-        "\n\n"
+        /(\b(?:yeah|oh|whoa|huh)\b|\))[ \t]*\n+(?=#(?:INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))/gim,
+        '$1\n\n'
       );
     }
 
