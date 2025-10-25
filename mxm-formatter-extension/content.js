@@ -1,7 +1,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.45';
+  const SCRIPT_VERSION = '1.1.46';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -1171,7 +1171,10 @@
 
     x = enforceStructureTagSpacing(x);
 
-    // Ensure yeah/closing parenthetical lines stay adjacent to following BV lines
+    // Prevent any amalgamation of lines ending with ")" or BV phrases
+    x = x.replace(/(\))[ \t]*\n(?=[^\n])/g, '$1\n');
+
+    // Remove overly aggressive BV adjacency merging
     x = x.replace(/((?:\)|\byeah\b)[,!?]*)\s*\n(?=\([^)]+\)\s*[a-z])/gi, '$1\n');
 
     // Smart comma relocation: only move if there's text after ")" (idempotent), otherwise remove
@@ -1227,7 +1230,10 @@
       '$1\n\n'
     );
 
-    // Ensure yeah/closing parenthetical lines stay adjacent to following BV lines
+    // Prevent any amalgamation of lines ending with ")" or BV phrases
+    x = x.replace(/(\))[ \t]*\n(?=[^\n])/g, '$1\n');
+
+    // Remove overly aggressive BV adjacency merging
     x = x.replace(/((?:\)|\byeah\b)[,!?]*)\s*\n(?=\([^)]+\)\s*[a-z])/gi, '$1\n');
 
     // 3️⃣ Prevent multiple blank lines from stacking between sections
