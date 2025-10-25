@@ -1,21 +1,21 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.38
+// @version      1.1.48
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
 // @match        https://curators-beta.musixmatch.com/*
 // @run-at       document-idle
 // @grant        none
-// @downloadURL  https://github.com/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/releases/latest/download/MxM-Formatter.user.js
-// @updateURL    https://github.com/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/releases/latest/download/MxM-Formatter.meta.js
+// @downloadURL  https://raw.githubusercontent.com/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/main/MxM-Formatter.user.js
+// @updateURL    https://raw.githubusercontent.com/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/main/MxM-Formatter.meta.js
 // ==/UserScript==
 
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.38';
+  const SCRIPT_VERSION = '1.1.48';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -90,13 +90,33 @@
     const after = line.slice(e);
     return /^\s*(?:o\s+clock|oclock|o['’]clock)\b/i.test(after);
   }
+  function isCountingSequence(line) {
+    // Detects rhythmic count-offs like 1,2,3,4 or 1 2 3 4
+    return /^\s*(?:\d{1,2}[,\s]+){1,}\d{1,2}\s*$/.test(line.trim());
+  }
+
+  function spellOutCountSequence(line) {
+    // Convert each number (0–10) in a count sequence into its word form
+    const numWords = ["zero","one","two","three","four","five","six","seven","eight","nine","ten"];
+    return line
+      .replace(/\b(0|[1-9]|10)\b/g, (_, d) => numWords[Number(d)])
+      .replace(/([a-z])([a-z])/gi, (m, a, b) => a + b.toLowerCase()) // normalize casing
+      .replace(/(^|\s)([a-z])/g, (m, s, l) => s + l.toUpperCase())   // capitalize first if needed
+      .replace(/\s*,\s*/g, ", ")                                     // clean spacing after commas
+      .replace(/\s+/g, " ");                                         // collapse spaces
+  }
   function numerals0to10ToWords(line) {
     const re = /\b(0|1|2|3|4|5|6|7|8|9|10)\b/g;
     let out = "", last = 0, m;
     while ((m = re.exec(line)) !== null) {
       const s = m.index, e = s + m[0].length, num = parseInt(m[0], 10);
-      if (isTimeContext(line, s, e) || isDateContext(line, s, e) || isDecadeNumeric(line, s, e))
+      if (
+        isTimeContext(line, s, e) ||
+        isDateContext(line, s, e) ||
+        isDecadeNumeric(line, s, e)
+      ) {
         out += line.slice(last, e);
+      }
       else out += line.slice(last, s) + NUM_WORDS_0_10[num];
       last = e;
     }
@@ -126,6 +146,10 @@
     const lines = text.split('\n');
     for (let i = 0; i < lines.length; i++) {
       const currentLine = lines[i];
+      if (isCountingSequence(currentLine)) {
+        lines[i] = spellOutCountSequence(currentLine);
+        continue;
+      }
       const numCount = (currentLine.match(/\b\d+\b/g) || []).length;
       const useNumerals =
         numCount >= 3 ||
@@ -587,7 +611,6 @@
     // Clean + normalize
     x = x
       .replace(/[\u2000-\u200b\u202f\u205f\u2060\u00a0]/gu, " ")
-      .replace(/[ \t]+\n/g, "\n")
       .replace(/ {2,}/g, " ")
       .replace(/\n{3,}/g, "\n\n")
       .replace(/[\u2019\u2018\u0060\u00b4]/gu, "'")
@@ -1119,6 +1142,13 @@
     x = applyNumberRules(x);
     x = applyNoCommaRules(x);
 
+    // Normalize "god damn" -> "goddamn" while respecting casing
+    x = x.replace(/\bgod\s+damn\b/gi, match => {
+      if (match === match.toUpperCase()) return 'GODDAMN';
+      if (match[0] === 'G') return 'Goddamn';
+      return 'goddamn';
+    });
+
     // Remove stray spaces that appear immediately before punctuation marks
     x = x.replace(/[ \t]+([!?.,;:])/g, '$1');
 
@@ -1139,7 +1169,9 @@
     });
 
     // Capitalize first letter of each line (ignoring leading whitespace)
-    x = x.replace(/(^|\n)(\s*)([a-z])/g, (_, boundary, space, letter) => boundary + space + letter.toUpperCase());
+    x = x.replace(/(^|\n)(\s*)(["'“”‘’]?)([a-z])/g, (_, boundary, space, quote, letter) =>
+      boundary + space + quote + letter.toUpperCase()
+    );
 
     // BV lowercase (except I)
     x = x.replace(/([a-z])\(/g, "$1 (");
@@ -1158,33 +1190,70 @@
     x = enforceStructureTagSpacing(x);
 
     // Smart comma relocation: only move if there's text after ")" (idempotent), otherwise remove
-    x = x.replace(/,\s*\(([^)]*?)\)(?=\s*\S)/g, (match, inner, offset, str) => {
+    x = x.replace(/,[ \t]*\(([^)]*?)\)(?=[ \t]*\S)/g, (match, inner, offset, str) => { // [FIXED]
       const afterIdx = offset + match.length;
       if (str[afterIdx] === ',') return match;
       return ` (${inner}),`;
     });
-    x = x.replace(/,\s*\(([^)]*?)\)\s*$/gm, ' ($1)');     // if line ends after ")", remove comma
+    x = x.replace(/,[ \t]*\(([^)]*?)\)[ \t]*$/gm, ' ($1)');     // [FIXED] if line ends after ")", remove comma
 
 
-    // ---------- Final Sanitation ----------
+    // ---------- Final Sanitation (Strict Parenthetical Safe) ----------
+
+    // ❌ Do not add, remove, or alter newlines anywhere
+    // ✅ Only lowercase the first word after ")" (except I / I'm / I'ma)
+    x = x.replace(/\)[ \t]+([A-Z][a-z]*)\b/g, (match, word) => {
+      const exceptions = ['I', "I'm", "I'ma"];
+      return exceptions.includes(word) ? `) ${word}` : `) ${word.toLowerCase()}`;
+    });
+
     x = x
-      .replace(/([,;!?])([^\s])/g, "$1 $2")          // space after punctuation when a non-space follows
+      .replace(/([,;!?])(\S)/g, (match, punct, next, offset, str) => {
+        if (/["?!]/.test(next)) return punct + next;
+        const following = str[offset + match.length] || '';
+        if (
+          next === "'" &&
+          following &&
+          following.toLocaleLowerCase() !== following.toLocaleUpperCase()
+        ) {
+          return punct + ' ' + next;
+        }
+        const isLetter = next.toLocaleLowerCase() !== next.toLocaleUpperCase();
+        if (isLetter || /\d/.test(next)) return punct + ' ' + next;
+        return punct + next;
+      })
       .replace(/ +/g, " ")                           // collapse multiple spaces
       .replace(/[ \t]+([,.;!?\)])/g, "$1")           // preserve newlines, remove only spaces before punctuation (except before "(")
-      .replace(/([!?])\s*(?=\()/g, "$1 ")            // ensure space between !/? and following "("
+      .replace(/([!?])[ \t]+(?=")/g, '$1')            // keep punctuation tight to closing quotes
+      .replace(/(?<=\S)"(?=[^\s"!.?,;:)\]])/g, '" ') // ensure space after closing quotes when followed by text
+      .replace(/([!?])[ \t]*(?=\()/g, "$1 ")         // ensure space between !/? and following "("
       .replace(/([A-Za-z])\(/g, "$1 (")              // space before (
       .replace(/\)([A-Za-z])/g, ") $1")              // space after )
       .replace(/\( +/g, "(").replace(/ +\)/g, ")")
       .replace(/,{2,}/g, ",")                        // collapse duplicate commas
-      .replace(/,(\s*\))/g, "$1");                   // remove commas immediately before a closing parenthesis
+      .replace(/,([ \t]*\))/g, "$1");                // remove commas immediately before a closing parenthesis
 
     // 1️⃣ Remove trailing commas from line endings entirely
     x = x.replace(/,+\s*$/gm, "");
 
-    // 2️⃣ Ensure exactly one blank line before structure tags if previous line ends with yeah/oh/whoa
+    // Prevent any amalgamation of lines ending with ")" or BV phrases
+    x = x.replace(/(\))[ \t]*\n(?=[^\n])/g, '$1\n');
+
+    // Remove overly aggressive BV adjacency merging
+    x = x.replace(/((?:\)|\byeah\b)[,!?]*)\s*\n(?=\([^)]+\)\s*[a-z])/gi, '$1\n');
+
+    if (preservedStandaloneParens.length > 0) {
+      const restoreRe = new RegExp(`${STANDALONE_PAREN_SENTINEL}(\\d+)__`, 'g');
+      x = x.replace(restoreRe, (_, idx) => {
+        const original = preservedStandaloneParens[Number(idx)];
+        return original === undefined ? '' : original;
+      });
+    }
+
+    // 2️⃣ Ensure a blank line before structure tags when previous stanza ends with yeah/oh/whoa/huh or ")"
     x = x.replace(
-      /(?<=\b(?:yeah|oh|whoa))\s*\n(?=#(?:INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))/gim,
-      "\n\n"
+      /(\b(?:yeah|oh|whoa|huh)\b|\))[ \t]*\n+(?=#(?:INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))/gim,
+      '$1\n\n'
     );
 
     // 3️⃣ Prevent multiple blank lines from stacking between sections
@@ -1195,19 +1264,6 @@
     x = x.replace(/[ \t]+$/gm, "");
 
     x = x.trim();
-
-    if (preservedStandaloneParens.length > 0) {
-      const restoreRe = new RegExp(`${STANDALONE_PAREN_SENTINEL}(\\d+)__`, 'g');
-      x = x.replace(restoreRe, (_, idx) => {
-        const original = preservedStandaloneParens[Number(idx)];
-        return original === undefined ? '' : original;
-      });
-
-      x = x.replace(
-        /(?<=\b(?:yeah|oh|whoa))\s*\n(?=#(?:INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))/gim,
-        "\n\n"
-      );
-    }
 
     return x;
   }
