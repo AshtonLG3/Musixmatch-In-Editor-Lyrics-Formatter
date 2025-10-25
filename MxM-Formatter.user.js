@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.47
+// @version      1.1.48
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.47';
+  const SCRIPT_VERSION = '1.1.48';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -611,7 +611,6 @@
     // Clean + normalize
     x = x
       .replace(/[\u2000-\u200b\u202f\u205f\u2060\u00a0]/gu, " ")
-      .replace(/[ \t]+\n/g, "\n")
       .replace(/ {2,}/g, " ")
       .replace(/\n{3,}/g, "\n\n")
       .replace(/[\u2019\u2018\u0060\u00b4]/gu, "'")
@@ -1190,19 +1189,13 @@
 
     x = enforceStructureTagSpacing(x);
 
-    // Prevent any amalgamation of lines ending with ")" or BV phrases
-    x = x.replace(/(\))[ \t]*\n(?=[^\n])/g, '$1\n');
-
-    // Remove overly aggressive BV adjacency merging
-    x = x.replace(/((?:\)|\byeah\b)[,!?]*)\s*\n(?=\([^)]+\)\s*[a-z])/gi, '$1\n');
-
     // Smart comma relocation: only move if there's text after ")" (idempotent), otherwise remove
-    x = x.replace(/,\s*\(([^)]*?)\)(?=\s*\S)/g, (match, inner, offset, str) => {
+    x = x.replace(/,[ \t]*\(([^)]*?)\)(?=[ \t]*\S)/g, (match, inner, offset, str) => { // [FIXED]
       const afterIdx = offset + match.length;
       if (str[afterIdx] === ',') return match;
       return ` (${inner}),`;
     });
-    x = x.replace(/,\s*\(([^)]*?)\)\s*$/gm, ' ($1)');     // if line ends after ")", remove comma
+    x = x.replace(/,[ \t]*\(([^)]*?)\)[ \t]*$/gm, ' ($1)');     // [FIXED] if line ends after ")", remove comma
 
 
     // ---------- Final Sanitation (Strict Parenthetical Safe) ----------
@@ -1243,17 +1236,25 @@
     // 1️⃣ Remove trailing commas from line endings entirely
     x = x.replace(/,+\s*$/gm, "");
 
-    // 2️⃣ Ensure a blank line before structure tags when previous stanza ends with yeah/oh/whoa/huh or ")"
-    x = x.replace(
-      /(\b(?:yeah|oh|whoa|huh)\b|\))[ \t]*\n+(?=#(?:INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))/gim,
-      '$1\n\n'
-    );
-
     // Prevent any amalgamation of lines ending with ")" or BV phrases
     x = x.replace(/(\))[ \t]*\n(?=[^\n])/g, '$1\n');
 
     // Remove overly aggressive BV adjacency merging
     x = x.replace(/((?:\)|\byeah\b)[,!?]*)\s*\n(?=\([^)]+\)\s*[a-z])/gi, '$1\n');
+
+    if (preservedStandaloneParens.length > 0) {
+      const restoreRe = new RegExp(`${STANDALONE_PAREN_SENTINEL}(\\d+)__`, 'g');
+      x = x.replace(restoreRe, (_, idx) => {
+        const original = preservedStandaloneParens[Number(idx)];
+        return original === undefined ? '' : original;
+      });
+    }
+
+    // 2️⃣ Ensure a blank line before structure tags when previous stanza ends with yeah/oh/whoa/huh or ")"
+    x = x.replace(
+      /(\b(?:yeah|oh|whoa|huh)\b|\))[ \t]*\n+(?=#(?:INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))/gim,
+      '$1\n\n'
+    );
 
     // 3️⃣ Prevent multiple blank lines from stacking between sections
     x = x.replace(/\n{3,}/g, "\n\n");
@@ -1263,19 +1264,6 @@
     x = x.replace(/[ \t]+$/gm, "");
 
     x = x.trim();
-
-    if (preservedStandaloneParens.length > 0) {
-      const restoreRe = new RegExp(`${STANDALONE_PAREN_SENTINEL}(\\d+)__`, 'g');
-      x = x.replace(restoreRe, (_, idx) => {
-        const original = preservedStandaloneParens[Number(idx)];
-        return original === undefined ? '' : original;
-      });
-
-      x = x.replace(
-        /(\b(?:yeah|oh|whoa|huh)\b|\))[ \t]*\n+(?=#(?:INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))/gim,
-        '$1\n\n'
-      );
-    }
 
     return x;
   }
