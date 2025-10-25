@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.44
+// @version      1.1.45
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.44';
+  const SCRIPT_VERSION = '1.1.45';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -1189,6 +1189,9 @@
     x = capitalizeAfterSentenceEnders(x);
 
     x = enforceStructureTagSpacing(x);
+
+    // Ensure yeah/closing parenthetical lines stay adjacent to following BV lines
+    x = x.replace(/((?:\)|\byeah\b)[,!?]*)\s*\n(?=\([^)]+\)\s*[a-z])/gi, '$1\n');
 
     // Smart comma relocation: only move if there's text after ")" (idempotent), otherwise remove
     x = x.replace(/,\s*\(([^)]*?)\)(?=\s*\S)/g, (match, inner, offset, str) => {
