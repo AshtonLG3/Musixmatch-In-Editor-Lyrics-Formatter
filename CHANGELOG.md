@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1.52
+- Add an ESLint configuration that recognises the Chrome extension globals and shared CommonJS helpers.
+- Disable the `no-useless-escape` rule and allow underscore-prefixed arguments so the formatter helpers lint cleanly.
+
 ## v1.1.51
 - Make post-? and post-! capitalization resilient to intervening quotes, parentheses, and whitespace.
 - Keep parenthetical capitalization intact when the preceding punctuation is a question or exclamation mark.
