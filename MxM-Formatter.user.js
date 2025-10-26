@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.49
+// @version      1.1.50
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.49';
+  const SCRIPT_VERSION = '1.1.50';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -1256,11 +1256,6 @@
       '$1\n\n'
     );
 
-    // 2a️⃣ Remove the blank line before structure tags when the previous stanza ends with "oh" or "uh"
-    x = x.replace(
-      /(\b(?:oh|uh)\b[!?.,…'\"]*)[ \t]*\n[ \t]*\n+(?=#(?:INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))/gim,
-      '$1\n'
-    );
 
     // 3️⃣ Prevent multiple blank lines from stacking between sections
     x = x.replace(/\n{3,}/g, "\n\n");

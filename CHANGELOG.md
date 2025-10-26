@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1.50
+- Restore the blank line before structure tags after interjections by removing the special-case collapse for "oh" and "uh" endings.
+- Continue honouring the spacing rules that keep dedicated gaps after endings such as "yeah", "whoa", "huh", or a closing parenthesis.
+
 ## v1.1.49
 - Ensure stanza endings of "oh" or "uh" butt directly against the following structure tag instead of retaining an empty separator line.
 - Keep dedicated structure-tag spacing for stanzas ending in "yeah", "whoa", "huh", or closing parentheses.
