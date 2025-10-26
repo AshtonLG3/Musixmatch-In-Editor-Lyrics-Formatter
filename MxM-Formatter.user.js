@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.52
+// @version      1.1.53
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.52';
+  const SCRIPT_VERSION = '1.1.53';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -1187,7 +1187,9 @@
     });
 
     // Capitalize first letter when line starts with "("
-    x = x.replace(/(^|\n)\(\s*([a-z])/g, (_, a, b) => a + "(" + b.toUpperCase());
+    x = x.replace(/(^|\n)(\(\s*)(["'“”‘’]?)([a-z])/g, (_, boundary, parenWithSpace, quote, letter) =>
+      boundary + parenWithSpace + quote + letter.toUpperCase()
+    );
 
     // Capitalize words following question or exclamation marks (after parentheses normalization)
     x = capitalizeAfterSentenceEnders(x);
@@ -1230,7 +1232,7 @@
       .replace(/ +/g, " ")                           // collapse multiple spaces
       .replace(/[ \t]+([,.;!?\)])/g, "$1")           // preserve newlines, remove only spaces before punctuation (except before "(")
       .replace(/([!?])[ \t]+(?=")/g, '$1')            // keep punctuation tight to closing quotes
-      .replace(/(?<=\S)"(?=[^\s"!.?,;:)\]])/g, '" ') // ensure space after closing quotes when followed by text
+      .replace(/(?<=[^\s(])"(?=[^\s"!.?,;:)\]])/g, '" ') // ensure space after closing quotes when followed by text
       .replace(/([!?])[ \t]*(?=\()/g, "$1 ")         // ensure space between !/? and following "("
       .replace(/([A-Za-z])\(/g, "$1 (")              // space before (
       .replace(/\)([A-Za-z])/g, ") $1")              // space after )
