@@ -91,20 +91,20 @@ if (formatLyrics(timeContextLine) !== 'Meet me at 7:30 p.m.') {
 
 const ohStructureBlock = 'Oh\n\n#CHORUS';
 const formattedOhStructure = formatLyrics(ohStructureBlock);
-if (!/\n#CHORUS/.test(formattedOhStructure)) {
-  throw new Error('Structure tag should follow immediately after the stanza ending in "Oh"');
+if (!/\n\s*\n#CHORUS/.test(formattedOhStructure)) {
+  throw new Error('Stanzas ending in "Oh" should keep a blank line before the next structure tag');
 }
-if (/\n\s*\n#CHORUS/.test(formattedOhStructure)) {
-  throw new Error('Stanzas ending in "Oh" should not keep a blank line before the next structure tag');
+if (/\n\s*\n\s*\n#CHORUS/.test(formattedOhStructure)) {
+  throw new Error('Stanzas ending in "Oh" should only have a single blank line before the next structure tag');
 }
 
 const uhStructureBlock = 'uh...\n\n#VERSE';
 const formattedUhStructure = formatLyrics(uhStructureBlock);
-if (!/\n#VERSE/.test(formattedUhStructure)) {
-  throw new Error('Structure tag should follow immediately after the stanza ending in "uh"');
+if (!/\n\s*\n#VERSE/.test(formattedUhStructure)) {
+  throw new Error('Stanzas ending in "uh" (with punctuation) should keep a blank line before the next structure tag');
 }
-if (/\n\s*\n#VERSE/.test(formattedUhStructure)) {
-  throw new Error('Stanzas ending in "uh" (with punctuation) should not keep a blank line before the next structure tag');
+if (/\n\s*\n\s*\n#VERSE/.test(formattedUhStructure)) {
+  throw new Error('Stanzas ending in "uh" (with punctuation) should only have a single blank line before the next structure tag');
 }
 
 module.exports = {
