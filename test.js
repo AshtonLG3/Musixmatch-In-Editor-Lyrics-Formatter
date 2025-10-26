@@ -89,6 +89,24 @@ if (formatLyrics(timeContextLine) !== 'Meet me at 7:30 p.m.') {
   throw new Error('Time expressions must retain their numeric formatting and normalised meridiem');
 }
 
+const ohStructureBlock = 'Oh\n\n#CHORUS';
+const formattedOhStructure = formatLyrics(ohStructureBlock);
+if (!/\n\s*\n#CHORUS/.test(formattedOhStructure)) {
+  throw new Error('Stanzas ending in "Oh" should keep a blank line before the next structure tag');
+}
+if (/\n\s*\n\s*\n#CHORUS/.test(formattedOhStructure)) {
+  throw new Error('Stanzas ending in "Oh" should only have a single blank line before the next structure tag');
+}
+
+const uhStructureBlock = 'uh...\n\n#VERSE';
+const formattedUhStructure = formatLyrics(uhStructureBlock);
+if (!/\n\s*\n#VERSE/.test(formattedUhStructure)) {
+  throw new Error('Stanzas ending in "uh" (with punctuation) should keep a blank line before the next structure tag');
+}
+if (/\n\s*\n\s*\n#VERSE/.test(formattedUhStructure)) {
+  throw new Error('Stanzas ending in "uh" (with punctuation) should only have a single blank line before the next structure tag');
+}
+
 module.exports = {
   formatLyrics,
   version: metaVersion,
