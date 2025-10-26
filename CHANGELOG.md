@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1.49
+- Ensure stanza endings of "oh" or "uh" butt directly against the following structure tag instead of retaining an empty separator line.
+- Keep dedicated structure-tag spacing for stanzas ending in "yeah", "whoa", "huh", or closing parentheses.
+
 ## v1.1.48
 - Added regression tests for the rhythmic count-off spelling rules that convert sequences such as `1 2 3 4` into `One Two Three Four` while tidying comma spacing.
 - Verified the new o'clock normalisation logic that converts `3 o clock` into `three o'clock` without altering already-correct phrases.
