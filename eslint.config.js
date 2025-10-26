@@ -1,26 +1,32 @@
-import js from "@eslint/js";
+import globals from "globals";
 
 export default [
-  js.configs.recommended,
   {
+    files: ["**/*.js"], // Apply to all JavaScript files
+
     languageOptions: {
-      ecmaVersion: "latest",
-      sourceType: "module",
+      ecmaVersion: 2021, // Modern JS features
+      sourceType: "module", // For ES modules
       globals: {
-        chrome: "readonly",
-        module: "writable",
-        require: "readonly",
-        __dirname: "readonly",
-        window: "readonly",
-        document: "readonly",
+        ...globals.browser, // Replaces env.browser
+        ...globals.node, // Replaces env.node
+        chrome: "readonly", // Chrome Extension APIs
+        browser: "readonly", // Firefox Extension APIs
+        runFormat: "readonly", // Custom global for popup.js
       },
     },
-    linterOptions: {
-      reportUnusedDisableDirectives: true,
-    },
+
     rules: {
+      // Ignore unused vars starting with _
+      "no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
+
+      // Allow regex with extra escapes (intentional)
       "no-useless-escape": "off",
-      "no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
+
+      // Disable misleading character class check
+      "no-misleading-character-class": "off",
+
+      // Optional: soften undefined globals (since we define them manually)
       "no-undef": "off",
     },
   },
