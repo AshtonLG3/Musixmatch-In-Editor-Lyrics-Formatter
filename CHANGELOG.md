@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1.53
+- Replace the deprecated `eslint.config.js` with a `.eslintrc.js` configuration for compatibility with existing tooling.
+- Retain the lint rules that account for Chrome extension globals, shared helpers, and formatting-specific regular expressions.
+
 ## v1.1.52
 - Add an ESLint configuration that recognises the Chrome extension globals and shared CommonJS helpers.
 - Disable the `no-useless-escape` rule and allow underscore-prefixed arguments so the formatter helpers lint cleanly.
