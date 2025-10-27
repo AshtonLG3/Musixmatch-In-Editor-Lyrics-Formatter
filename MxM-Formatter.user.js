@@ -3,10 +3,6 @@
 // @namespace    mxm-tools
 // @version      1.1.56
 // Changelog (v1.1.54)
-// - Fixed misplaced quote spacing after punctuation
-// - Collapsed multiple punctuation marks (!!!, ???)
-// - Enforced single space after commas
-// - Improved dropped-G apostrophe handling
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
