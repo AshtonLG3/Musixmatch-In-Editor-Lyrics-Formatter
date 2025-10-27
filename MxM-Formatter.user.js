@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.52
+// @version      1.1.53
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.52';
+  const SCRIPT_VERSION = '1.1.53';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -1260,17 +1260,21 @@
       .replace(/(?<=[^\s(])"(?=[^\s"!.?,;:)\]])/g, '" ')
       .replace(/([A-Za-z])\(/g, "$1 (")
       .replace(/\)([A-Za-z])/g, ") $1")
-      .replace(/,{2,}/g, ",");
+      .replace(/,{2,}/g, ",")        // multiple commas → one
+      .replace(/!{2,}/g, "!")        // multiple exclamation marks → one
+      .replace(/\?{2,}/g, "?")       // multiple question marks → one
+      .replace(/(!\?|\?!){2,}/g, "!?"); // collapse mixed patterns like !?!?!
 
     // --- 3. Punctuation + quote spacing corrections ---
     x = x
-      .replace(/([!?])[ \t]*(?=["(])/g, "$1 ")
-      .replace(/([,!?])(["'“”‘’])/g, '$1 $2')
+      // .replace(/([!?])[ \t]*(?=["(])/g, "$1 ") // DISABLED: Per user request, do not add space
+      .replace(/([,])(["'“”‘’])/g, '$1 $2') // limit rule to commas only
       .replace(/(["'“”‘’])\s+([A-Za-z])/g, (_, quote, letter) => quote + letter.toUpperCase())
       .replace(/\s+(["'“”‘’])/g, '$1');
 
     // --- 4. Extra capitalization fix after ? or ! and opening quote ---
-    x = x.replace(/([?!])\s+(["'“‘])([a-z])/g, (_, punct, quote, letter) => `${punct} ${quote}${letter.toUpperCase()}`);
+    // x = x.replace(/([?!])\s+(["'“‘])([a-z])/g, (_, punct, quote, letter) => `${punct} ${quote}${letter.toUpperCase()}`); // REPLACED: Per user request
+    x = x.replace(/([!?])[ \t]+(["'“”‘’])/g, "$1$2");  // ADDED: Remove space between !/? and quote
 
     // --- 5. Final safety cleanup for parentheses ---
     x = x.replace(/,([ \t]*\))/g, "$1").replace(/[ \t]+\)/g, ")").replace(/\( +/g, "(");
@@ -1329,7 +1333,7 @@
     x = x.trim();
 
     // ======================================================
-    // 🔧 EFFECTIVE FIX PATCH — v1.1.52 Revision (Final Sanitation layer)
+    // 🔧 EFFECTIVE FIX PATCH — v1.1.53 Revision (Final Sanitation layer)
     // ======================================================
 
     // --- 1️⃣ Protect lines that start with " or ' or ( from being merged upward ---
