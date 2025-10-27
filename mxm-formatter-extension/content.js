@@ -1,7 +1,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.50';
+  const SCRIPT_VERSION = '1.1.54';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -586,7 +586,16 @@
       const trimmed = candidate.trim();
       if (trimmed.startsWith("(") && trimmed.endsWith(")") && !trimmed.includes("\n")) {
         const placeholder = `${STANDALONE_PAREN_SENTINEL}${preservedStandaloneParens.length}__`;
-        preservedStandaloneParens.push(candidate);
+
+        // --- NEW FIX ---
+        // Clean the candidate string *before* preserving it.
+        // This applies the same logic that would have run in Final Sanitation.
+        let cleaned = candidate
+          .replace(/,([ \t]*\))/g, "$1")
+          .replace(/[ \t]+\)/g, ")");
+        // --- END FIX ---
+
+        preservedStandaloneParens.push(cleaned);
         return boundary + placeholder;
       }
       return match;

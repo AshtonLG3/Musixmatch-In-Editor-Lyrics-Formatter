@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1.54
+- Clean standalone parenthetical placeholders before preservation so trailing commas and spaces are removed consistently.
+- Bump the userscript and extension version metadata to 1.1.54.
+
 ## v1.1.53
 - Keep parenthetical capitalization working when an opening quote follows the parenthesis without disturbing existing spacing.
 - Stop the closing-quote spacing rule from firing after an opening parenthesis to avoid inserting stray spaces.
