@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.54
+// @version      1.1.55
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.54';
+  const SCRIPT_VERSION = '1.1.55';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -603,20 +603,32 @@
     const START_APOSTROPHE_SENTINEL = '\uE010';
     const CONTRACTION_SUFFIXES = new Set(['d','ll','m','re','s','t','ve','clock']);
 
+    // --- 0. Protect newlines before dialogue or parentheses ---
+    x = x.replace(/([^\n])\n(?=["'(])/g, "$1\n");
+
+    // --- 1. Apostrophe safety (prevents wait'til, keeps don't) ---
+    x = x
+      .replace(/([A-Za-z])\s*'\s*([A-Za-z])/g, "$1'$2")
+      .replace(/(^|\s)'\s*([A-Za-z]+)/g, (_, boundary, word) => boundary + "'" + word)
+      .replace(/([A-Za-z])'([A-Za-z]+)/g, (match, left, word) => {
+        const lower = word.toLowerCase();
+        if (CONTRACTION_SUFFIXES.has(lower)) return match;
+        return `${left} '${word}`;
+      });
+
+    // --- 2. Standalone parenthetical cleaning and capitalization ---
     x = x.replace(/(^|\n)([^\S\n]*\([^\n]*\)[^\S\n]*)(?=\n)/g, (match, boundary, candidate) => {
       const trimmed = candidate.trim();
       if (trimmed.startsWith("(") && trimmed.endsWith(")") && !trimmed.includes("\n")) {
         const placeholder = `${STANDALONE_PAREN_SENTINEL}${preservedStandaloneParens.length}__`;
 
-        // 1. Clean ALL spaces and commas first
         let cleaned = candidate
-          .replace(/,([ \t]*\))/g, "$1") // Remove comma before )
-          .replace(/[ \t]+\)/g, ")")      // Remove space before )
-          .replace(/\(\s+/g, "(");      // Remove space after (
+          .replace(/,([ \t]*\))/g, "$1")  // remove comma before )
+          .replace(/[ \t]+\)/g, ")")      // remove space before )
+          .replace(/\( +/g, "(");          // remove space after (
 
-        // 2. Now, capitalize the (already clean) string
-        cleaned = cleaned.replace(/(\(["'“”‘’]?)([a-z])/g, (_, open, letter) =>
-          open + letter.toUpperCase()
+        cleaned = cleaned.replace(/(\(\s*)(["'“”‘’]?)([a-z])/g, (_, prefix, quote, letter) =>
+          prefix + quote + letter.toUpperCase()
         );
 
         preservedStandaloneParens.push(cleaned);
@@ -1243,21 +1255,25 @@
         if (isLetter || /\d/.test(next)) return punct + ' ' + next;
         return punct + next;
       })
-      .replace(/ +/g, " ")                           // collapse multiple spaces
-      .replace(/[ \t]+([,.;!?])/g, "$1")             // preserve newlines, remove spaces before punctuation (except before "(")
-      .replace(/(?<=[^\s(])"(?=[^\s"!.?,;:)\]])/g, '" ') // ensure space after closing quotes when followed by text
-      .replace(/([A-Za-z])\(/g, "$1 (")              // space before (
-      .replace(/\)([A-Za-z])/g, ") $1")              // space after )
-      .replace(/\( +/g, "(")
-      .replace(/,{2,}/g, ",");                        // collapse duplicate commas
+      .replace(/ +/g, " ")
+      .replace(/[ \t]+([,.;!?])/g, "$1")
+      .replace(/(?<=[^\s(])"(?=[^\s"!.?,;:)\]])/g, '" ')
+      .replace(/([A-Za-z])\(/g, "$1 (")
+      .replace(/\)([A-Za-z])/g, ") $1")
+      .replace(/,{2,}/g, ",");
 
-    // Normalise spacing around opening quotes and their contents
-    x = x.replace(/([,!?])\s*(["'“”‘’])/g, '$1 $2');
-    x = x.replace(/(["'“”‘’])\s+([A-Za-z])/g, (_, quote, letter) => quote + letter.toUpperCase());
-    x = x.replace(/\s+(["'“”‘’])/g, '$1');
+    // --- 3. Punctuation + quote spacing corrections ---
+    x = x
+      .replace(/([!?])[ \t]*(?=["(])/g, "$1 ")
+      .replace(/([,!?])(["'“”‘’])/g, '$1 $2')
+      .replace(/(["'“”‘’])\s+([A-Za-z])/g, (_, quote, letter) => quote + letter.toUpperCase())
+      .replace(/\s+(["'“”‘’])/g, '$1');
 
-    x = x.replace(/([!?])[ \t]*(?=["(])/g, "$1 ");
-    x = x.replace(/(\(["'“”‘’])\s+([a-zA-Z])/g, (_, open, letter) => open + letter.toUpperCase());
+    // --- 4. Extra capitalization fix after ? or ! and opening quote ---
+    x = x.replace(/([?!])\s+(["'“‘])([a-z])/g, (_, punct, quote, letter) => `${punct} ${quote}${letter.toUpperCase()}`);
+
+    // --- 5. Final safety cleanup for parentheses ---
+    x = x.replace(/,([ \t]*\))/g, "$1").replace(/[ \t]+\)/g, ")").replace(/\( +/g, "(");
 
     // Fix spacing around apostrophes safely
     x = x.replace(/(^|[\s([\{\-"“‘.,!?])'\s*([A-Za-z]+)/g, (match, boundary, word) => {
@@ -1278,8 +1294,6 @@
       if (CONTRACTION_SUFFIXES.has(lower)) return match;
       return `${prev} '${word}`;
     });
-
-    x = x.replace(/,([ \t]*\))/g, "$1").replace(/[ \t]+\)/g, ")");
 
     // 1️⃣ Remove trailing commas from line endings entirely
     x = x.replace(/,+\s*$/gm, "");
