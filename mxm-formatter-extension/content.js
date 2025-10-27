@@ -1,7 +1,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.54';
+  const SCRIPT_VERSION = '1.1.56';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -1292,6 +1292,40 @@
     x = x.replace(/[ \t]+$/gm, "");
 
     x = x.trim();
+
+    // ======================================================
+    // 🔧 EFFECTIVE FIX PATCH — v1.1.56 Revision (Final Sanitation layer)
+    // ======================================================
+
+    // --- 1️⃣ Protect lines that start with " or ' or ( from being merged upward ---
+    x = x.replace(/([^\n])\n(?=["'(])/g, "$1\n");
+
+    // --- 2️⃣ Fix space after open quote (“ "please” → “"Please”) ---
+    x = x.replace(/(["'“‘])\s+([a-z])/g, (m, quote, letter) => quote + letter.toUpperCase());
+
+    // --- 3️⃣ Remove space before closing quotes (“please "” → “please"") ---
+    x = x.replace(/\s+(["'”’])/g, "$1");
+
+    // --- 4️⃣ Fix misplaced quotes after punctuation (“Freeze!" ” → “Freeze!"") ---
+    x = x.replace(/([!?])\s+(["'“‘])/g, "$1 $2");
+
+    // --- 5️⃣ Clean stray commas/spaces before )  (“( La la, )” → “(La la)”) ---
+    x = x
+      .replace(/\( +/g, "(")
+      .replace(/,([ \t]*\))/g, "$1")
+      .replace(/[ \t]+\)/g, ")");
+
+    // --- 6️⃣ Capitalize first letter inside standalone parentheses ---
+    x = x.replace(/(^|\n)\(\s*([a-z])/g, (_, b, l) => b + "(" + l.toUpperCase());
+
+    // --- 7️⃣ Apostrophe safeguard ('til, 'cause, 'em stay independent) ---
+    x = x
+      .replace(/(^|\s)'([a-z])/g, (m, b, l) => `${b}'${l.toLowerCase()}`)
+      .replace(/([A-Za-z])'\s*([A-Za-z])/g, "$1'$2");
+
+    // ======================================================
+    // ✅ END PATCH — insert before `return x;`
+    // ======================================================
 
     return x;
   }
