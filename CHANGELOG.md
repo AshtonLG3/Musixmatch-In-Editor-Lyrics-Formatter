@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1.54
+- Clean standalone parenthetical lines by removing extra spaces before applying capitalization, fixing cases like `( La la...)`.
+- Let comma spacing rules fire in front of quotes so snippets such as `screamin',"Son"` gain the missing space.
+
 ## v1.1.53
 - Normalise spacing around opening quotation marks, ensuring outside punctuation and inside text stay tight while trimming stray closing gaps.
 - Harden apostrophe handling so leading-apostrophe words keep their separation while true contractions still collapse cleanly.

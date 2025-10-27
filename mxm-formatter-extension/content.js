@@ -1,7 +1,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.53';
+  const SCRIPT_VERSION = '1.1.54';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -589,13 +589,16 @@
       if (trimmed.startsWith("(") && trimmed.endsWith(")") && !trimmed.includes("\n")) {
         const placeholder = `${STANDALONE_PAREN_SENTINEL}${preservedStandaloneParens.length}__`;
 
+        // 1. Clean ALL spaces and commas first
         let cleaned = candidate
-          .replace(/,([ \t]*\))/g, "$1")
-          .replace(/[ \t]+\)/g, ")")
-          .replace(/\( +/g, "(")
-          .replace(/(\(\s*)(["'“”‘’]?)([a-z])/g, (_, parenSpace, quote, letter) =>
-            parenSpace + quote + letter.toUpperCase()
-          );
+          .replace(/,([ \t]*\))/g, "$1") // Remove comma before )
+          .replace(/[ \t]+\)/g, ")")      // Remove space before )
+          .replace(/\(\s+/g, "(");      // Remove space after (
+
+        // 2. Now, capitalize the (already clean) string
+        cleaned = cleaned.replace(/(\(["'“”‘’]?)([a-z])/g, (_, open, letter) =>
+          open + letter.toUpperCase()
+        );
 
         preservedStandaloneParens.push(cleaned);
         return boundary + placeholder;
@@ -1206,7 +1209,7 @@
 
     x = x
       .replace(/([,;!?])(\S)/g, (match, punct, next, offset, str) => {
-        if (/["?!]/.test(next)) return punct + next;
+        if (/[?!]/.test(next)) return punct + next;
         const following = str[offset + match.length] || '';
         if (
           next === "'" &&
