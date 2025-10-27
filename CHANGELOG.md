@@ -1,20 +1,21 @@
 # Changelog
 
-## v1.1.56
-- Apply a sanitation pass that protects leading quote and parenthesis lines, fixes quote spacing, and tidies apostrophes.
-
-## v1.1.54
-- Clean standalone parenthetical lines by removing extra spaces before applying capitalization, fixing cases like `( La la...)`.
-- Let comma spacing rules fire in front of quotes so snippets such as `screamin',"Son"` gain the missing space.
-
-## v1.1.53
-- Normalise spacing around opening quotation marks, ensuring outside punctuation and inside text stay tight while trimming stray closing gaps.
-- Harden apostrophe handling so leading-apostrophe words keep their separation while true contractions still collapse cleanly.
-
 ## v1.1.52
+- Reinstated v1.1.52 as the current release after rolling back later builds.
 - Clean and capitalize standalone parenthetical lines before preservation so they reinsert tidily.
 - Standardize spacing after question or exclamation marks when followed by quotes or parentheses.
 - Tighten final safety passes for quote-prefixed parentheses and stray spaces before closing brackets.
+
+## v1.1.56 (rolled back)
+- Apply a sanitation pass that protects leading quote and parenthesis lines, fixes quote spacing, and tidies apostrophes.
+
+## v1.1.54 (rolled back)
+- Clean standalone parenthetical lines by removing extra spaces before applying capitalization, fixing cases like `( La la...)`.
+- Let comma spacing rules fire in front of quotes so snippets such as `screamin',"Son"` gain the missing space.
+
+## v1.1.53 (rolled back)
+- Normalise spacing around opening quotation marks, ensuring outside punctuation and inside text stay tight while trimming stray closing gaps.
+- Harden apostrophe handling so leading-apostrophe words keep their separation while true contractions still collapse cleanly.
 
 ## v1.1.51
 - Make post-? and post-! capitalization resilient to intervening quotes, parentheses, and whitespace.
