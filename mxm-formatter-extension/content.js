@@ -1,7 +1,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.56';
+  const SCRIPT_VERSION = '1.1.52';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -1294,7 +1294,7 @@
     x = x.trim();
 
     // ======================================================
-    // 🔧 EFFECTIVE FIX PATCH — v1.1.56 Revision (Final Sanitation layer)
+    // 🔧 EFFECTIVE FIX PATCH — v1.1.52 Revision (Final Sanitation layer)
     // ======================================================
 
     // --- 1️⃣ Protect lines that start with " or ' or ( from being merged upward ---
