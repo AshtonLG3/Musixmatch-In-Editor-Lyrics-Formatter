@@ -590,6 +590,7 @@
         let cleaned = candidate
           .replace(/,([ \t]*\))/g, "$1")
           .replace(/[ \t]+\)/g, ")")
+          .replace(/\( +/g, "(")
           .replace(/(\(\s*)(["'“”‘’]?)([a-z])/g, (_, parenSpace, quote, letter) =>
             parenSpace + quote + letter.toUpperCase()
           );
@@ -1226,6 +1227,8 @@
 
     x = x.replace(/([!?])[ \t]*(?=["(])/g, "$1 ");
     x = x.replace(/(\(["'“”‘’])\s+([a-zA-Z])/g, (_, open, letter) => open + letter.toUpperCase());
+    // Remove spaces before closing quotes
+    x = x.replace(/[ \t]+(["'“”‘’])/g, "$1");
     x = x.replace(/,([ \t]*\))/g, "$1").replace(/[ \t]+\)/g, ")");
 
     // 1️⃣ Remove trailing commas from line endings entirely
