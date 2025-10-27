@@ -1,7 +1,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.52';
+  const SCRIPT_VERSION = '1.1.53';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -581,6 +581,8 @@
     let x = ("\n" + input.trim() + "\n");
     const preservedStandaloneParens = [];
     const STANDALONE_PAREN_SENTINEL = "__MXM_SP__";
+    const START_APOSTROPHE_SENTINEL = '\uE010';
+    const CONTRACTION_SUFFIXES = new Set(['d','ll','m','re','s','t','ve','clock']);
 
     x = x.replace(/(^|\n)([^\S\n]*\([^\n]*\)[^\S\n]*)(?=\n)/g, (match, boundary, candidate) => {
       const trimmed = candidate.trim();
@@ -1225,10 +1227,34 @@
       .replace(/\( +/g, "(")
       .replace(/,{2,}/g, ",");                        // collapse duplicate commas
 
+    // Normalise spacing around opening quotes and their contents
+    x = x.replace(/([,!?])\s*(["'“”‘’])/g, '$1 $2');
+    x = x.replace(/(["'“”‘’])\s+([A-Za-z])/g, (_, quote, letter) => quote + letter.toUpperCase());
+    x = x.replace(/\s+(["'“”‘’])/g, '$1');
+
     x = x.replace(/([!?])[ \t]*(?=["(])/g, "$1 ");
     x = x.replace(/(\(["'“”‘’])\s+([a-zA-Z])/g, (_, open, letter) => open + letter.toUpperCase());
-    // Remove spaces before closing quotes
-    x = x.replace(/[ \t]+(["'“”‘’])/g, "$1");
+
+    // Fix spacing around apostrophes safely
+    x = x.replace(/(^|[\s([\{\-"“‘.,!?])'\s*([A-Za-z]+)/g, (match, boundary, word) => {
+      const lower = word.toLowerCase();
+      if (CONTRACTION_SUFFIXES.has(lower)) return match;
+      return boundary + START_APOSTROPHE_SENTINEL + word;
+    });
+    x = x.replace(/([A-Za-z])\s*'\s*([A-Za-z])/g, (match, left, right, offset, str) => {
+      const prevChar = offset > 0 ? str[offset - 1] : '';
+      if (prevChar === "'" || prevChar === '’' || prevChar === START_APOSTROPHE_SENTINEL) return match;
+      return `${left}'${right}`;
+    });
+    x = x.replace(new RegExp(START_APOSTROPHE_SENTINEL, 'g'), "'");
+    x = x.replace(/([A-Za-z])'([A-Za-z]+)/g, (match, prev, word, offset, str) => {
+      const prevChar = offset > 0 ? str[offset - 1] : '';
+      if (prevChar === "'" || prevChar === '’') return match;
+      const lower = word.toLowerCase();
+      if (CONTRACTION_SUFFIXES.has(lower)) return match;
+      return `${prev} '${word}`;
+    });
+
     x = x.replace(/,([ \t]*\))/g, "$1").replace(/[ \t]+\)/g, ")");
 
     // 1️⃣ Remove trailing commas from line endings entirely

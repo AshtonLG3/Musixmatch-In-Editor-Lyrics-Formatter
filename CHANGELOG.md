@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1.53
+- Normalise spacing around opening quotation marks, ensuring outside punctuation and inside text stay tight while trimming stray closing gaps.
+- Harden apostrophe handling so leading-apostrophe words keep their separation while true contractions still collapse cleanly.
+
 ## v1.1.52
 - Clean and capitalize standalone parenthetical lines before preservation so they reinsert tidily.
 - Standardize spacing after question or exclamation marks when followed by quotes or parentheses.
