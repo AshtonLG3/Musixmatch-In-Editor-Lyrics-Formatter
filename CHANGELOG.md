@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.1.52
+- Clean and capitalize standalone parenthetical lines before preservation so they reinsert tidily.
+- Standardize spacing after question or exclamation marks when followed by quotes or parentheses.
+- Tighten final safety passes for quote-prefixed parentheses and stray spaces before closing brackets.
+
 ## v1.1.51
 - Make post-? and post-! capitalization resilient to intervening quotes, parentheses, and whitespace.
 - Keep parenthetical capitalization intact when the preceding punctuation is a question or exclamation mark.

@@ -1,7 +1,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.50';
+  const SCRIPT_VERSION = '1.1.52';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -586,7 +586,15 @@
       const trimmed = candidate.trim();
       if (trimmed.startsWith("(") && trimmed.endsWith(")") && !trimmed.includes("\n")) {
         const placeholder = `${STANDALONE_PAREN_SENTINEL}${preservedStandaloneParens.length}__`;
-        preservedStandaloneParens.push(candidate);
+
+        let cleaned = candidate
+          .replace(/,([ \t]*\))/g, "$1")
+          .replace(/[ \t]+\)/g, ")")
+          .replace(/(\(\s*)(["'“”‘’]?)([a-z])/g, (_, parenSpace, quote, letter) =>
+            parenSpace + quote + letter.toUpperCase()
+          );
+
+        preservedStandaloneParens.push(cleaned);
         return boundary + placeholder;
       }
       return match;
@@ -1209,15 +1217,16 @@
         return punct + next;
       })
       .replace(/ +/g, " ")                           // collapse multiple spaces
-      .replace(/[ \t]+([,.;!?\)])/g, "$1")           // preserve newlines, remove only spaces before punctuation (except before "(")
-      .replace(/([!?])[ \t]+(?=")/g, '$1')            // keep punctuation tight to closing quotes
+      .replace(/[ \t]+([,.;!?])/g, "$1")             // preserve newlines, remove spaces before punctuation (except before "(")
       .replace(/(?<=\S)"(?=[^\s"!.?,;:)\]])/g, '" ') // ensure space after closing quotes when followed by text
-      .replace(/([!?])[ \t]*(?=\()/g, "$1 ")         // ensure space between !/? and following "("
       .replace(/([A-Za-z])\(/g, "$1 (")              // space before (
       .replace(/\)([A-Za-z])/g, ") $1")              // space after )
-      .replace(/\( +/g, "(").replace(/ +\)/g, ")")
-      .replace(/,{2,}/g, ",")                        // collapse duplicate commas
-      .replace(/,([ \t]*\))/g, "$1");                // remove commas immediately before a closing parenthesis
+      .replace(/\( +/g, "(")
+      .replace(/,{2,}/g, ",");                        // collapse duplicate commas
+
+    x = x.replace(/([!?])[ \t]*(?=["(])/g, "$1 ");
+    x = x.replace(/(\(["'“”‘’])\s+([a-zA-Z])/g, (_, open, letter) => open + letter.toUpperCase());
+    x = x.replace(/,([ \t]*\))/g, "$1").replace(/[ \t]+\)/g, ")");
 
     // 1️⃣ Remove trailing commas from line endings entirely
     x = x.replace(/,+\s*$/gm, "");
