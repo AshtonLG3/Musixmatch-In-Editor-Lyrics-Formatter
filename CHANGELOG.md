@@ -1,5 +1,8 @@
 # Changelog
 
+## v1.1.57
+- Tighten apostrophe handling so contractions like "n'" gain the missing space without duplicating apostrophes.
+
 ## v1.1.53
 - Collapse stacked punctuation so runs like `!!!`, `???`, or `!?!?` shrink to the intended single combo.
 - Remove the auto-inserted space between question/exclamation marks and following quotes while keeping comma spacing intact.

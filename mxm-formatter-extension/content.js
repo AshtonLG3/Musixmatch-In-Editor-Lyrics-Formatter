@@ -1,7 +1,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.53';
+  const SCRIPT_VERSION = '1.1.57';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -1325,7 +1325,11 @@
     // --- 7️⃣ Apostrophe safeguard ('til, 'cause, 'em stay independent) ---
     x = x
       .replace(/(^|\s)'([a-z])/g, (m, b, l) => `${b}'${l.toLowerCase()}`)
-      .replace(/([A-Za-z])'\s*([A-Za-z])/g, "$1'$2");
+      // Prevent double apostrophes and ensure space after dropped-G endings
+      .replace(/([A-Za-z])'([A-Za-z])/g, (m, prev, next) => {
+        if (prev.toLowerCase() === "n") return `${prev}' ${next}`;
+        return `${prev}'${next}`;
+      });
 
     // ======================================================
     // ✅ END PATCH — insert before `return x;`

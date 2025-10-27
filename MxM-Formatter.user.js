@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.56
+// @version      1.1.57
 // Changelog (v1.1.54)
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
@@ -16,7 +16,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.56';
+  const SCRIPT_VERSION = '1.1.57';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -1334,7 +1334,7 @@
     x = x.trim();
 
     // ======================================================
-    // 🔧 EFFECTIVE FIX PATCH — v1.1.56 Revision (Final Sanitation layer)
+    // 🔧 EFFECTIVE FIX PATCH — v1.1.57 Revision (Final Sanitation layer)
     // ======================================================
 
     // --- 1️⃣ Protect lines that start with " or ' or ( from being merged upward ---
@@ -1361,9 +1361,13 @@
     // --- 7️⃣ Apostrophe safeguard ('til, 'cause, 'em stay independent) ---
     x = x
       .replace(/(^|\s)'([a-z])/g, (m, b, l) => `${b}'${l.toLowerCase()}`)
-      .replace(/([A-Za-z])'\s*([A-Za-z])/g, "$1'$2");
+      // Prevent double apostrophes and ensure space after dropped-G endings
+      .replace(/([A-Za-z])'([A-Za-z])/g, (m, prev, next) => {
+        if (prev.toLowerCase() === "n") return `${prev}' ${next}`;
+        return `${prev}'${next}`;
+      });
 
-    // --- ✅ Musixmatch Final Sanitation Additions (v1.1.56) ---
+    // --- ✅ Musixmatch Final Sanitation Additions (v1.1.57) ---
 
     // Fix misplaced quotes after punctuation
     x = x.replace(/([!?])[ \t]+(["'“”‘’])/g, "$1$2");
