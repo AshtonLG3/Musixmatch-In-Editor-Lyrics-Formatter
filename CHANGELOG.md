@@ -1,5 +1,8 @@
 # Changelog
 
+## v1.1.56
+- Apply a sanitation pass that protects leading quote and parenthesis lines, fixes quote spacing, and tidies apostrophes.
+
 ## v1.1.54
 - Clean standalone parenthetical lines by removing extra spaces before applying capitalization, fixing cases like `( La la...)`.
 - Let comma spacing rules fire in front of quotes so snippets such as `screamin',"Son"` gain the missing space.
