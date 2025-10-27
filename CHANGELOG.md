@@ -1,17 +1,5 @@
 # Changelog
 
-## v1.1.54
-- Clean standalone parenthetical placeholders before preservation so trailing commas and spaces are removed consistently.
-- Bump the userscript and extension version metadata to 1.1.54.
-
-## v1.1.53
-- Keep parenthetical capitalization working when an opening quote follows the parenthesis without disturbing existing spacing.
-- Stop the closing-quote spacing rule from firing after an opening parenthesis to avoid inserting stray spaces.
-
-## v1.1.52
-- Add an ESLint configuration that recognises the Chrome extension globals and shared CommonJS helpers.
-- Disable the `no-useless-escape` rule and allow underscore-prefixed arguments so the formatter helpers lint cleanly.
-
 ## v1.1.51
 - Make post-? and post-! capitalization resilient to intervening quotes, parentheses, and whitespace.
 - Keep parenthetical capitalization intact when the preceding punctuation is a question or exclamation mark.

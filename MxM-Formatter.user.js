@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.54
+// @version      1.1.51
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.54';
+  const SCRIPT_VERSION = '1.1.51';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -605,16 +605,7 @@
       const trimmed = candidate.trim();
       if (trimmed.startsWith("(") && trimmed.endsWith(")") && !trimmed.includes("\n")) {
         const placeholder = `${STANDALONE_PAREN_SENTINEL}${preservedStandaloneParens.length}__`;
-
-        // --- NEW FIX ---
-        // Clean the candidate string *before* preserving it.
-        // This applies the same logic that would have run in Final Sanitation.
-        let cleaned = candidate
-          .replace(/,([ \t]*\))/g, "$1")
-          .replace(/[ \t]+\)/g, ")");
-        // --- END FIX ---
-
-        preservedStandaloneParens.push(cleaned);
+        preservedStandaloneParens.push(candidate);
         return boundary + placeholder;
       }
       return match;
