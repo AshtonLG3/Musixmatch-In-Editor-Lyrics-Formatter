@@ -1,7 +1,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.52';
+  const SCRIPT_VERSION = '1.1.53';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -1228,14 +1228,17 @@
       .replace(/([A-Za-z])\(/g, "$1 (")              // space before (
       .replace(/\)([A-Za-z])/g, ") $1")              // space after )
       .replace(/\( +/g, "(")
-      .replace(/,{2,}/g, ",");                        // collapse duplicate commas
+      .replace(/,{2,}/g, ",")                        // multiple commas → one
+      .replace(/!{2,}/g, "!")                        // multiple exclamation marks → one
+      .replace(/\?{2,}/g, "?")                       // multiple question marks → one
+      .replace(/(!\?|\?!){2,}/g, "!?");             // collapse mixed patterns like !?!?!
 
     // Normalise spacing around opening quotes and their contents
-    x = x.replace(/([,!?])\s*(["'“”‘’])/g, '$1 $2');
+    x = x.replace(/([,])\s*(["'“”‘’])/g, '$1 $2'); // limit rule to commas only
     x = x.replace(/(["'“”‘’])\s+([A-Za-z])/g, (_, quote, letter) => quote + letter.toUpperCase());
     x = x.replace(/\s+(["'“”‘’])/g, '$1');
 
-    x = x.replace(/([!?])[ \t]*(?=["(])/g, "$1 ");
+    // x = x.replace(/([!?])[ \t]*(?=["(])/g, "$1 "); // DISABLED: Per user request, do not add space
     x = x.replace(/(\(["'“”‘’])\s+([a-zA-Z])/g, (_, open, letter) => open + letter.toUpperCase());
 
     // Fix spacing around apostrophes safely
@@ -1294,7 +1297,7 @@
     x = x.trim();
 
     // ======================================================
-    // 🔧 EFFECTIVE FIX PATCH — v1.1.52 Revision (Final Sanitation layer)
+    // 🔧 EFFECTIVE FIX PATCH — v1.1.53 Revision (Final Sanitation layer)
     // ======================================================
 
     // --- 1️⃣ Protect lines that start with " or ' or ( from being merged upward ---
@@ -1307,7 +1310,8 @@
     x = x.replace(/\s+(["'”’])/g, "$1");
 
     // --- 4️⃣ Fix misplaced quotes after punctuation (“Freeze!" ” → “Freeze!"") ---
-    x = x.replace(/([!?])\s+(["'“‘])/g, "$1 $2");
+    // x = x.replace(/([!?])\s+(["'“‘])/g, "$1 $2"); // REPLACED: Per user request
+    x = x.replace(/([!?])[ \t]+(["'“”‘’])/g, "$1$2");  // ADDED: Remove space between !/? and quote
 
     // --- 5️⃣ Clean stray commas/spaces before )  (“( La la, )” → “(La la)”) ---
     x = x

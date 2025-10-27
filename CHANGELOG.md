@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1.53
+- Collapse stacked punctuation so runs like `!!!`, `???`, or `!?!?` shrink to the intended single combo.
+- Remove the auto-inserted space between question/exclamation marks and following quotes while keeping comma spacing intact.
+
 ## v1.1.52
 - Reinstated v1.1.52 as the current release after rolling back later builds.
 - Clean and capitalize standalone parenthetical lines before preservation so they reinsert tidily.
