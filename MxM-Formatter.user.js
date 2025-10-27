@@ -1,7 +1,12 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.53
+// @version      1.1.56
+// Changelog (v1.1.54)
+// - Fixed misplaced quote spacing after punctuation
+// - Collapsed multiple punctuation marks (!!!, ???)
+// - Enforced single space after commas
+// - Improved dropped-G apostrophe handling
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +20,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.53';
+  const SCRIPT_VERSION = '1.1.56';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -1333,7 +1338,7 @@
     x = x.trim();
 
     // ======================================================
-    // 🔧 EFFECTIVE FIX PATCH — v1.1.53 Revision (Final Sanitation layer)
+    // 🔧 EFFECTIVE FIX PATCH — v1.1.56 Revision (Final Sanitation layer)
     // ======================================================
 
     // --- 1️⃣ Protect lines that start with " or ' or ( from being merged upward ---
@@ -1346,7 +1351,7 @@
     x = x.replace(/\s+(["'”’])/g, "$1");
 
     // --- 4️⃣ Fix misplaced quotes after punctuation (“Freeze!" ” → “Freeze!"") ---
-    x = x.replace(/([!?])\s+(["'“‘])/g, "$1 $2");
+    x = x.replace(/([!?])[ \t]+(["'“”‘’])/g, "$1$2");
 
     // --- 5️⃣ Clean stray commas/spaces before )  (“( La la, )” → “(La la)”) ---
     x = x
@@ -1361,6 +1366,27 @@
     x = x
       .replace(/(^|\s)'([a-z])/g, (m, b, l) => `${b}'${l.toLowerCase()}`)
       .replace(/([A-Za-z])'\s*([A-Za-z])/g, "$1'$2");
+
+    // --- ✅ Musixmatch Final Sanitation Additions (v1.1.56) ---
+
+    // Fix misplaced quotes after punctuation
+    x = x.replace(/([!?])[ \t]+(["'“”‘’])/g, "$1$2");
+
+    // Collapse redundant punctuation
+    x = x
+      .replace(/,{2,}/g, ",")
+      .replace(/!{2,}/g, "!")
+      .replace(/\?{2,}/g, "?")
+      .replace(/(!\?|\?!){2,}/g, "!?");
+
+    // Enforce single space after commas
+    x = x.replace(/,([A-Za-z])/g, ', $1');
+
+    // Dropped-G apostrophe fixes
+    x = x.replace(/\b(\w*(?:n|r|k|v|m|t|d|g|p)in)(?=[\s"'.!?)]|$)/gi, "$1'");
+    x = x.replace(/([a-z]')(["“”‘’])([A-Z])/g, "$1 $2$3");
+
+    // --- End of Musixmatch Final Sanitation Additions ---
 
     // ======================================================
     // ✅ END PATCH — insert before `return x;`
