@@ -435,17 +435,20 @@
     if (!text) return text;
     const chars = Array.from(text);
     const isSpace = c => c === ' ' || c === '\t' || c === '\n';
+	const isSkippable = c => SENTENCE_ENDER_FOLLOWING_QUOTES.has(c) || c === '(' || c === ')';
     for (let i = 0; i < chars.length; i++) {
       const ch = chars[i];
       if (ch !== '?' && ch !== '!') continue;
-      let j = i + 1;
-      while (j < chars.length && isSpace(chars[j])) j++;
-      let k = j;
-      while (k < chars.length && chars[k] === '(') {
+      let k = i + 1;
+      while (k < chars.length) {
+        if (isSpace(chars[k]) || isSkippable(chars[k])) {
+
         k++;
-        while (k < chars.length && isSpace(chars[k])) k++;
+          } else {
+          break;
+        }
       }
-      while (k < chars.length && SENTENCE_ENDER_FOLLOWING_QUOTES.has(chars[k])) k++;
+
       if (k < chars.length && chars[k] >= 'a' && chars[k] <= 'z') {
         chars[k] = chars[k].toUpperCase();
       }
@@ -600,7 +603,17 @@
       const trimmed = candidate.trim();
       if (trimmed.startsWith("(") && trimmed.endsWith(")") && !trimmed.includes("\n")) {
         const placeholder = `${STANDALONE_PAREN_SENTINEL}${preservedStandaloneParens.length}__`;
-        preservedStandaloneParens.push(candidate);
+
+        let cleaned = candidate
+          .replace(/,([ \t]*\))/g, "$1")  // remove comma before )
+          .replace(/[ \t]+\)/g, ")")      // remove space before )
+          .replace(/\( +/g, "(");          // remove space after (
+
+        cleaned = cleaned.replace(/(\(\s*)(["'“”‘’]?)([a-z])/g, (_, prefix, quote, letter) =>
+          prefix + quote + letter.toUpperCase()
+        );
+
+        preservedStandaloneParens.push(cleaned);
         return boundary + placeholder;
       }
       return match;
@@ -1182,7 +1195,9 @@
     });
 
     // Capitalize first letter when line starts with "("
-    x = x.replace(/(^|\n)\(\s*([a-z])/g, (_, a, b) => a + "(" + b.toUpperCase());
+    x = x.replace(/(^|\n)(\(\s*)(["'“”‘’]?)([a-z])/g, (_, boundary, parenWithSpace, quote, letter) =>
+      boundary + parenWithSpace + quote + letter.toUpperCase()
+    );
 
     // Capitalize words following question or exclamation marks (after parentheses normalization)
     x = capitalizeAfterSentenceEnders(x);
@@ -1202,7 +1217,7 @@
 
     // ❌ Do not add, remove, or alter newlines anywhere
     // ✅ Only lowercase the first word after ")" (except I / I'm / I'ma)
-    x = x.replace(/\)[ \t]+([A-Z][a-z]*)\b/g, (match, word) => {
+    x = x.replace(/(?<![?!])\)[ \t]+([A-Z][a-z]*)\b/g, (match, word) => {
       const exceptions = ['I', "I'm", "I'ma"];
       return exceptions.includes(word) ? `) ${word}` : `) ${word.toLowerCase()}`;
     });
@@ -1252,7 +1267,7 @@
 
     // 2️⃣ Ensure a blank line before structure tags when previous stanza ends with yeah/oh/whoa/huh or ")"
     x = x.replace(
-      /(\b(?:yeah|oh|whoa|huh)\b|\))[ \t]*\n+(?=#(?:INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))/gim,
+      /(\b(?:yeah|oh|whoa|huh|oh|ah|uh)\b|\))[ \t]*\n+(?=#(?:INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))/gim,
       '$1\n\n'
     );
 
