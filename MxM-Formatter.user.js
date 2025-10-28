@@ -1146,7 +1146,7 @@
     x = x.replace(/\b(oh|ah|yeah|whoa|ooh|uh|well)\b\s*,\s*(?=\))/gi, '$1');
 
     // Dropped-G
-    const dropped = ["nothin","somethin","anythin","comin","goin","playin","lovin","talkin","walkin","feelin","runnin","workin","doin"];
+    const dropped = ["nothin","somethin","guessin","anythin","comin","goin","playin","lovin","talkin","walkin","feelin","runnin","workin","doin"];
     const reDropped = new RegExp("\\b(" + dropped.join("|") + ")(?!['’])\\b", "gi");
     x = x.replace(reDropped, m => m + "'");
 
