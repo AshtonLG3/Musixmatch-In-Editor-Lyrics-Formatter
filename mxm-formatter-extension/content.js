@@ -1,7 +1,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.57';
+  const SCRIPT_VERSION = '1.1.48';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -416,22 +416,17 @@
     if (!text) return text;
     const chars = Array.from(text);
     const isSpace = c => c === ' ' || c === '\t' || c === '\n';
-    const isSkippable = c => SENTENCE_ENDER_FOLLOWING_QUOTES.has(c) || c === '(' || c === ')';
-
     for (let i = 0; i < chars.length; i++) {
       const ch = chars[i];
       if (ch !== '?' && ch !== '!') continue;
-
-      let k = i + 1;
-
-      while (k < chars.length) {
-        if (isSpace(chars[k]) || isSkippable(chars[k])) {
-          k++;
-        } else {
-          break;
-        }
+      let j = i + 1;
+      while (j < chars.length && isSpace(chars[j])) j++;
+      let k = j;
+      while (k < chars.length && chars[k] === '(') {
+        k++;
+        while (k < chars.length && isSpace(chars[k])) k++;
       }
-
+      while (k < chars.length && SENTENCE_ENDER_FOLLOWING_QUOTES.has(chars[k])) k++;
       if (k < chars.length && chars[k] >= 'a' && chars[k] <= 'z') {
         chars[k] = chars[k].toUpperCase();
       }
@@ -581,26 +576,12 @@
     let x = ("\n" + input.trim() + "\n");
     const preservedStandaloneParens = [];
     const STANDALONE_PAREN_SENTINEL = "__MXM_SP__";
-    const START_APOSTROPHE_SENTINEL = '\uE010';
-    const CONTRACTION_SUFFIXES = new Set(['d','ll','m','re','s','t','ve','clock']);
 
     x = x.replace(/(^|\n)([^\S\n]*\([^\n]*\)[^\S\n]*)(?=\n)/g, (match, boundary, candidate) => {
       const trimmed = candidate.trim();
       if (trimmed.startsWith("(") && trimmed.endsWith(")") && !trimmed.includes("\n")) {
         const placeholder = `${STANDALONE_PAREN_SENTINEL}${preservedStandaloneParens.length}__`;
-
-        // 1. Clean ALL spaces and commas first
-        let cleaned = candidate
-          .replace(/,([ \t]*\))/g, "$1") // Remove comma before )
-          .replace(/[ \t]+\)/g, ")")      // Remove space before )
-          .replace(/\(\s+/g, "(");      // Remove space after (
-
-        // 2. Now, capitalize the (already clean) string
-        cleaned = cleaned.replace(/(\(["'“”‘’]?)([a-z])/g, (_, open, letter) =>
-          open + letter.toUpperCase()
-        );
-
-        preservedStandaloneParens.push(cleaned);
+        preservedStandaloneParens.push(candidate);
         return boundary + placeholder;
       }
       return match;
@@ -1202,14 +1183,14 @@
 
     // ❌ Do not add, remove, or alter newlines anywhere
     // ✅ Only lowercase the first word after ")" (except I / I'm / I'ma)
-    x = x.replace(/(?<![?!])\)[ \t]+([A-Z][a-z]*)\b/g, (match, word) => {
+    x = x.replace(/\)[ \t]+([A-Z][a-z]*)\b/g, (match, word) => {
       const exceptions = ['I', "I'm", "I'ma"];
       return exceptions.includes(word) ? `) ${word}` : `) ${word.toLowerCase()}`;
     });
 
     x = x
       .replace(/([,;!?])(\S)/g, (match, punct, next, offset, str) => {
-        if (/[?!]/.test(next)) return punct + next;
+        if (/["?!]/.test(next)) return punct + next;
         const following = str[offset + match.length] || '';
         if (
           next === "'" &&
@@ -1223,45 +1204,15 @@
         return punct + next;
       })
       .replace(/ +/g, " ")                           // collapse multiple spaces
-      .replace(/[ \t]+([,.;!?])/g, "$1")             // preserve newlines, remove spaces before punctuation (except before "(")
+      .replace(/[ \t]+([,.;!?\)])/g, "$1")           // preserve newlines, remove only spaces before punctuation (except before "(")
+      .replace(/([!?])[ \t]+(?=")/g, '$1')            // keep punctuation tight to closing quotes
       .replace(/(?<=\S)"(?=[^\s"!.?,;:)\]])/g, '" ') // ensure space after closing quotes when followed by text
+      .replace(/([!?])[ \t]*(?=\()/g, "$1 ")         // ensure space between !/? and following "("
       .replace(/([A-Za-z])\(/g, "$1 (")              // space before (
       .replace(/\)([A-Za-z])/g, ") $1")              // space after )
-      .replace(/\( +/g, "(")
-      .replace(/,{2,}/g, ",")                        // multiple commas → one
-      .replace(/!{2,}/g, "!")                        // multiple exclamation marks → one
-      .replace(/\?{2,}/g, "?")                       // multiple question marks → one
-      .replace(/(!\?|\?!){2,}/g, "!?");             // collapse mixed patterns like !?!?!
-
-    // Normalise spacing around opening quotes and their contents
-    x = x.replace(/([,])\s*(["'“”‘’])/g, '$1 $2'); // limit rule to commas only
-    x = x.replace(/(["'“”‘’])\s+([A-Za-z])/g, (_, quote, letter) => quote + letter.toUpperCase());
-    x = x.replace(/\s+(["'“”‘’])/g, '$1');
-
-    // x = x.replace(/([!?])[ \t]*(?=["(])/g, "$1 "); // DISABLED: Per user request, do not add space
-    x = x.replace(/(\(["'“”‘’])\s+([a-zA-Z])/g, (_, open, letter) => open + letter.toUpperCase());
-
-    // Fix spacing around apostrophes safely
-    x = x.replace(/(^|[\s([\{\-"“‘.,!?])'\s*([A-Za-z]+)/g, (match, boundary, word) => {
-      const lower = word.toLowerCase();
-      if (CONTRACTION_SUFFIXES.has(lower)) return match;
-      return boundary + START_APOSTROPHE_SENTINEL + word;
-    });
-    x = x.replace(/([A-Za-z])\s*'\s*([A-Za-z])/g, (match, left, right, offset, str) => {
-      const prevChar = offset > 0 ? str[offset - 1] : '';
-      if (prevChar === "'" || prevChar === '’' || prevChar === START_APOSTROPHE_SENTINEL) return match;
-      return `${left}'${right}`;
-    });
-    x = x.replace(new RegExp(START_APOSTROPHE_SENTINEL, 'g'), "'");
-    x = x.replace(/([A-Za-z])'([A-Za-z]+)/g, (match, prev, word, offset, str) => {
-      const prevChar = offset > 0 ? str[offset - 1] : '';
-      if (prevChar === "'" || prevChar === '’') return match;
-      const lower = word.toLowerCase();
-      if (CONTRACTION_SUFFIXES.has(lower)) return match;
-      return `${prev} '${word}`;
-    });
-
-    x = x.replace(/,([ \t]*\))/g, "$1").replace(/[ \t]+\)/g, ")");
+      .replace(/\( +/g, "(").replace(/ +\)/g, ")")
+      .replace(/,{2,}/g, ",")                        // collapse duplicate commas
+      .replace(/,([ \t]*\))/g, "$1");                // remove commas immediately before a closing parenthesis
 
     // 1️⃣ Remove trailing commas from line endings entirely
     x = x.replace(/,+\s*$/gm, "");
@@ -1280,12 +1231,11 @@
       });
     }
 
-    // 2️⃣ Ensure a blank line before structure tags when previous stanza ends with yeah/whoa/huh/oh/ah/uh or ")"
+    // 2️⃣ Ensure a blank line before structure tags when previous stanza ends with yeah/oh/whoa/huh or ")"
     x = x.replace(
-      /(\b(?:yeah|whoa|huh|oh|ah|uh)\b|\))[ \t]*\n+(?=#(?:INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))/gim,
+      /(\b(?:yeah|oh|whoa|huh)\b|\))[ \t]*\n+(?=#(?:INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))/gim,
       '$1\n\n'
     );
-
 
     // 3️⃣ Prevent multiple blank lines from stacking between sections
     x = x.replace(/\n{3,}/g, "\n\n");
@@ -1295,45 +1245,6 @@
     x = x.replace(/[ \t]+$/gm, "");
 
     x = x.trim();
-
-    // ======================================================
-    // 🔧 EFFECTIVE FIX PATCH — v1.1.53 Revision (Final Sanitation layer)
-    // ======================================================
-
-    // --- 1️⃣ Protect lines that start with " or ' or ( from being merged upward ---
-    x = x.replace(/([^\n])\n(?=["'(])/g, "$1\n");
-
-    // --- 2️⃣ Fix space after open quote (“ "please” → “"Please”) ---
-    x = x.replace(/(["'“‘])\s+([a-z])/g, (m, quote, letter) => quote + letter.toUpperCase());
-
-    // --- 3️⃣ Remove space before closing quotes (“please "” → “please"") ---
-    x = x.replace(/\s+(["'”’])/g, "$1");
-
-    // --- 4️⃣ Fix misplaced quotes after punctuation (“Freeze!" ” → “Freeze!"") ---
-    // x = x.replace(/([!?])\s+(["'“‘])/g, "$1 $2"); // REPLACED: Per user request
-    x = x.replace(/([!?])[ \t]+(["'“”‘’])/g, "$1$2");  // ADDED: Remove space between !/? and quote
-
-    // --- 5️⃣ Clean stray commas/spaces before )  (“( La la, )” → “(La la)”) ---
-    x = x
-      .replace(/\( +/g, "(")
-      .replace(/,([ \t]*\))/g, "$1")
-      .replace(/[ \t]+\)/g, ")");
-
-    // --- 6️⃣ Capitalize first letter inside standalone parentheses ---
-    x = x.replace(/(^|\n)\(\s*([a-z])/g, (_, b, l) => b + "(" + l.toUpperCase());
-
-    // --- 7️⃣ Apostrophe safeguard ('til, 'cause, 'em stay independent) ---
-    x = x
-      .replace(/(^|\s)'([a-z])/g, (m, b, l) => `${b}'${l.toLowerCase()}`)
-      // Prevent double apostrophes and ensure space after dropped-G endings
-      .replace(/([A-Za-z])'([A-Za-z])/g, (m, prev, next) => {
-        if (prev.toLowerCase() === "n") return `${prev}' ${next}`;
-        return `${prev}'${next}`;
-      });
-
-    // ======================================================
-    // ✅ END PATCH — insert before `return x;`
-    // ======================================================
 
     return x;
   }
