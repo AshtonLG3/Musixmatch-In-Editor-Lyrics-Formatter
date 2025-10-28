@@ -435,17 +435,20 @@
     if (!text) return text;
     const chars = Array.from(text);
     const isSpace = c => c === ' ' || c === '\t' || c === '\n';
+	const isSkippable = c => SENTENCE_ENDER_FOLLOWING_QUOTES.has(c) || c === '(' || c === ')';
     for (let i = 0; i < chars.length; i++) {
       const ch = chars[i];
       if (ch !== '?' && ch !== '!') continue;
-      let j = i + 1;
-      while (j < chars.length && isSpace(chars[j])) j++;
-      let k = j;
-      while (k < chars.length && chars[k] === '(') {
+      let k = i + 1;
+      while (k < chars.length) {
+        if (isSpace(chars[k]) || isSkippable(chars[k])) {
+
         k++;
-        while (k < chars.length && isSpace(chars[k])) k++;
+          } else {
+          break;
+        }
       }
-      while (k < chars.length && SENTENCE_ENDER_FOLLOWING_QUOTES.has(chars[k])) k++;
+
       if (k < chars.length && chars[k] >= 'a' && chars[k] <= 'z') {
         chars[k] = chars[k].toUpperCase();
       }
@@ -600,7 +603,17 @@
       const trimmed = candidate.trim();
       if (trimmed.startsWith("(") && trimmed.endsWith(")") && !trimmed.includes("\n")) {
         const placeholder = `${STANDALONE_PAREN_SENTINEL}${preservedStandaloneParens.length}__`;
-        preservedStandaloneParens.push(candidate);
+
+        let cleaned = candidate
+          .replace(/,([ \t]*\))/g, "$1")  // remove comma before )
+          .replace(/[ \t]+\)/g, ")")      // remove space before )
+          .replace(/\( +/g, "(");          // remove space after (
+
+        cleaned = cleaned.replace(/(\(\s*)(["'“”‘’]?)([a-z])/g, (_, prefix, quote, letter) =>
+          prefix + quote + letter.toUpperCase()
+        );
+
+        preservedStandaloneParens.push(cleaned);
         return boundary + placeholder;
       }
       return match;
@@ -1133,7 +1146,7 @@
     x = x.replace(/\b(oh|ah|yeah|whoa|ooh|uh|well)\b\s*,\s*(?=\))/gi, '$1');
 
     // Dropped-G
-    const dropped = ["nothin","somethin","anythin","comin","goin","playin","lovin","talkin","walkin","feelin","runnin","workin","doin"];
+    const dropped = ["nothin","somethin","guessin","anythin","comin","goin","playin","lovin","talkin","walkin","feelin","runnin","workin","doin"];
     const reDropped = new RegExp("\\b(" + dropped.join("|") + ")(?!['’])\\b", "gi");
     x = x.replace(reDropped, m => m + "'");
 
@@ -1182,7 +1195,9 @@
     });
 
     // Capitalize first letter when line starts with "("
-    x = x.replace(/(^|\n)\(\s*([a-z])/g, (_, boundary, letter) => boundary + "(" + letter.toUpperCase());
+    x = x.replace(/(^|\n)(\(\s*)(["'“”‘’]?)([a-z])/g, (_, boundary, parenWithSpace, quote, letter) =>
+      boundary + parenWithSpace + quote + letter.toUpperCase()
+    );
 
     // Capitalize words following question or exclamation marks (after parentheses normalization)
     x = capitalizeAfterSentenceEnders(x);
@@ -1202,7 +1217,7 @@
 
     // ❌ Do not add, remove, or alter newlines anywhere
     // ✅ Only lowercase the first word after ")" (except I / I'm / I'ma)
-    x = x.replace(/\)[ \t]+([A-Z][a-z]*)\b/g, (match, word) => {
+    x = x.replace(/(?<![?!])\)[ \t]+([A-Z][a-z]*)\b/g, (match, word) => {
       const exceptions = ['I', "I'm", "I'ma"];
       return exceptions.includes(word) ? `) ${word}` : `) ${word.toLowerCase()}`;
     });
@@ -1225,7 +1240,8 @@
       .replace(/ +/g, " ")                           // collapse multiple spaces
       .replace(/[ \t]+([,.;!?\)])/g, "$1")           // preserve newlines, remove only spaces before punctuation (except before "(")
       .replace(/([!?])[ \t]+(?=")/g, '$1')            // keep punctuation tight to closing quotes
-      .replace(/(?<=\S)"(?=[^\s"!.?,;:)\]])/g, '" ') // ensure space after closing quotes when followed by text
+      .replace(/([!?])(?=\s*["“(])/g, '$1 ')          // preserve space before opening quotes
+      .replace(/(?<=[A-Za-z0-9])"(?=[^\s"!.?,;:)\]])/g, '" ') // ensure space after closing quotes when followed by text
       .replace(/([!?])[ \t]*(?=\()/g, "$1 ")         // ensure space between !/? and following "("
       .replace(/([A-Za-z])\(/g, "$1 (")              // space before (
       .replace(/\)([A-Za-z])/g, ") $1")              // space after )
@@ -1233,13 +1249,23 @@
       .replace(/,{2,}/g, ",")                        // collapse duplicate commas
       .replace(/,([ \t]*\))/g, "$1");                // remove commas immediately before a closing parenthesis
 
+ // --- PATCH START: Prevent quote-line merging ---
+
+// Optional: if a quote starts the next line right after text, force proper spacing
+x = x.replace(/([A-Za-z])(\r?\n)"(?=[A-Za-z])/g, '$1\n"');
+
+// --- PATCH END ---
+
     // 1️⃣ Remove trailing commas from line endings entirely
     x = x.replace(/,+\s*$/gm, "");
+    x = x.replace(/([!?])[ \t]+(["'“”‘’])/g, "$1$2"); // remove space between punctuation and any quote mark
+
     // Prevent any amalgamation of lines ending with ")" or BV phrases
     x = x.replace(/(\))[ \t]*\n(?=[^\n])/g, '$1\n');
 
     // Remove overly aggressive BV adjacency merging
     x = x.replace(/((?:\)|\byeah\b)[,!?]*)\s*\n(?=\([^)]+\)\s*[a-z])/gi, '$1\n');
+      x = x.replace(/([.!?])([ \t]*["'“”‘’])[ \t]*\n(?=[^\n])/g, '$1$2\n');
 
     if (preservedStandaloneParens.length > 0) {
       const restoreRe = new RegExp(`${STANDALONE_PAREN_SENTINEL}(\\d+)__`, 'g');
@@ -1251,12 +1277,29 @@
 
     // 2️⃣ Ensure a blank line before structure tags when previous stanza ends with yeah/oh/whoa/huh or ")"
     x = x.replace(
-      /(\b(?:yeah|oh|whoa|huh)\b|\))[ \t]*\n+(?=#(?:INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))/gim,
+      /(\b(?:yeah|oh|whoa|huh|oh|ah|uh)\b|\))[ \t]*\n+(?=#(?:INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))/gim,
       '$1\n\n'
     );
 
     // 3️⃣ Prevent multiple blank lines from stacking between sections
     x = x.replace(/\n{3,}/g, "\n\n");
+
+// --- PATCH START: Strict fix for double commas + quote spacing ---
+
+// 1️⃣ Collapse redundant commas but keep line integrity
+x = x.replace(/,{2,}/g, ',');          // collapse double commas
+x = x.replace(/\s*,\s*/g, ', ');       // normalize comma spacing
+x = x.replace(/,\s+,/g, ', ');         // safety fix for broken comma pairs
+
+// 2️⃣ Fix quote spacing inside parentheses — no other structure touched
+x = x
+  .replace(/\(\s*["“]/g, '("')         // remove space between ( and "
+  .replace(/["”]\s*\)/g, '")')         // remove space before closing )
+																		   
+																			
+
+// --- PATCH END ---
+
     // 4️⃣ Remove stray indentation and trailing spaces on each line
     x = x.replace(/^[ \t]+/gm, "");
     x = x.replace(/[ \t]+$/gm, "");
