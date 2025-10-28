@@ -435,20 +435,20 @@
     if (!text) return text;
     const chars = Array.from(text);
     const isSpace = c => c === ' ' || c === '\t' || c === '\n';
-	const isSkippable = c => SENTENCE_ENDER_FOLLOWING_QUOTES.has(c) || c === '(' || c === ')';																						  
+	const isSkippable = c => SENTENCE_ENDER_FOLLOWING_QUOTES.has(c) || c === '(' || c === ')';
     for (let i = 0; i < chars.length; i++) {
       const ch = chars[i];
       if (ch !== '?' && ch !== '!') continue;
       let k = i + 1;
       while (k < chars.length) {
         if (isSpace(chars[k]) || isSkippable(chars[k])) {
-      
+
         k++;
           } else {
           break;
         }
       }
-	  
+
       if (k < chars.length && chars[k] >= 'a' && chars[k] <= 'z') {
         chars[k] = chars[k].toUpperCase();
       }
@@ -611,7 +611,7 @@
 
         cleaned = cleaned.replace(/(\(\s*)(["'“”‘’]?)([a-z])/g, (_, prefix, quote, letter) =>
           prefix + quote + letter.toUpperCase()
-        );		  
+        );
 
         preservedStandaloneParens.push(cleaned);
         return boundary + placeholder;
@@ -1197,7 +1197,7 @@
     // Capitalize first letter when line starts with "("
     x = x.replace(/(^|\n)(\(\s*)(["'“”‘’]?)([a-z])/g, (_, boundary, parenWithSpace, quote, letter) =>
       boundary + parenWithSpace + quote + letter.toUpperCase()
-    );															  
+    );
 
     // Capitalize words following question or exclamation marks (after parentheses normalization)
     x = capitalizeAfterSentenceEnders(x);
@@ -1250,6 +1250,7 @@
 
     // 1️⃣ Remove trailing commas from line endings entirely
     x = x.replace(/,+\s*$/gm, "");
+    x = x.replace(/([!?])[ \t]+(["'“”‘’])/g, "$1$2"); // remove space between punctuation and any quote mark
 
     // Prevent any amalgamation of lines ending with ")" or BV phrases
     x = x.replace(/(\))[ \t]*\n(?=[^\n])/g, '$1\n');
@@ -1273,6 +1274,22 @@
 
     // 3️⃣ Prevent multiple blank lines from stacking between sections
     x = x.replace(/\n{3,}/g, "\n\n");
+
+// --- PATCH START: Strict fix for double commas + quote spacing ---
+
+// 1️⃣ Collapse redundant commas but keep line integrity
+x = x.replace(/,{2,}/g, ',');          // collapse double commas
+x = x.replace(/\s*,\s*/g, ', ');       // normalize comma spacing
+x = x.replace(/,\s+,/g, ', ');         // safety fix for broken comma pairs
+
+// 2️⃣ Fix quote spacing inside parentheses — no other structure touched
+x = x
+  .replace(/\(\s*["“]/g, '("')         // remove space between ( and "
+  .replace(/["”]\s*\)/g, '")')         // remove space before closing )
+  .replace(/"\s+/g, '"')               // remove spaces after opening quote
+  .replace(/\s+"/g, '"');              // remove spaces before closing quote
+
+// --- PATCH END ---
 
     // 4️⃣ Remove stray indentation and trailing spaces on each line
     x = x.replace(/^[ \t]+/gm, "");
