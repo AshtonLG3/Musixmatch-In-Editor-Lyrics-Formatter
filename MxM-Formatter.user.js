@@ -435,20 +435,20 @@
     if (!text) return text;
     const chars = Array.from(text);
     const isSpace = c => c === ' ' || c === '\t' || c === '\n';
-	const isSkippable = c => SENTENCE_ENDER_FOLLOWING_QUOTES.has(c) || c === '(' || c === ')';
+	const isSkippable = c => SENTENCE_ENDER_FOLLOWING_QUOTES.has(c) || c === '(' || c === ')';																						  
     for (let i = 0; i < chars.length; i++) {
       const ch = chars[i];
       if (ch !== '?' && ch !== '!') continue;
       let k = i + 1;
       while (k < chars.length) {
         if (isSpace(chars[k]) || isSkippable(chars[k])) {
-
+      
         k++;
           } else {
           break;
         }
       }
-
+	  
       if (k < chars.length && chars[k] >= 'a' && chars[k] <= 'z') {
         chars[k] = chars[k].toUpperCase();
       }
@@ -611,7 +611,7 @@
 
         cleaned = cleaned.replace(/(\(\s*)(["'“”‘’]?)([a-z])/g, (_, prefix, quote, letter) =>
           prefix + quote + letter.toUpperCase()
-        );
+        );		  
 
         preservedStandaloneParens.push(cleaned);
         return boundary + placeholder;
@@ -1197,7 +1197,7 @@
     // Capitalize first letter when line starts with "("
     x = x.replace(/(^|\n)(\(\s*)(["'“”‘’]?)([a-z])/g, (_, boundary, parenWithSpace, quote, letter) =>
       boundary + parenWithSpace + quote + letter.toUpperCase()
-    );
+    );															  
 
     // Capitalize words following question or exclamation marks (after parentheses normalization)
     x = capitalizeAfterSentenceEnders(x);
