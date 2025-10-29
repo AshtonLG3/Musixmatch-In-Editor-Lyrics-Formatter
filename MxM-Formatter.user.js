@@ -730,7 +730,8 @@
 	  .replace(/\byall\b/gi, "y'all")
 	  .replace(/\bya'll\b/gi, "y'all")
 	  .replace(/\bmhm\b/gi, "hmm")
-	  .replace(/\bmmh\b/gi, "hmm");
+	  .replace(/\bmmh\b/gi, "hmm")
+	  .replace(/\trynna\b/gi, "tryna");
 	
     x = x.replace(/((?:^|\n)\s*)'til\b/g, (match, boundary, offset, str) => {
       const start = offset + boundary.length;
