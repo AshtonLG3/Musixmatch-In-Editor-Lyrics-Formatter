@@ -1,7 +1,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.49';
+  const SCRIPT_VERSION = '1.1.50';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -1156,10 +1156,11 @@
 
     // BV lowercase (except I)
     x = x.replace(/([a-z])\(/g, "$1 (");
-    x = x.replace(/\(([^()]+)\)/g, (m, inner) => {
-      let processed = inner.toLowerCase();
+    x = x.replace(/\(([^)]+)\)/g, (_, inner) => {
+      const trimmed = inner.trim();
+      let processed = trimmed.toLowerCase();
       processed = processed.replace(/\b(i)\b/g, "I");
-      return "(" + processed + ")";
+      return `(${processed})`;
     });
 
     // Capitalize first letter when line starts with "("
