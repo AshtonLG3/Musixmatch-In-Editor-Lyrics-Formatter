@@ -1193,9 +1193,9 @@
     );
 
     // BV lowercase (except I)
-    x = x.replace(/([a-z])\(/g, "$1 (");
-    x = x.replace(/\(([^()]+)\)/g, (m, inner) => {
-  let processed = inner.toLowerCase();
+    x = x.replace(/\(([^)]+)\)/g, (_, inner) => {
+  const trimmed = inner.trim();
+  let processed = trimmed.toLowerCase();
       processed = processed.replace(/\b(i)\b/g, "I");
       return `(${processed})`;
     });
