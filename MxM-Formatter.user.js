@@ -719,13 +719,19 @@
         return "'til";
       })
       .replace(/\bima\b/gi, "I'ma")
+	  .replace(/\bimma\b/gi, "I'ma")
+	  .replace(/\bi'mma\b/gi, "I'ma")
       .replace(/\bim\b/gi, "I'm")
       .replace(/\bdont\b/gi, "don't")
       .replace(/\bcant\b/gi, "can't")
       .replace(/\bwont\b/gi, "won't")
       .replace(/\baint\b/gi, "ain't")
-      .replace(/\bwoah\b/gi, "whoa");
-
+      .replace(/\bwoah\b/gi, "whoa")
+	  .replace(/\byall\b/gi, "y'all")
+	  .replace(/\bya'll\b/gi, "y'all")
+	  .replace(/\bmhm\b/gi, "hmm")
+	  .replace(/\bmmh\b/gi, "hmm");
+	
     x = x.replace(/((?:^|\n)\s*)'til\b/g, (match, boundary, offset, str) => {
       const start = offset + boundary.length;
       const afterStart = start + 4;
