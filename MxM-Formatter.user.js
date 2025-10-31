@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.50
+// @version      1.1.51
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.50';
+  const SCRIPT_VERSION = '1.1.51';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -492,15 +492,15 @@
     if (!text) return text;
 
     return text
-      .replace(/(^|\n)\s*intro\s*(?=\n)/gi, (_, boundary) => boundary + "#INTRO")
-      .replace(/(^|\n)\s*verse\s*(?=\n)/gi, (_, boundary) => boundary + "#VERSE")
-      .replace(/(^|\n)\s*pre[- ]?chorus\s*(?=\n)/gi, (_, boundary) => boundary + "#PRE-CHORUS")
-      .replace(/(^|\n)\s*chorus\s*(?=\n)/gi, (_, boundary) => boundary + "#CHORUS")
-      .replace(/(^|\n)\s*post[- ]?chorus\s*(?=\n)/gi, (_, boundary) => boundary + "#HOOK")
-      .replace(/(^|\n)\s*hook\s*(?=\n)/gi, (_, boundary) => boundary + "#HOOK")
-      .replace(/(^|\n)\s*bridge\s*(?=\n)/gi, (_, boundary) => boundary + "#BRIDGE")
+      .replace(/(^|\n)\s*intro(?:\s*\d+)?\s*(?=\n)/gi, (_, boundary) => boundary + "#INTRO")
+      .replace(/(^|\n)\s*verse(?:\s*\d+)?\s*(?=\n)/gi, (_, boundary) => boundary + "#VERSE")
+      .replace(/(^|\n)\s*pre[- ]?chorus(?:\s*\d+)?\s*(?=\n)/gi, (_, boundary) => boundary + "#PRE-CHORUS")
+      .replace(/(^|\n)\s*chorus(?:\s*\d+)?\s*(?=\n)/gi, (_, boundary) => boundary + "#CHORUS")
+      .replace(/(^|\n)\s*post[- ]?chorus(?:\s*\d+)?\s*(?=\n)/gi, (_, boundary) => boundary + "#HOOK")
+      .replace(/(^|\n)\s*hook(?:\s*\d+)?\s*(?=\n)/gi, (_, boundary) => boundary + "#HOOK")
+      .replace(/(^|\n)\s*bridge(?:\s*\d+)?\s*(?=\n)/gi, (_, boundary) => boundary + "#BRIDGE")
       .replace(/(^|\n)\s*(ad[- ]?libs?|spoken)\s*(?=\n)/gi, (_, boundary) => boundary + "#HOOK")
-      .replace(/(^|\n)\s*outro\s*(?=\n)/gi, (_, boundary) => boundary + "#OUTRO");
+      .replace(/(^|\n)\s*outro(?:\s*\d+)?\s*(?=\n)/gi, (_, boundary) => boundary + "#OUTRO");
   }
 
   function normalizeInstrumentalSections(text) {
@@ -1153,9 +1153,12 @@
     x = x.replace(/\b(oh|ah|yeah|whoa|ooh|uh|well)\b\s*,\s*(?=\))/gi, '$1');
 
     // Dropped-G
-    const dropped = ["nothin","somethin","guessin","anythin","comin","goin","playin","lovin","talkin","walkin","feelin","runnin","workin","doin"];
-    const reDropped = new RegExp("\\b(" + dropped.join("|") + ")(?!['’])\\b", "gi");
-    x = x.replace(reDropped, m => m + "'");
+    x = x.replace(/\b([A-Za-z]{4,}in)(?!['’])/gi, (match, base) => {
+      // Preserve casing
+      if (match === match.toUpperCase()) return base.toUpperCase() + "'";
+      if (match[0] === match[0].toUpperCase()) return base[0].toUpperCase() + base.slice(1) + "'";
+      return base + "'";
+    });
 
     // Numbers & timing logic
     x = normalizeOClock(x);

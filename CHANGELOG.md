@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.1.51
+- Improved dropped-G detection so longer "-in" words receive smart apostrophes with accurate casing.
+- Normalized structure tags that include optional numbering (e.g., "Verse 2", "Chorus 3") without leaving blank lines.
+- Bumped the userscript, extension, and package metadata to reflect the new release.
+
 ## v1.1.50
 - Trim and normalize multiple backing-vocal parentheticals per line while preserving the capitalized "I" pronoun.
 - Bump the userscript, extension, and package metadata to reflect the new release.
