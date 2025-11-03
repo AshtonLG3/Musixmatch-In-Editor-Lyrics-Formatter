@@ -90,13 +90,13 @@ if (formatLyrics(timeContextLine) !== 'Meet me at 7:30 p.m.') {
 }
 
 const inlineParenthetical = 'Line (  I  KNOW   ,  YEAH  ) more';
-if (formatLyrics(inlineParenthetical) !== 'Line (I know, yeah) more') {
-  throw new Error('Inline backing-vocal parentheses should normalise spacing while keeping the pronoun I capitalised');
+if (formatLyrics(inlineParenthetical) !== 'Line (I KNOW, YEAH) more') {
+  throw new Error('Inline backing-vocal parentheses should normalise spacing while preserving deliberate casing and the pronoun I');
 }
 
 const multiParenthetical = 'Shout (  YOU  ) (  I  )';
-if (formatLyrics(multiParenthetical) !== 'Shout (you) (I)') {
-  throw new Error('Multiple inline parentheticals should be trimmed individually with I preserved in uppercase');
+if (formatLyrics(multiParenthetical) !== 'Shout (YOU) (I)') {
+  throw new Error('Multiple inline parentheticals should trim spacing while respecting original casing and keeping I uppercase');
 }
 
 module.exports = {

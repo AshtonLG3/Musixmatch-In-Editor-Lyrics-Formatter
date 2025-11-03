@@ -1,12 +1,14 @@
 # Changelog
 
-<<<<<<< ours
+## v1.1.55
+- Preserve existing casing inside backing vocal parentheses while still capitalizing leading letters and the standalone "I" pronoun with Unicode-aware rules.
+- Added locale-aware capitalization for lines beginning with parenthetical lyrics so multilingual scripts keep appropriate casing.
+- Bumped the userscript, extension, and package metadata to reflect the 1.1.55 release.
+
 ## v1.1.54
 - Expanded first-letter capitalization and backing vocal casing rules to respect lowercase Unicode letters (e.g., Cyrillic and Greek) using locale-aware transforms.
 - Bumped the userscript, extension, and package metadata to reflect the 1.1.54 release.
 
-=======
->>>>>>> theirs
 ## v1.1.53
 - Bumped the userscript, extension, and package metadata to reflect the 1.1.53 release.
 

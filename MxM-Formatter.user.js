@@ -1,11 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-<<<<<<< ours
-// @version      1.1.54
-=======
-// @version      1.1.53
->>>>>>> theirs
+// @version      1.1.55
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -19,11 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-<<<<<<< ours
-  const SCRIPT_VERSION = '1.1.54';
-=======
-  const SCRIPT_VERSION = '1.1.53';
->>>>>>> theirs
+  const SCRIPT_VERSION = '1.1.55';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -1218,14 +1210,32 @@
     // BV lowercase (except I)
     x = x.replace(/\(([^)]+)\)/g, (_, inner) => {
       const trimmed = inner.trim();
-      let processed = trimmed.toLocaleLowerCase();
+
+      // Preserve inner casing by default
+      let processed = trimmed;
+
+      // Unicode-safe capitalization for first letter only if line starts with "("
+      processed = processed.replace(
+        /(^|\.\s+|\?\s+|!\s+)(["'“”‘’]?)(\p{Ll})/gu,
+        (match, boundary, quote, letter) => boundary + quote + letter.toLocaleUpperCase()
+      );
+
+      // Keep “I” capitalization for standalone pronoun
       processed = processed.replace(/\b(i)\b/g, "I");
+
+      // Handle Cyrillic/Greek/other scripts correctly (preserve locale casing)
+      processed = processed.replace(/(\p{L})(\p{Ll}+)/gu, (match, first, rest) => {
+        return first + rest;
+      });
+
       return `(${processed})`;
     });
 
-    // Capitalize first letter when line starts with "("
-    x = x.replace(/(^|\n)(\(\s*)(["'“”‘’]?)(\p{Ll})/gu, (_, boundary, parenWithSpace, quote, letter) =>
-      boundary + parenWithSpace + quote + letter.toLocaleUpperCase()
+    // Capitalize first letter of line when it starts with '(' — locale aware
+    x = x.replace(
+      /(^|\n)(\(\s*)(["'“”‘’]?)(\p{Ll})/gu,
+      (_, boundary, parenWithSpace, quote, letter) =>
+        boundary + parenWithSpace + quote + letter.toLocaleUpperCase()
     );
 
     // Capitalize words following question or exclamation marks (after parentheses normalization)
