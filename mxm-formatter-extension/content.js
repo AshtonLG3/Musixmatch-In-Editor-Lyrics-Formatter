@@ -1,7 +1,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.53';
+  const SCRIPT_VERSION = '1.1.54';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -440,7 +440,7 @@
   }
 
   const HYPHEN_CHARS = new Set(['-', '\u2010', '\u2011', '\u2012', '\u2013', '\u2014', '\u2212']);
-  const LETTER_RE = /[A-Za-z]/;
+  const LETTER_RE = /\p{L}/u;
   const HYPHENATED_EM_TOKEN = '\uF000';
 
   function normalizeEmPronouns(text) {
@@ -1164,21 +1164,21 @@
     });
 
     // Capitalize first letter of each line (ignoring leading whitespace)
-    x = x.replace(/(^|\n)(\s*)(["'“”‘’]?)([a-z])/g, (_, boundary, space, quote, letter) =>
-      boundary + space + quote + letter.toUpperCase()
+    x = x.replace(/(^|\n)(\s*)(["'“”‘’]?)(\p{Ll})/gu, (_, boundary, space, quote, letter) =>
+      boundary + space + quote + letter.toLocaleUpperCase()
     );
 
     // BV lowercase (except I)
-    x = x.replace(/([a-z])\(/g, "$1 (");
+    x = x.replace(/(\p{L})\(/gu, "$1 (");
     x = x.replace(/\(([^)]+)\)/g, (_, inner) => {
       const trimmed = inner.trim();
-      let processed = trimmed.toLowerCase();
+      let processed = trimmed.toLocaleLowerCase();
       processed = processed.replace(/\b(i)\b/g, "I");
       return `(${processed})`;
     });
 
     // Capitalize first letter when line starts with "("
-    x = x.replace(/(^|\n)\(\s*([a-z])/g, (_, a, b) => a + "(" + b.toUpperCase());
+    x = x.replace(/(^|\n)\(\s*(\p{Ll})/gu, (_, a, b) => a + "(" + b.toLocaleUpperCase());
 
     // Capitalize words following question or exclamation marks (after parentheses normalization)
     x = capitalizeAfterSentenceEnders(x);
@@ -1198,9 +1198,9 @@
 
     // ❌ Do not add, remove, or alter newlines anywhere
     // ✅ Only lowercase the first word after ")" (except I / I'm / I'ma)
-    x = x.replace(/\)[ \t]+([A-Z][a-z]*)\b/g, (match, word) => {
+    x = x.replace(/\)[ \t]+(\p{Lu}\p{Ll}*)\b/gu, (match, word) => {
       const exceptions = ['I', "I'm", "I'ma"];
-      return exceptions.includes(word) ? `) ${word}` : `) ${word.toLowerCase()}`;
+      return exceptions.includes(word) ? `) ${word}` : `) ${word.toLocaleLowerCase()}`;
     });
 
     x = x
