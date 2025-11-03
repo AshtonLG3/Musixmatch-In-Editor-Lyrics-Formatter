@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.52
+// @version      1.1.53
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.52';
+  const SCRIPT_VERSION = '1.1.53';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -32,6 +32,8 @@
     showFloatingButton: !runningAsExtension // show button for userscript installs
   };
   const extensionOptions = { ...extensionDefaults };
+
+  const BV_FIRST_WORD_EXCEPTIONS = new Set(['I', "I'm", "I'ma", 'i', "i'm", "i'ma"]);
 
   function loadSettings() {
     if (!hasWindow) return { ...defaults };
@@ -1207,12 +1209,47 @@
       boundary + space + quote + letter.toUpperCase()
     );
 
-    // BV lowercase (except I)
-    x = x.replace(/\(([^)]+)\)/g, (_, inner) => {
-  const trimmed = inner.trim();
-  let processed = trimmed.toLowerCase();
-      processed = processed.replace(/\b(i)\b/g, "I");
-      return `(${processed})`;
+    // BV lowercase (except I, I'm, I'ma) — refined proper-noun aware
+    x = x.replace(/([a-z])\(/g, "$1 (");
+
+    x = x.replace(/\(([^)]+)\)/g, (match, inner) => {
+      const trimmed = inner.trim();
+      if (!trimmed) return match;
+
+      const leadingSpace = inner.match(/^\s+/)?.[0] ?? '';
+      const trailingSpace = inner.match(/\s+$/)?.[0] ?? '';
+
+      const firstTokenMatch = trimmed.match(/^\S+/);
+      if (!firstTokenMatch) return match;
+      const firstToken = firstTokenMatch[0];
+
+      const leadingQuotesMatch = firstToken.match(/^["'“”‘’]+/);
+      const leadingQuotes = leadingQuotesMatch ? leadingQuotesMatch[0] : '';
+      const hasTrailingComma = firstToken.endsWith(',');
+      const coreFirstWord = firstToken.slice(
+        leadingQuotes.length,
+        hasTrailingComma ? -1 : undefined
+      );
+      if (!coreFirstWord) return match;
+
+      const firstLower = coreFirstWord.toLowerCase();
+
+      // Preserve I, I'm, I'ma
+      if (BV_FIRST_WORD_EXCEPTIONS.has(coreFirstWord) || BV_FIRST_WORD_EXCEPTIONS.has(firstLower))
+        return match;
+
+      // Detect if ALL words are proper-cased ("Jesus Christ my Lord" stays intact)
+      const words = trimmed.split(/\s+/);
+      const allProper = words.length > 1 && words.every(w => /^[A-Z][a-z]+/.test(w));
+
+      // NEW: detect if it's *partially* proper but not starting with one (e.g., "Thank you, Jesus Christ my Lord")
+      const startsProper = /^[A-Z][a-z]+$/.test(coreFirstWord);
+      if (allProper && startsProper) return match;
+
+      // Otherwise, lowercase the first word
+      const loweredFirst = leadingQuotes + firstLower + (hasTrailingComma ? ',' : '');
+      const remainder = trimmed.slice(firstToken.length);
+      return `(${leadingSpace}${loweredFirst}${remainder}${trailingSpace})`;
     });
 
     // Capitalize first letter when line starts with "("

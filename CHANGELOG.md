@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1.53
+- Refined backing vocal parenthetical casing to respect proper nouns and preserve leading exceptions like I/I'm/I'ma.
+- Bumped the userscript, extension, and package metadata to reflect the new release.
+
 ## v1.1.52
 - Tightened dropped-G handling so bare "-in" words receive apostrophes while protecting exclusions like "begin" and "violin".
 - Bumped the userscript, extension, and package metadata to reflect the new release.
