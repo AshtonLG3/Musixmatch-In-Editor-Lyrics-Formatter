@@ -1,7 +1,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.55';
+  const SCRIPT_VERSION = '1.1.52';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -440,7 +440,7 @@
   }
 
   const HYPHEN_CHARS = new Set(['-', '\u2010', '\u2011', '\u2012', '\u2013', '\u2014', '\u2212']);
-  const LETTER_RE = /\p{L}/u;
+  const LETTER_RE = /[A-Za-z]/;
   const HYPHENATED_EM_TOKEN = '\uF000';
 
   function normalizeEmPronouns(text) {
@@ -1164,21 +1164,21 @@
     });
 
     // Capitalize first letter of each line (ignoring leading whitespace)
-    x = x.replace(/(^|\n)(\s*)(["'“”‘’]?)(\p{Ll})/gu, (_, boundary, space, quote, letter) =>
-      boundary + space + quote + letter.toLocaleUpperCase()
+    x = x.replace(/(^|\n)(\s*)(["'“”‘’]?)([a-z])/g, (_, boundary, space, quote, letter) =>
+      boundary + space + quote + letter.toUpperCase()
     );
 
     // BV lowercase (except I)
-    x = x.replace(/(\p{L})\(/gu, "$1 (");
+    x = x.replace(/([a-z])\(/g, "$1 (");
     x = x.replace(/\(([^)]+)\)/g, (_, inner) => {
       const trimmed = inner.trim();
-      let processed = trimmed.toLocaleLowerCase();
+      let processed = trimmed.toLowerCase();
       processed = processed.replace(/\b(i)\b/g, "I");
       return `(${processed})`;
     });
 
     // Capitalize first letter when line starts with "("
-    x = x.replace(/(^|\n)\(\s*(\p{Ll})/gu, (_, a, b) => a + "(" + b.toLocaleUpperCase());
+    x = x.replace(/(^|\n)\(\s*([a-z])/g, (_, a, b) => a + "(" + b.toUpperCase());
 
     // Capitalize words following question or exclamation marks (after parentheses normalization)
     x = capitalizeAfterSentenceEnders(x);
@@ -1198,9 +1198,9 @@
 
     // ❌ Do not add, remove, or alter newlines anywhere
     // ✅ Only lowercase the first word after ")" (except I / I'm / I'ma)
-    x = x.replace(/\)[ \t]+(\p{Lu}\p{Ll}*)\b/gu, (match, word) => {
+    x = x.replace(/\)[ \t]+([A-Z][a-z]*)\b/g, (match, word) => {
       const exceptions = ['I', "I'm", "I'ma"];
-      return exceptions.includes(word) ? `) ${word}` : `) ${word.toLocaleLowerCase()}`;
+      return exceptions.includes(word) ? `) ${word}` : `) ${word.toLowerCase()}`;
     });
 
     x = x
@@ -1218,22 +1218,16 @@
         if (isLetter || /\d/.test(next)) return punct + ' ' + next;
         return punct + next;
       })
-      .replace(/ +/g, " ")
-      .replace(/[ \t]+([,.;!?])/g, "$1")
-      .replace(/(?<=[^\s(])"(?=[^\s"!.?,;:)\]])/g, '" ')
-      .replace(/(\p{L})\(/gu, "$1 (")
-      .replace(/\)(\p{L})/gu, ") $1")
-      .replace(/,{2,}/g, ",");
-
-    x = x
-      .replace(/([!?])[ \t]*(?=["(])/g, "$1 ")
-      .replace(/([,!?])(["'“”‘’])/g, '$1 $2')
-      .replace(/(["'“”‘’])\s+(\p{L})/gu, (_, quote, letter) => quote + letter.toLocaleUpperCase())
-      .replace(/\s+(["'“”‘’])/g, '$1');
-
-    x = x.replace(/([?!])\s+(["'“‘])(\p{Ll})/gu, (_, punct, quote, letter) => `${punct} ${quote}${letter.toLocaleUpperCase()}`);
-
-    x = x.replace(/,([ \t]*\))/g, "$1").replace(/[ \t]+\)/g, ")").replace(/\( +/g, "(");
+      .replace(/ +/g, " ")                           // collapse multiple spaces
+      .replace(/[ \t]+([,.;!?\)])/g, "$1")           // preserve newlines, remove only spaces before punctuation (except before "(")
+      .replace(/([!?])[ \t]+(?=")/g, '$1')            // keep punctuation tight to closing quotes
+      .replace(/(?<=\S)"(?=[^\s"!.?,;:)\]])/g, '" ') // ensure space after closing quotes when followed by text
+      .replace(/([!?])[ \t]*(?=\()/g, "$1 ")         // ensure space between !/? and following "("
+      .replace(/([A-Za-z])\(/g, "$1 (")              // space before (
+      .replace(/\)([A-Za-z])/g, ") $1")              // space after )
+      .replace(/\( +/g, "(").replace(/ +\)/g, ")")
+      .replace(/,{2,}/g, ",")                        // collapse duplicate commas
+      .replace(/,([ \t]*\))/g, "$1");                // remove commas immediately before a closing parenthesis
 
     // 1️⃣ Remove trailing commas from line endings entirely
     x = x.replace(/,+\s*$/gm, "");
