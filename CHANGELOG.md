@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1.54
+- Expanded first-letter capitalization and backing vocal casing rules to respect lowercase Unicode letters (e.g., Cyrillic and Greek) using locale-aware transforms.
+- Bumped the userscript, extension, and package metadata to reflect the 1.1.54 release.
+
 ## v1.1.53
 - Refined backing vocal parenthetical casing to respect proper nouns and preserve leading exceptions like I/I'm/I'ma.
 - Bumped the userscript, extension, and package metadata to reflect the new release.
