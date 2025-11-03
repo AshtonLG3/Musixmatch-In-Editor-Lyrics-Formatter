@@ -1,7 +1,11 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
+<<<<<<< ours
 // @version      1.1.54
+=======
+// @version      1.1.53
+>>>>>>> theirs
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +19,11 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
+<<<<<<< ours
   const SCRIPT_VERSION = '1.1.54';
+=======
+  const SCRIPT_VERSION = '1.1.53';
+>>>>>>> theirs
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
