@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.54
+// @version      1.1.55
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.54';
+  const SCRIPT_VERSION = '1.1.55';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -1161,7 +1161,10 @@
         "begin","began","within","cousin","violin","origin","margin","resin","penguin",
         "pumpkin","grin","chin","twin","skin","basin","raisn","savin","login","pin",
         "fin","din","min","sin","win","bin","thin","akin","leadin","captain","mountain",
-        "fountain","certain","again"
+        "fountain","certain","again",
+        // 🔒 New rhyme-based exclusions
+        "rain","pain","drain","main","train","grain","chain","plain","remain","campaign",
+        "contain","domain","explain","sustain","obtain","entertain"
       ]);
 
       // skip if in exclusion list (case-insensitive)

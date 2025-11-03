@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1.55
+- Expanded the dropped-G exclusions with rhyme-based terms like "rain" and "train" to avoid false positives.
+- Bumped the userscript, extension, and package metadata to reflect the 1.1.55 release.
+
 ## v1.1.54
 - Expanded first-letter capitalization and backing vocal casing rules to respect lowercase Unicode letters (e.g., Cyrillic and Greek) using locale-aware transforms.
 - Bumped the userscript, extension, and package metadata to reflect the 1.1.54 release.
