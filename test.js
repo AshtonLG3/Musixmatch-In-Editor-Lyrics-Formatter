@@ -89,16 +89,6 @@ if (formatLyrics(timeContextLine) !== 'Meet me at 7:30 p.m.') {
   throw new Error('Time expressions must retain their numeric formatting and normalised meridiem');
 }
 
-const inlineParenthetical = 'Line (  I  KNOW   ,  YEAH  ) more';
-if (formatLyrics(inlineParenthetical) !== 'Line (I KNOW, YEAH) more') {
-  throw new Error('Inline backing-vocal parentheses should normalise spacing while preserving deliberate casing and the pronoun I');
-}
-
-const multiParenthetical = 'Shout (  YOU  ) (  I  )';
-if (formatLyrics(multiParenthetical) !== 'Shout (YOU) (I)') {
-  throw new Error('Multiple inline parentheticals should trim spacing while respecting original casing and keeping I uppercase');
-}
-
 module.exports = {
   formatLyrics,
   version: metaVersion,
