@@ -1218,16 +1218,22 @@
         if (isLetter || /\d/.test(next)) return punct + ' ' + next;
         return punct + next;
       })
-      .replace(/ +/g, " ")                           // collapse multiple spaces
-      .replace(/[ \t]+([,.;!?\)])/g, "$1")           // preserve newlines, remove only spaces before punctuation (except before "(")
-      .replace(/([!?])[ \t]+(?=")/g, '$1')            // keep punctuation tight to closing quotes
-      .replace(/(?<=\S)"(?=[^\s"!.?,;:)\]])/g, '" ') // ensure space after closing quotes when followed by text
-      .replace(/([!?])[ \t]*(?=\()/g, "$1 ")         // ensure space between !/? and following "("
-      .replace(/([A-Za-z])\(/g, "$1 (")              // space before (
-      .replace(/\)([A-Za-z])/g, ") $1")              // space after )
-      .replace(/\( +/g, "(").replace(/ +\)/g, ")")
-      .replace(/,{2,}/g, ",")                        // collapse duplicate commas
-      .replace(/,([ \t]*\))/g, "$1");                // remove commas immediately before a closing parenthesis
+      .replace(/ +/g, " ")
+      .replace(/[ \t]+([,.;!?])/g, "$1")
+      .replace(/(?<=[^\s(])"(?=[^\s"!.?,;:)\]])/g, '" ')
+      .replace(/(\p{L})\(/gu, "$1 (")
+      .replace(/\)(\p{L})/gu, ") $1")
+      .replace(/,{2,}/g, ",");
+
+    x = x
+      .replace(/([!?])[ \t]*(?=["(])/g, "$1 ")
+      .replace(/([,!?])(["'“”‘’])/g, '$1 $2')
+      .replace(/(["'“”‘’])\s+(\p{L})/gu, (_, quote, letter) => quote + letter.toLocaleUpperCase())
+      .replace(/\s+(["'“”‘’])/g, '$1');
+
+    x = x.replace(/([?!])\s+(["'“‘])(\p{Ll})/gu, (_, punct, quote, letter) => `${punct} ${quote}${letter.toLocaleUpperCase()}`);
+
+    x = x.replace(/,([ \t]*\))/g, "$1").replace(/[ \t]+\)/g, ")").replace(/\( +/g, "(");
 
     // 1️⃣ Remove trailing commas from line endings entirely
     x = x.replace(/,+\s*$/gm, "");
