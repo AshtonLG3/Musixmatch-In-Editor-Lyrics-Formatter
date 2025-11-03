@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "MxM In-Editor Formatter (EN)",
-  "version": "1.1.54",
+  "version": "1.1.55",
   "description": "Musixmatch Studio formatter with BV, punctuation, and structural fixes.",
   "author": "Richard Mangezi Muketa",
   "action": {
