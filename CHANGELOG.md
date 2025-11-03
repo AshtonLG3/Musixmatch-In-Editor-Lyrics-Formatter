@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1.52
+- Tightened dropped-G handling so bare "-in" words receive apostrophes while protecting exclusions like "begin" and "violin".
+- Bumped the userscript, extension, and package metadata to reflect the new release.
+
 ## v1.1.51
 - Improved dropped-G detection so longer "-in" words receive smart apostrophes with accurate casing.
 - Normalized structure tags that include optional numbering (e.g., "Verse 2", "Chorus 3") without leaving blank lines.
