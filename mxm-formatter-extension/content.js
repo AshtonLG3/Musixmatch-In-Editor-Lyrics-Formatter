@@ -1,7 +1,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.51';
+  const SCRIPT_VERSION = '1.1.52';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -1113,9 +1113,20 @@
 
     x = x.replace(/\b(oh|ah|yeah|whoa|ooh|uh|well)\b\s*,\s*(?=\))/gi, '$1');
 
-    // Dropped-G
-    x = x.replace(/\b([A-Za-z]{4,}in)(?!['’])/gi, (match, base) => {
-      // Preserve casing
+    // Dropped-G (smart and safe fix)
+    // Converts "feelin" → "feelin'", but leaves "feeling", "feelin'", "begin", "violin", etc. untouched
+    x = x.replace(/\b([A-Za-z]+in)(?!['’g])\b/g, (match, base) => {
+      const exclusions = new Set([
+        "begin","began","within","cousin","violin","origin","margin","resin","penguin",
+        "pumpkin","grin","chin","twin","skin","basin","raisn","savin","login","pin",
+        "fin","din","min","sin","win","bin","thin","akin","leadin","captain","mountain",
+        "fountain","certain","again"
+      ]);
+
+      // skip if in exclusion list (case-insensitive)
+      if (exclusions.has(base.toLowerCase())) return match;
+
+      // Preserve casing of the original word
       if (match === match.toUpperCase()) return base.toUpperCase() + "'";
       if (match[0] === match[0].toUpperCase()) return base[0].toUpperCase() + base.slice(1) + "'";
       return base + "'";
