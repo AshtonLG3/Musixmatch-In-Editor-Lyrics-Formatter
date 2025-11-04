@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.1.57
+- Normalize repeated syllables like "na"/"la" by grouping them into hyphenated clusters per four beats while preserving capitalization at lyric starts.
+- Collapse repeated full words and short phrases into comma-separated sequences without disturbing excluded syllable patterns.
+- Bumped the userscript, extension, and package metadata to reflect the 1.1.57 release.
+
 ## v1.1.55
 - Expanded the dropped-G exclusions with rhyme-based terms like "rain" and "train" to avoid false positives.
 - Bumped the userscript, extension, and package metadata to reflect the 1.1.55 release.
