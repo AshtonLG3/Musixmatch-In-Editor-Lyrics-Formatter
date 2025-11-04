@@ -28,7 +28,7 @@
 - ✅ Normalises dialogue, interjections, and bracketed sections
 - ✅ Handles backing vocal grouping and common contraction edge-cases
 - ✅ Converts numbers intelligently while respecting dates and timestamps
-- ✅ Offers both a floating **Format MxM** button and the **Alt&nbsp;+&nbsp;M** keyboard shortcut
+- ✅ Offers a floating **Format MxM / Revert** control group plus the **Alt&nbsp;+&nbsp;M** keyboard shortcut
 
 ---
 
@@ -50,6 +50,7 @@
 - Open any lyric sheet in Musixmatch Studio.
 - Click inside the editable lyrics area once.
 - Either press **Alt&nbsp;+&nbsp;M** *or* click the floating **Format MxM** button in the bottom-right corner.
+- Need to undo a formatting pass? Click **Revert** to restore the previously saved lyrics snapshot.
 - A toast confirmation (e.g. `Formatted ✓ (v1.1.6)`) appears once the text has been cleaned.
 
 If nothing happens, make sure the lyrics textarea still has focus. The formatter will display an alert if it cannot find an active editor field.
