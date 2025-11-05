@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.57
+// @version      1.1.55
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,12 +15,10 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.57';
+  const SCRIPT_VERSION = '1.1.55';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
-  const LAST_ORIGINAL_KEY = 'mxmFmtLastOriginal.v1';
   const defaults = { showPanel: true, aggressiveNumbers: true };
-  let lastFormatState = null;
 
   const runningAsExtension =
     typeof chrome !== 'undefined' &&
@@ -48,40 +46,6 @@
   }
 
   const settings = loadSettings();
-  function saveLastOriginal(el, text) {
-    lastFormatState = { text, element: el || null, doc: el?.ownerDocument || null };
-    if (hasWindow) {
-      try {
-        root.localStorage.setItem(LAST_ORIGINAL_KEY, JSON.stringify({ text }));
-      } catch {
-        /* ignore storage errors */
-      }
-    }
-    updateRevertButtonState();
-  }
-
-  function readStoredOriginal() {
-    if (!hasWindow) return null;
-    let raw = null;
-    try {
-      raw = root.localStorage.getItem(LAST_ORIGINAL_KEY);
-    } catch {
-      return null;
-    }
-    if (!raw) return null;
-    try {
-      const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed.text === 'string') return parsed.text;
-    } catch {
-      return raw;
-    }
-    return null;
-  }
-
-  function getLastOriginalText() {
-    if (lastFormatState) return lastFormatState.text;
-    return readStoredOriginal();
-  }
   const focusTrackedDocs = new WeakSet();
   const shortcutTrackedDocs = new WeakSet();
 
@@ -1374,7 +1338,7 @@ x = x.replace(/([A-Za-z])(\r?\n)"(?=[A-Za-z])/g, '$1\n"');
 
     // 2️⃣ Ensure a blank line before structure tags when previous stanza ends with yeah/oh/whoa/huh or ")"
     x = x.replace(
-      /(\b(?:yeah|oh|whoa|huh|ooh|ah|uh)\b|\))[ \t]*\n+(?=#(?:INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))/gim,
+      /(\b(?:yeah|oh|whoa|huh|oh|ah|uh)\b|\))[ \t]*\n+(?=#(?:INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))/gim,
       '$1\n\n'
     );
 
@@ -1519,9 +1483,7 @@ x = x
     if(uiDocument && uiDocument!==document) bindShortcutListener(uiDocument);
   }
 
-  let floatingButtonContainer=null;
-  let floatingFormatButton=null;
-  let floatingRevertButton=null;
+  let floatingButton=null;
   let floatingButtonIntervalId=null;
   let floatingButtonResizeHandler=null;
 
@@ -1530,62 +1492,26 @@ x = x
     const buttonParent=uiDocument.body||uiDocument.documentElement;
     if(!buttonParent) return;
 
-    let container=floatingButtonContainer||uiDocument.getElementById('mxmFmtBtnWrap');
-    if(!container){
-      container=uiDocument.createElement('div');
-      container.id='mxmFmtBtnWrap';
-      container.setAttribute('role','group');
-      container.setAttribute('aria-label','Lyrics formatter controls');
-      Object.assign(container.style,{display:'flex',gap:'10px',alignItems:'center',position:'fixed',zIndex:2147483647,padding:'8px 10px',borderRadius:'16px',border:'1px solid #252525',background:'rgba(18,18,18,.92)',backdropFilter:'blur(12px)'});
+    let btn=floatingButton||uiDocument.getElementById('mxmFmtBtn');
+    if(!btn){
+      btn=uiDocument.createElement('button');
+      btn.id='mxmFmtBtn';
+      btn.type='button';
+      btn.textContent='Format MxM';
+      btn.setAttribute('aria-label','Format lyrics (Alt+M)');
+      Object.assign(btn.style,{padding:'10px 14px',borderRadius:'12px',border:'1px solid #303030',background:'linear-gradient(135deg,#181818,#101010)',color:'#f9f9f9',fontFamily:'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',fontSize:'13px',letterSpacing:'0.3px',cursor:'pointer',position:'fixed',zIndex:2147483647,transition:'transform .18s ease, box-shadow .18s ease'});
+      btn.addEventListener('mouseenter',()=>{btn.style.transform='translateY(-2px)';btn.style.boxShadow='0 10px 24px rgba(0,0,0,.32)';});
+      btn.addEventListener('mouseleave',()=>{btn.style.transform='';btn.style.boxShadow='0 6px 18px rgba(0,0,0,.28)';});
+      btn.addEventListener('focus',()=>{btn.style.boxShadow='0 0 0 3px rgba(255,255,255,.18)';});
+      btn.addEventListener('blur',()=>{btn.style.boxShadow='0 6px 18px rgba(0,0,0,.28)';});
     }
 
-    let formatBtn=floatingFormatButton||container.querySelector('#mxmFmtBtn');
-    if(!formatBtn){
-      formatBtn=uiDocument.createElement('button');
-      formatBtn.id='mxmFmtBtn';
-      formatBtn.type='button';
-      formatBtn.textContent='Format MxM';
-      formatBtn.setAttribute('aria-label','Format lyrics (Alt+M)');
-      container.appendChild(formatBtn);
-    }
+    if(!btn.isConnected) buttonParent.appendChild(btn);
 
-    if(!formatBtn.dataset.mxmStyled){
-      Object.assign(formatBtn.style,{padding:'10px 14px',borderRadius:'12px',border:'1px solid #303030',background:'linear-gradient(135deg,#181818,#101010)',color:'#f9f9f9',fontFamily:'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',fontSize:'13px',letterSpacing:'0.3px',cursor:'pointer',transition:'transform .18s ease, box-shadow .18s ease',boxShadow:'0 6px 18px rgba(0,0,0,.28)'});
-      formatBtn.addEventListener('mouseenter',()=>{formatBtn.style.transform='translateY(-2px)';formatBtn.style.boxShadow='0 10px 24px rgba(0,0,0,.32)';});
-      formatBtn.addEventListener('mouseleave',()=>{formatBtn.style.transform='';formatBtn.style.boxShadow='0 6px 18px rgba(0,0,0,.28)';});
-      formatBtn.addEventListener('focus',()=>{formatBtn.style.boxShadow='0 0 0 3px rgba(255,255,255,.18)';});
-      formatBtn.addEventListener('blur',()=>{formatBtn.style.boxShadow='0 6px 18px rgba(0,0,0,.28)';});
-      formatBtn.dataset.mxmStyled='1';
-    }
-
-    let revertBtn=floatingRevertButton||container.querySelector('#mxmFmtRevertBtn');
-    if(!revertBtn){
-      revertBtn=uiDocument.createElement('button');
-      revertBtn.id='mxmFmtRevertBtn';
-      revertBtn.type='button';
-      revertBtn.textContent='Revert';
-      revertBtn.setAttribute('aria-label','Revert to original lyrics');
-      container.appendChild(revertBtn);
-    }
-
-    if(!revertBtn.dataset.mxmStyled){
-      Object.assign(revertBtn.style,{padding:'10px 14px',borderRadius:'12px',border:'1px solid #3a3a3a',background:'linear-gradient(135deg,#222,#161616)',color:'#f0f0f0',fontFamily:'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',fontSize:'13px',letterSpacing:'0.3px',cursor:'pointer',transition:'transform .18s ease, box-shadow .18s ease',boxShadow:'0 6px 18px rgba(0,0,0,.24)'});
-      revertBtn.addEventListener('mouseenter',()=>{if(revertBtn.disabled) return;revertBtn.style.transform='translateY(-2px)';revertBtn.style.boxShadow='0 10px 24px rgba(0,0,0,.28)';});
-      revertBtn.addEventListener('mouseleave',()=>{revertBtn.style.transform='';revertBtn.style.boxShadow=revertBtn.disabled?'':'0 6px 18px rgba(0,0,0,.24)';});
-      revertBtn.addEventListener('focus',()=>{revertBtn.style.boxShadow='0 0 0 3px rgba(255,255,255,.18)';});
-      revertBtn.addEventListener('blur',()=>{revertBtn.style.boxShadow=revertBtn.disabled?'':'0 6px 18px rgba(0,0,0,.24)';});
-      revertBtn.dataset.mxmStyled='1';
-    }
-
-    if(!container.isConnected) buttonParent.appendChild(container);
-
-    container.style.boxShadow='0 6px 18px rgba(0,0,0,.28)';
-    placeButton(container);
-
-    formatBtn.style.position='';
-    formatBtn.style.zIndex='';
-    revertBtn.style.position='';
-    revertBtn.style.zIndex='';
+    btn.style.boxShadow='0 6px 18px rgba(0,0,0,.28)';
+    btn.style.position='fixed';
+    btn.style.zIndex='2147483647';
+    placeButton(btn);
 
     const hostWindow=uiWindow||window;
     if(floatingButtonIntervalId){
@@ -1595,7 +1521,7 @@ x = x
     let repositionCount=0;
     floatingButtonIntervalId=hostWindow.setInterval(()=>{
       repositionCount++;
-      placeButton(container);
+      placeButton(btn);
       if(repositionCount>=REPOSITION_ATTEMPTS){
         hostWindow.clearInterval(floatingButtonIntervalId);
         floatingButtonIntervalId=null;
@@ -1605,15 +1531,11 @@ x = x
     if(floatingButtonResizeHandler){
       hostWindow.removeEventListener('resize',floatingButtonResizeHandler);
     }
-    floatingButtonResizeHandler=()=>placeButton(container);
+    floatingButtonResizeHandler=()=>placeButton(btn);
     hostWindow.addEventListener('resize',floatingButtonResizeHandler);
 
-    formatBtn.onclick=()=>runFormat();
-    revertBtn.onclick=()=>revertLastFormat();
-    floatingButtonContainer=container;
-    floatingFormatButton=formatBtn;
-    floatingRevertButton=revertBtn;
-    updateRevertButtonState();
+    btn.onclick=()=>runFormat();
+    floatingButton=btn;
     ensureShortcutListeners();
   }
 
@@ -1627,11 +1549,9 @@ x = x
       hostWindow.removeEventListener('resize',floatingButtonResizeHandler);
       floatingButtonResizeHandler=null;
     }
-    const container=floatingButtonContainer||uiDocument?.getElementById('mxmFmtBtnWrap');
-    if(container?.isConnected) container.remove();
-    floatingButtonContainer=null;
-    floatingFormatButton=null;
-    floatingRevertButton=null;
+    const btn=floatingButton||uiDocument?.getElementById('mxmFmtBtn');
+    if(btn?.isConnected) btn.remove();
+    floatingButton=null;
     latestButtonBottom=BUTTON_BASE_BOTTOM;
   }
 
@@ -1656,7 +1576,7 @@ x = x
       extensionOptions.showFloatingButton=nextShow;
     }
     if(showChanged) syncFloatingButtonVisibility();
-    else if(extensionOptions.showFloatingButton && !floatingButtonContainer) createFloatingButton();
+    else if(extensionOptions.showFloatingButton && !floatingButton) createFloatingButton();
   }
 
   function initializeExtensionOptions(){
@@ -1705,44 +1625,6 @@ x = x
     (uiWindow||window).setTimeout(()=>t.remove(),1800);
   }
 
-  function updateRevertButtonState(){
-    const btn=floatingRevertButton||uiDocument?.getElementById('mxmFmtRevertBtn');
-    if(!btn) return;
-    const hasStored=lastFormatState!==null || readStoredOriginal()!==null;
-    btn.disabled=!hasStored;
-    btn.setAttribute('aria-disabled',btn.disabled?'true':'false');
-    btn.style.opacity=btn.disabled?'0.55':'1';
-    btn.style.cursor=btn.disabled?'not-allowed':'pointer';
-    if(btn.disabled){
-      btn.style.transform='';
-      btn.style.boxShadow='';
-    }else if(!btn.style.boxShadow){
-      btn.style.boxShadow='0 6px 18px rgba(0,0,0,.24)';
-    }
-  }
-
-  function revertLastFormat(){
-    const original=getLastOriginalText();
-    if(original===null){
-      alert('No previous lyrics stored. Format the lyrics before trying to revert.');
-      return;
-    }
-    let target=null;
-    if(lastFormatState?.element && lastFormatState.element.isConnected){
-      target=lastFormatState.element;
-    }
-    if(!target){
-      const docCandidate=lastFormatState?.doc||uiDocument||document;
-      target=findDeepEditable(docCandidate)||currentEditable;
-    }
-    if(!target){
-      alert('Click inside the lyrics field first, then press Revert.');
-      return;
-    }
-    writeToEditor(target,original);
-    toast('Restored original lyrics');
-  }
-
   // ---------- Runner ----------
   function runFormat(passedOptions){
     if(passedOptions && typeof passedOptions==='object'){
@@ -1762,7 +1644,6 @@ x = x
     const el=currentEditable||findDeepEditable(searchDoc);
     if(!el){alert('Click inside the lyrics field first, then press Alt+M.');return;}
     const before=getEditorText(el);
-    saveLastOriginal(el,before);
     const effectiveOptions={...extensionOptions};
     let out=formatLyrics(before,effectiveOptions);
     if(effectiveOptions.autoLowercase) out=out.toLowerCase();
