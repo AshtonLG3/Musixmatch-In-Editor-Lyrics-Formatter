@@ -729,6 +729,7 @@
 	  .replace(/\byall\b/gi, "y'all")
 	  .replace(/\bya'll\b/gi, "y'all")
 	  .replace(/\bmhm\b/gi, "hmm")
+	  .replace(/\bmhmm\b/gi, "hmm")
 	  .replace(/\bmmh\b/gi, "hmm")
 	  .replace(/\trynna\b/gi, "tryna");
 
