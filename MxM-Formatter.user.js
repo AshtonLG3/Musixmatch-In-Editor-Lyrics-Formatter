@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.58
+// @version      1.1.59
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.58';
+  const SCRIPT_VERSION = '1.1.59';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -1225,6 +1225,54 @@
       return ` (${inner}),`;
     });
     x = x.replace(/,[ \t]*\(([^)]*?)\)[ \t]*$/gm, ' ($1)');     // [FIXED] if line ends after ")", remove comma
+
+    // === Normalize syllable repetitions (na, la, etc.) ===
+    // Handles both spaced and fused forms like "na na na na" and "nanananana".
+    // Groups of 4 dashed, extras comma-separated. Capitalizes if line starts or follows ?/!
+    x = x.replace(
+      /(^|\n|[?!]\s*)((?:na|la))(?:\s+\2){1,}\b|(^|\n|[?!]\s*)(nanananana|lalalalala)/gi,
+      (full, boundaryA, syllableA, boundaryB, fused) => {
+        const boundary = boundaryA || boundaryB || '';
+        const syllable = (syllableA || fused.slice(0, 2)).toLowerCase();
+        let total;
+
+        // Count repetitions based on form
+        if (fused) {
+          total = fused.length / 2; // e.g., nanananana → 8/2 = 4
+        } else {
+          const count = full.trim().split(/\s+/).length - 1;
+          total = count + 1;
+        }
+
+        // Grouping: every 4 syllables dashed, separated by commas
+        const parts = [];
+        for (let i = 0; i < total; i += 4) {
+          const group = Array.from({ length: Math.min(4, total - i) }, () => syllable).join('-');
+          parts.push(group);
+        }
+
+        let formatted = parts.join(', ');
+        if (boundary.endsWith('\n') || /[?!]\s*$/.test(boundary)) {
+          formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1);
+        }
+        return boundary + formatted;
+      }
+    );
+
+    // === Normalize repeated full words ("very very" -> "very, very") ===
+    // Works for 2+ repeats, capitalizes if at line start or after ?/!
+    // Excludes na, la, da, ba, ma, pa.
+    x = x.replace(
+      /(^|\n|[?!]\s*)(?!na|la|da|ba|ma|pa)([a-z]{3,})(?:\s+\2){1,}\b/gi,
+      (full, boundary, word) => {
+        const tokens = full.slice(boundary.length).trim().split(/\s+/);
+        let formatted = tokens.map(() => word.toLowerCase()).join(', ');
+        if (boundary.endsWith('\n') || /[?!]\s*$/.test(boundary)) {
+          formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1);
+        }
+        return boundary + formatted;
+      }
+    );
 
 
     // ---------- Final Sanitation (Strict Parenthetical Safe) ----------
