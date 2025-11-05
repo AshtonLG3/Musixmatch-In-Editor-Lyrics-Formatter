@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.55
+// @version      1.1.58
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.55';
+  const SCRIPT_VERSION = '1.1.58';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -528,50 +528,7 @@
       }
     }
 
-    while (true) {
-      let firstIdx = -1;
-      for (let i = 0; i < lines.length; i++) {
-        if (lines[i].trim() !== '') {
-          firstIdx = i;
-          break;
-        }
-      }
-      if (firstIdx === -1) break;
-      if (lines[firstIdx].trim() === '#INSTRUMENTAL') {
-        lines.splice(0, firstIdx + 1);
-        continue;
-      }
-      break;
-    }
-
-    while (true) {
-      let lastIdx = -1;
-      for (let i = lines.length - 1; i >= 0; i--) {
-        if (lines[i].trim() !== '') {
-          lastIdx = i;
-          break;
-        }
-      }
-      if (lastIdx === -1) break;
-      if (lines[lastIdx].trim() === '#INSTRUMENTAL') {
-        lines.splice(lastIdx);
-        continue;
-      }
-      break;
-    }
-
-    const result = [];
-    for (const raw of lines) {
-      const trimmed = raw.trim();
-      if (trimmed === '#INSTRUMENTAL') {
-        while (result.length && result[result.length - 1].trim() === '') result.pop();
-        result.push('#INSTRUMENTAL');
-      } else {
-        result.push(raw);
-      }
-    }
-
-    return result.join('\n');
+    return lines.join('\n');
   }
 
   function enforceStructureTagSpacing(text) {
@@ -648,6 +605,8 @@
     });
 
     x = normalizeStructureTags(x);
+    x = normalizeInstrumentalSections(x);
+    x = enforceStructureTagSpacing(x);
 
     x = x.replace(/([A-Za-z])-(?:[ \t]*)(\r?\n)(\s*)(em\b)/gi, (match, letter, newline, spaces, word) => {
       const token = `${HYPHENATED_EM_TOKEN}${hyphenatedEmTokens.length}${HYPHENATED_EM_TOKEN}`;
@@ -658,11 +617,7 @@
     // Remove end-line punctuation
     x = x.replace(/[.,;:\-]+(?=[ \t]*\n)/g, "");
 
-    x = normalizeInstrumentalSections(x);
-
-    x = x
-      .replace(/#INSTRUMENTAL\s*\n*/g, "#INSTRUMENTAL\n\n")
-      .replace(/\n{3,}/g, "\n\n");
+    // Instrumental normalization and tag spacing handled immediately after tag conversion
 
     // Contractions
     // --- Contraction normalization block ---
@@ -1263,8 +1218,6 @@
     // Capitalize words following question or exclamation marks (after parentheses normalization)
     x = capitalizeAfterSentenceEnders(x);
 
-    x = enforceStructureTagSpacing(x);
-
     // Smart comma relocation: only move if there's text after ")" (idempotent), otherwise remove
     x = x.replace(/,[ \t]*\(([^)]*?)\)(?=[ \t]*\S)/g, (match, inner, offset, str) => { // [FIXED]
       const afterIdx = offset + match.length;
@@ -1341,9 +1294,6 @@ x = x.replace(/([A-Za-z])(\r?\n)"(?=[A-Za-z])/g, '$1\n"');
       /(\b(?:yeah|oh|whoa|huh|oh|ah|uh)\b|\))[ \t]*\n+(?=#(?:INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))/gim,
       '$1\n\n'
     );
-
-    // 3️⃣ Prevent multiple blank lines from stacking between sections
-    x = x.replace(/\n{3,}/g, "\n\n");
 
 // --- PATCH START: Strict fix for double commas + quote spacing ---
 
