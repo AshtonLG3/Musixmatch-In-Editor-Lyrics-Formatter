@@ -1158,7 +1158,7 @@
         "begin","began","within","cousin","violin","origin","margin","resin","penguin",
         "pumpkin","grin","chin","twin","skin","basin","raisn","savin","login","pin",
         "fin","din","min","sin","win","bin","thin","akin","leadin","captain","mountain",
-        "fountain","certain","again",
+        "fountain","certain","again", "spin", "twin",
         // 🔒 New rhyme-based exclusions
         "rain", "brain", "pain","drain","main","train","grain","chain","plain","remain","campaign",
         "contain","domain","explain","sustain","obtain","entertain"
