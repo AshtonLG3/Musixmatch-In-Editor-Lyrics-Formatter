@@ -1,0 +1,171 @@
+[33mb133165[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mrestore-v1.1.56[m[33m, [m[1;33mtag: [m[1;33mv1.1.56[m[33m)[m Add revert control to formatting UI (#26)
+[33me507d91[m Bump version to 1.1.55 (#25)
+[33m34e3177[m Bump release to 1.1.54 with Unicode casing (#24)
+[33m92297ee[m Refine BV casing and bump to 1.1.53 (#23)
+[33maa7d9d9[m[33m ([m[1;32mmain[m[33m)[m Merge pull request #22 from AshtonLG3/codex/rollback-to-version-1.1.52
+[33m54bc278[m[33m ([m[1;31morigin/codex/rollback-to-version-1.1.52[m[33m)[m Revert to version 1.1.52
+[33mdb3a625[m[33m ([m[1;33mtag: [m[1;33mv1.1.55[m[33m)[m Merge pull request #21 from AshtonLG3/codex/bump-version-and-update-string-processing
+[33m92ed859[m[33m ([m[1;31morigin/codex/bump-version-and-update-string-processing[m[33m)[m Preserve parenthetical casing and release 1.1.55
+[33mec0e772[m Save current work before applying patch
+[33m90818d1[m Save current work before applying patch
+[33m228d9cc[m[33m ([m[1;33mtag: [m[1;33mv1.1.54[m[33m)[m Merge pull request #19 from AshtonLG3/codex/update-regex-for-multilingual-support
+[33md418eaf[m[33m ([m[1;31morigin/codex/update-regex-for-multilingual-support[m[33m)[m feat: support Unicode lyric casing
+[33mbfde4b4[m[33m ([m[1;33mtag: [m[1;33mv1.1.53[m[33m)[m Merge pull request #18 from AshtonLG3/codex/bump-version-handling-code
+[33m847abf6[m[33m ([m[1;31morigin/codex/bump-version-handling-code[m[33m)[m chore: bump version to 1.1.53
+[33mcd9a20e[m Merge pull request #17 from AshtonLG3/codex/fix-versioning-issue-for-in-words
+[33mc9d2605[m[33m ([m[1;33mtag: [m[1;33mv1.1.52[m[33m)[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.49
+[33m15a3d90[m[33m ([m[1;31morigin/codex/fix-versioning-issue-for-in-words[m[33m)[m Fix dropped-G exclusions and bump to v1.1.52
+[33m05cc2db[m[33m ([m[1;33mtag: [m[1;33mv1.1.51[m[33m)[m Merge pull request #16 from AshtonLG3/codex/push-all-releases-to-github-after-patch
+[33me8118b6[m[33m ([m[1;31morigin/codex/push-all-releases-to-github-after-patch[m[33m)[m Automate release publishing on main pushes
+[33m7ed610d[m Merge pull request #15 from AshtonLG3/codex/bump-version-and-replace-functions-occseb
+[33m23f1abe[m[33m ([m[1;31morigin/codex/bump-version-and-replace-functions-occseb[m[33m)[m Bump to v1.1.51 with improved formatting rules
+[33mcf48026[m[33m ([m[1;31morigin/codex/bump-version-and-replace-functions[m[33m)[m Add replacement for 'trynna' in MxM-Formatter
+[33ma9c0499[m Fix regex to properly handle parentheses in lowercase
+[33m3968092[m Bump version to v1.1.50 and update changelog
+[33mfff4bb0[m Update manifest.json
+[33mf2ff5e9[m Update SCRIPT_VERSION to 1.1.50 and fix regex
+[33m3dd5745[m Bump version to 1.1.50 in user script metadata
+[33maf29bf4[m Bump version to 1.1.50 in user script
+[33mca883d7[m Add replacements for 'y'all', 'mhm', and 'mmh'
+[33m7509e87[m Refactor text formatting and punctuation handling
+[33md84f50a[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.49
+[33mdd16785[m Add 'guessin' to dropped words list
+[33madc3761[m Implement strict fixes for comma and quote spacing
+[33mf4bdf99[m Fix formatting issues in capitalize functions
+[33m524f899[m Refactor capitalization logic and improve regex patterns
+[33m9beb524[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.48
+[33mab50f02[m WIP: save current uncommitted work before patch
+[33m437cfd4[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.57
+[33me899fa1[m Clean up changelog comments in MxM-Formatter
+[33m77ac590[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.56
+[33m19165d6[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.53
+[33m5196c30[m Save current work before applying patch
+[33md318c40[m Merge pull request #13 from AshtonLG3/codex/set-version-to-1.1.52
+[33m843ddeb[m[33m ([m[1;31morigin/codex/set-version-to-1.1.52[m[33m)[m Revert version to 1.1.52
+[33m574f3de[m Add ESLint flat config
+[33mc422a93[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.52
+[33m234ccb9[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.56
+[33m5310d79[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.55
+[33m4eb3d21[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.54
+[33m4275f55[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.53
+[33mf601f6b[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.52
+[33m0cdc1db[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.52
+[33m63ebaea[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.51
+[33m3ac12df[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.54
+[33md8115bf[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.53
+[33m54760a4[m Apply patch: update MxM In-Editor Formatter (EN)
+[33mcbe1b82[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.53
+[33ma0f0183[m Merge pull request #8 from AshtonLG3/codex/update-eslint-configuration
+[33m985f7cb[m[33m ([m[1;31morigin/codex/update-eslint-configuration[m[33m)[m Merge branch 'main' into codex/update-eslint-configuration
+[33mf1a1c90[m fix: update eslint flat config for v9
+[33mdd92ef9[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.52
+[33m289b13b[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.51
+[33mc09617b[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.50
+[33me7bb24c[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.49
+[33m3d65682[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.45
+[33md86097a[m[33m ([m[1;33mtag: [m[1;33mv1.1.49[m[33m, [m[1;33mtag: [m[1;33mv1.1.48[m[33m, [m[1;31morigin/v1.1.49-dev[m[33m)[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.45
+[33m794103c[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.45
+[33me417b67[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.45
+[33m7e7e7f0[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.45
+[33m3eccd14[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.45
+[33m533f769[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.44
+[33m4078a91[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.42
+[33m8d9b945[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.42
+[33mf17651d[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.42
+[33mcb1ca4f[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.41
+[33mad0bd09[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.39
+[33m29c8d2b[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.39
+[33m622f199[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.38
+[33md0a54d6[m[33m ([m[1;33mtag: [m[1;33mv1.1.39[m[33m)[m fix: resolve merge conflict in lint-and-release.yml
+[33me3dbb66[m Update lint-and-release workflow for pull requests
+[33m2a6ec53[m Save current work before applying patch
+[33m96a55bb[m[33m ([m[1;33mtag: [m[1;33mv1.1.38[m[33m)[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.38
+[33m3c6df3e[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.38
+[33m149220e[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.37
+[33mf80cfb9[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.37
+[33m01dcc53[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.36
+[33ma68be1c[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.35
+[33m4e6c220[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.34
+[33m61847f1[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.33
+[33m34f0e50[m Change showFloatingButton setting to false
+[33mab020f4[m Enable floating button in extension defaults
+[33m6531cad[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.33
+[33m5e4fad7[m[33m ([m[1;33mtag: [m[1;33mv1.1.32[m[33m)[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.23
+[33m7c16ebb[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.23
+[33me9dccc3[m[33m ([m[1;31morigin/gh-pages[m[33m)[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.23
+[33m898e8ce[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.23
+[33meb20231[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.23
+[33m01efb6d[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.23
+[33me3ae7b2[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.23
+[33m3f3a1e6[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.23
+[33m8bc278d[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.23
+[33mb4db777[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.23
+[33m3776167[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.23
+[33mc9b236c[m Update README with correct project name and badges
+[33mbc589eb[m Fix badge links in README.md
+[33m3ac50e3[m Add badges to README for project metrics
+[33ma9c3a02[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.23
+[33m241c1bd[m Update author information in metadata
+[33m906985c[m Update author information in meta file
+[33m73aaa71[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.23
+[33m4c68eab[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.23
+[33mbdf89a7[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.23
+[33mc5473cd[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.23
+[33mb9e024d[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.22
+[33mfbe2f2a[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.21
+[33m56ca526[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.20
+[33md742b8a[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.19
+[33m124e00f[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.18
+[33m1ba9a91[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.17
+[33mcc71bce[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.16
+[33mf2b5261[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.15
+[33mbf619a6[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.14
+[33m21b788a[m Save current work before applying patch
+[33m278de9e[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.12
+[33mf9a1d56[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.12
+[33m09f230b[m Apply patch: update MxM In-Editor Formatter (EN) to v1.1.11
+[33m7c7be32[m Apply patch: MxM In-Editor Formatter (EN) to v1.1.10
+[33mdb08fea[m Update MxM-Formatter.user.js
+[33m979588c[m Update MxM-Formatter.user.js
+[33m34f1661[m Update MxM-Formatter.user.js
+[33m650e9c8[m Apply patch safely (preserve headers)
+[33mcd87897[m Update MxM-Formatter.user.js
+[33mbce9785[m Update MxM-Formatter.meta.js
+[33mb8e6021[m Apply patch safely (preserve headers)
+[33m5e79a01[m Update README.md
+[33m4e5cf4e[m docs: add header banner image
+[33mc2ad219[m Update README.md
+[33mfd5ea43[m Create README.md
+[33m34a918d[m fix: trigger version and tag
+[33m2aa0f27[m[33m ([m[1;33mtag: [m[1;33mv1.1.6[m[33m)[m Trigger version bump test
+[33mbcb823e[m Test working sync hook
+[33m1e73b2c[m test pre-commit hook
+[33m03ca55a[m Apply patch safely (preserve headers)
+[33ma526d40[m Update MxM-Formatter.user.js
+[33m749af41[m Add standalone .meta.js manifest for Tampermonkey
+[33m18d2ca3[m Apply patch safely (preserve headers)
+[33ma73e9d9[m Update MxM-Formatter.user.js
+[33m8925545[m Apply patch safely (preserve headers)
+[33mbcebf3c[m Update MxM-Formatter.user.js
+[33mee3d668[m Update MxM-Formatter.user.js
+[33m6abd9a8[m Update MxM-Formatter.user.js
+[33md74a2c3[m Update MxM-Formatter.user.js
+[33mcf0b847[m Update MxM-Formatter.user.js
+[33m661c168[m Update MxM-Formatter.user.js
+[33m64e5681[m Cleaned whitespace and applied v1.0.8 update
+[33m67a2573[m Cleaned whitespace and applied v1.0.8 update
+[33m324117a[m Cleaned whitespace and applied v1.0.8 update
+[33mabfead7[m Update MxM-Formatter.user.js
+[33mda2a8b0[m Cleaned whitespace and applied v1.0.8 update
+[33m2ffb92e[m Update MxM-Formatter.user.js
+[33mf8b7d50[m Cleaned whitespace and applied v1.0.8 update
+[33mdeac6d5[m Cleaned whitespace and applied v1.0.8 update
+[33meda1b61[m Update MxM-Formatter.user.js
+[33mf40b0c3[m Update MxM-Formatter.user.js
+[33mcd75b7f[m Update MxM-Formatter.user.js
+[33m1a1bf47[m Update MxM-Formatter.user.js
+[33m387dc98[m Update MxM-Formatter.user.js
+[33mec4c5fc[m Update MxM-Formatter.user.js
+[33me88ef1e[m Update MxM-Formatter.user.js
+[33m62f914d[m Update MxM-Formatter.user.js
+[33m0c4f767[m Create MxM-Formatter.user.js
