@@ -692,11 +692,11 @@
         });
         line = line.replace(/\b'til\b/gi, "'til");
         line = line.replace(/\bimma\b/gi, "I'ma");
-        line = line.replace(/\bim'ma\b/gi, "I'ma");
 		line = line.replace(/\bi'll\b/gi, "I'll");
 		line = line.replace(/\bive\b/gi, "I've");
 		line = line.replace(/\bi've\b/gi, "I've");
 		line = line.replace(/\bi'd\b/gi, "I'd");
+        line = line.replace(/\bim'ma\b/gi, "I'ma");
         line = line.replace(/\bem'(?!\w)/gi, (match, offset, str) => {
           const prev = offset > 0 ? str[offset - 1] : '';
           if (prev === "'" || prev === "\u2019") return match;
@@ -731,7 +731,7 @@
 	  .replace(/\bmhm\b/gi, "hmm")
 	  .replace(/\bmmh\b/gi, "hmm")
 	  .replace(/\trynna\b/gi, "tryna");
-	
+
     x = x.replace(/((?:^|\n)\s*)'til\b/g, (match, boundary, offset, str) => {
       const start = offset + boundary.length;
       const afterStart = start + 4;
@@ -1396,10 +1396,20 @@ x = x.replace(/,\s+,/g, ', ');         // safety fix for broken comma pairs
 x = x
   .replace(/\(\s*["“]/g, '("')         // remove space between ( and "
   .replace(/["”]\s*\)/g, '")')         // remove space before closing )
-																		   
-																			
+
+
 
 // --- PATCH END ---
+
+     // --- Final I-contraction normalization (post-format override) ---
+x = x
+  // I'll corrections (ill / i'll)
+  .replace(/\b(i['’]?\s?ll)(?=[\s,.)!?'"]|$)/gi, "I'll")
+  // I've corrections (ive / i've)
+  .replace(/\b(i['’]?\s?ve)(?=[\s,.)!?'"]|$)/gi, "I've")
+  // I'd corrections (id / i'd)
+  .replace(/\b(i['’]?\s?d)(?=[\s,.)!?'"]|$)/gi, "I'd");
+
 
     // 4️⃣ Remove stray indentation and trailing spaces on each line
     x = x.replace(/^[ \t]+/gm, "");
