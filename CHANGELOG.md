@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.1.58
+- Restore single-pass instrumental section normalization and apply structure tag spacing earlier in the pipeline so stanza
+  boundaries remain stable.
+- Drop redundant newline sanitization and other late-stage reprocessing to keep the formatter idempotent.
+- Bump the userscript, extension, and package metadata to reflect the 1.1.58 release.
+
 ## v1.1.55
 - Expanded the dropped-G exclusions with rhyme-based terms like "rain" and "train" to avoid false positives.
 - Bumped the userscript, extension, and package metadata to reflect the 1.1.55 release.
