@@ -693,6 +693,10 @@
         line = line.replace(/\b'til\b/gi, "'til");
         line = line.replace(/\bimma\b/gi, "I'ma");
         line = line.replace(/\bim'ma\b/gi, "I'ma");
+		line = line.replace(/\bi'll\b/gi, "I'll");
+		line = line.replace(/\bive\b/gi, "I've");
+		line = line.replace(/\bi've\b/gi, "I've");
+		line = line.replace(/\bi'd\b/gi, "I'd");
         line = line.replace(/\bem'(?!\w)/gi, (match, offset, str) => {
           const prev = offset > 0 ? str[offset - 1] : '';
           if (prev === "'" || prev === "\u2019") return match;
@@ -1156,7 +1160,7 @@
         "fin","din","min","sin","win","bin","thin","akin","leadin","captain","mountain",
         "fountain","certain","again",
         // 🔒 New rhyme-based exclusions
-        "rain","pain","drain","main","train","grain","chain","plain","remain","campaign",
+        "rain", "brain", "pain","drain","main","train","grain","chain","plain","remain","campaign",
         "contain","domain","explain","sustain","obtain","entertain"
       ]);
 
