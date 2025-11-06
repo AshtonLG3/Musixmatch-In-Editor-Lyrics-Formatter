@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.60
+// @version      1.1.61
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.60';
+  const SCRIPT_VERSION = '1.1.61';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -54,8 +54,9 @@
     if (hasWindow) {
       try {
         root.localStorage.setItem(LAST_ORIGINAL_KEY, JSON.stringify({ text }));
-      } catch {
-        /* ignore storage errors */
+      } catch (err) {
+        console.warn('Failed to persist last original:', err);
+        toast('⚠️ Could not store original lyrics (storage full)');
       }
     }
     updateRevertButtonState();
@@ -592,6 +593,10 @@
   // ---------- Formatter ----------
   function formatLyrics(input, _options = {}) {
     if (!input) return "";
+    if (input.length > 50000) {
+      console.warn('Large input detected (>50k chars): minimal normalization only.');
+      return input.replace(/\s+$/gm, '').trim();
+    }
     let x = ("\n" + input.trim() + "\n");
     const preservedStandaloneParens = [];
     const STANDALONE_PAREN_SENTINEL = "__MXM_SP__";
@@ -627,6 +632,11 @@
       .replace(/[\u2013\u2014]/gu, "-")
       .replace(/[\u0435\u0415]/g, m => (m === "\u0415" ? "E" : "e"))
       .replace(/[\u{1F300}-\u{1FAFF}\u{FE0F}\u2600-\u26FF\u2700-\u27BF\u2669-\u266F]/gu, "");
+
+    x = x.replace(/[【〔［｛〈《]/g, '[')
+         .replace(/[】〕］｝〉》]/g, ']')
+         .replace(/[（﹙]/g, '(')
+         .replace(/[）﹚]/g, ')');
 
     // Section tags
     x = x.replace(/\[(.*?)\]/g, (_, raw) => {
@@ -1270,24 +1280,19 @@
     x = x.replace(/,[ \t]*\(([^)]*?)\)[ \t]*$/gm, ' ($1)');     // [FIXED] if line ends after ")", remove comma
 
     // === Normalize syllable repetitions (na, la, etc.) ===
-    // Handles both spaced and fused forms like "na na na na" and "nanananana".
-    // Groups of 4 dashed, extras comma-separated. Capitalizes if line starts or follows ?/!
     x = x.replace(
-      /(^|\n|[?!]\s*)((?:na|la))(?:\s+\2){1,}\b|(^|\n|[?!]\s*)(nanananana|lalalalala)/gi,
+      /(^|\n|[?!]\s*)((?:na|la))(?:\s+\2){1,}\b|(^|\n|[?!]\s*)(nanananana|nanananana|lalalala|lalalalala)/gi,
       (full, boundaryA, syllableA, boundaryB, fused) => {
         const boundary = boundaryA || boundaryB || '';
         const syllable = (syllableA || fused.slice(0, 2)).toLowerCase();
         let total;
 
-        // Count repetitions based on form
-        if (fused) {
-          total = fused.length / 2; // e.g., nanananana → 8/2 = 4
-        } else {
+        if (fused) total = Math.floor(fused.length / 2);
+        else {
           const count = full.trim().split(/\s+/).length - 1;
           total = count + 1;
         }
 
-        // Grouping: every 4 syllables dashed, separated by commas
         const parts = [];
         for (let i = 0; i < total; i += 4) {
           const group = Array.from({ length: Math.min(4, total - i) }, () => syllable).join('-');
@@ -1295,24 +1300,22 @@
         }
 
         let formatted = parts.join(', ');
-        if (boundary.endsWith('\n') || /[?!]\s*$/.test(boundary)) {
+        if (boundary.endsWith('\n') || /[?!]\s*$/.test(boundary))
           formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1);
-        }
         return boundary + formatted;
       }
     );
 
     // === Normalize repeated full words ("very very" -> "very, very") ===
-    // Works for 2+ repeats, capitalizes if at line start or after ?/!
-    // Excludes na, la, da, ba, ma, pa.
     x = x.replace(
-      /(^|\n|[?!]\s*)(?!na|la|da|ba|ma|pa)([a-z]{3,})(?:\s+\2){1,}\b/gi,
+      /(^|\n|[?!]\s*)(?!na|la|da|ba|ma|pa)([a-z]{2,})(?:\s+\2){1,}\b/gi,
       (full, boundary, word) => {
+        const lower = word.toLowerCase();
+        if (['to', 'do', 'go'].includes(lower)) return full; // avoid command-type repeats
         const tokens = full.slice(boundary.length).trim().split(/\s+/);
-        let formatted = tokens.map(() => word.toLowerCase()).join(', ');
-        if (boundary.endsWith('\n') || /[?!]\s*$/.test(boundary)) {
+        let formatted = tokens.map(() => lower).join(', ');
+        if (boundary.endsWith('\n') || /[?!]\s*$/.test(boundary))
           formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1);
-        }
         return boundary + formatted;
       }
     );
@@ -1539,6 +1542,7 @@ x = x
   let floatingRevertButton=null;
   let floatingButtonIntervalId=null;
   let floatingButtonResizeHandler=null;
+  let repositionTimeout=null;
 
   function createFloatingButton(){
     if(!uiDocument?.documentElement) return;
@@ -1615,7 +1619,10 @@ x = x
     if(floatingButtonResizeHandler){
       hostWindow.removeEventListener('resize',floatingButtonResizeHandler);
     }
-    floatingButtonResizeHandler=()=>placeButton(container);
+    floatingButtonResizeHandler=()=>{
+      if(repositionTimeout) clearTimeout(repositionTimeout);
+      repositionTimeout=setTimeout(()=>placeButton(container),150);
+    };
     hostWindow.addEventListener('resize',floatingButtonResizeHandler);
 
     formatBtn.onclick=()=>runFormat();
@@ -1632,6 +1639,10 @@ x = x
     if(floatingButtonIntervalId){
       hostWindow.clearInterval(floatingButtonIntervalId);
       floatingButtonIntervalId=null;
+    }
+    if(repositionTimeout){
+      clearTimeout(repositionTimeout);
+      repositionTimeout=null;
     }
     if(floatingButtonResizeHandler){
       hostWindow.removeEventListener('resize',floatingButtonResizeHandler);
