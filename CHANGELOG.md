@@ -1,5 +1,8 @@
 # Changelog
 
+## v1.1.64
+- Recorded the MIT license metadata and bumped the package version for the 1.1.64 release.
+
 ## v1.1.63
 - Added localized language profiles so the formatter can translate section labels and respect script-specific casing rules.
 - Limited Cyrillic "e" transliteration to Latin-script profiles while leaving Cyrillic and Greek stanzas untouched.
