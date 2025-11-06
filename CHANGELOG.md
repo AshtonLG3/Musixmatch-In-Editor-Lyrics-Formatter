@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.1.63
+- Added localized language profiles so the formatter can translate section labels and respect script-specific casing rules.
+- Limited Cyrillic "e" transliteration to Latin-script profiles while leaving Cyrillic and Greek stanzas untouched.
+- Bumped the userscript, extension, and package metadata to reflect the 1.1.63 release.
+
 ## v1.1.58
 - Restore single-pass instrumental section normalization and apply structure tag spacing earlier in the pipeline so stanza
   boundaries remain stable.
