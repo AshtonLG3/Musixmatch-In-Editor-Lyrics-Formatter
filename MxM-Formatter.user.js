@@ -987,7 +987,7 @@ x = x.replace(/\b([A-Za-z]+in)(?!['’g])\b/g, (match, base) => {
     "begin","began","within","cousin","violin","virgin","origin","margin","resin","penguin",
     "pumpkin","grin","chin","twin","skin","basin","raisn","savin","login","pin","curtain",
     "fin","din","min","gin","lin","kin","sin","win","bin","thin","tin","akin","leadin","captain","mountain",
-    "fountain","certain","again","gain","spin","twin","main","cain","mantain","retain","detain","vain","regain",
+    "fountain","certain","curtain","again","gain","spin","twin","main","cain","mantain","retain","detain","vain","regain",
     // 🔒 New rhyme-based exclusions
     "rain","brain","pain","drain","main","train","grain","chain","plain","remain","campaign","fein",
     "contain","domain","explain","sustain","obtain","entertain","villain","admin","abstain","stain",
