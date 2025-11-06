@@ -985,7 +985,7 @@ const WELL_CLAUSE_STARTERS = new Set([
     x = x.replace(/\b([A-Za-z]+in)(?!['’g])\b/g, (match, base) => {
       const exclusions = new Set([
         "begin","began","within","cousin","violin","virgin","origin","margin","resin","penguin",
-        "pumpkin","grin","chin","twin","skin","basin","raisn","savin","login","pin",
+        "pumpkin","grin","chin","twin","skin","basin","raisn","savin","login","pin","curtain",
         "fin","din","min","gin","lin","kin","sin","win","bin","thin","tin","akin","leadin","captain","mountain",
         "fountain","certain","again","gain","spin","twin","main","cain","mantain","retain","detain","vain","regain"
         // 🔒 New rhyme-based exclusions
