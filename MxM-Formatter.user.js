@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.62
+// @version      1.1.63
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.62';
+  const SCRIPT_VERSION = '1.1.63';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -34,6 +34,72 @@
     showFloatingButton: !runningAsExtension // show button for userscript installs
   };
   const extensionOptions = { ...extensionDefaults };
+
+  const LANG_RULES = {
+    EN: { preserve: ['Latin'], droppedG: true, tagMap: {} },
+    RU: {
+      preserve: ['Cyrillic'],
+      droppedG: false,
+      tagMap: {
+        куплет: '#VERSE',
+        припев: '#CHORUS',
+        бридж: '#BRIDGE',
+        интро: '#INTRO',
+        аутро: '#OUTRO',
+        инструментал: '#INSTRUMENTAL',
+        хук: '#HOOK'
+      }
+    },
+    ES: {
+      preserve: ['Latin'],
+      droppedG: false,
+      tagMap: {
+        verso: '#VERSE',
+        coro: '#CHORUS',
+        puente: '#BRIDGE',
+        intro: '#INTRO',
+        outro: '#OUTRO',
+        instrumental: '#INSTRUMENTAL'
+      }
+    },
+    PT: {
+      preserve: ['Latin'],
+      droppedG: false,
+      tagMap: {
+        verso: '#VERSE',
+        refrão: '#CHORUS',
+        ponte: '#BRIDGE',
+        intro: '#INTRO',
+        outro: '#OUTRO',
+        instrumental: '#INSTRUMENTAL'
+      }
+    },
+    FR: {
+      preserve: ['Latin'],
+      droppedG: false,
+      tagMap: {
+        couplet: '#VERSE',
+        refrain: '#CHORUS',
+        pont: '#BRIDGE',
+        intro: '#INTRO',
+        outro: '#OUTRO',
+        instrumental: '#INSTRUMENTAL'
+      }
+    },
+    IT: {
+      preserve: ['Latin'],
+      droppedG: false,
+      tagMap: {
+        strofa: '#VERSE',
+        ritornello: '#CHORUS',
+        bridge: '#BRIDGE',
+        intro: '#INTRO',
+        outro: '#OUTRO',
+        strumentale: '#INSTRUMENTAL'
+      }
+    },
+    EL: { preserve: ['Greek'], droppedG: false, tagMap: {} }
+  };
 
   function readLocalOption(key){
     if(!hasWindow) return null;
@@ -647,6 +713,25 @@
 
     const hyphenatedEmTokens = [];
 
+    const currentLang = (extensionOptions.lang || 'EN').toUpperCase();
+    const langProfile = LANG_RULES[currentLang] || LANG_RULES.EN;
+
+    for (const [src, tag] of Object.entries(langProfile.tagMap)) {
+      const rx = new RegExp(`(^|\\n)\\s*\\[?${src}\\]?\\s*(?=\\n|$)`, 'gi');
+      x = x.replace(rx, `$1${tag}`);
+    }
+
+    // --- Conditional Cyrillic “e” conversion ---
+    // Only for Latin-script languages
+    if (langProfile.preserve.includes('Latin')) {
+      x = x.replace(/[\u0435\u0415]/g, m => (m === '\u0415' ? 'E' : 'e'));
+    }
+
+    // --- Preserve full Cyrillic/Greek scripts ---
+    if (langProfile.preserve.includes('Cyrillic') || langProfile.preserve.includes('Greek')) {
+      // No transliteration, only punctuation cleanup applies
+    }
+
     // Clean + normalize
     x = x
       .replace(/[\u2000-\u200b\u202f\u205f\u2060\u00a0]/gu, " ")
@@ -654,7 +739,6 @@
       .replace(/\n{3,}/g, "\n\n")
       .replace(/[\u2019\u2018\u0060\u00b4]/gu, "'")
       .replace(/[\u2013\u2014]/gu, "-")
-      .replace(/[\u0435\u0415]/g, m => (m === "\u0415" ? "E" : "e"))
       .replace(/[\u{1F300}-\u{1FAFF}\u{FE0F}\u2600-\u26FF\u2700-\u27BF\u2669-\u266F]/gu, "");
 
     x = x.replace(/[【〔［｛〈《]/g, '[')
