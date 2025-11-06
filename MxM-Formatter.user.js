@@ -902,7 +902,7 @@ const WELL_CLAUSE_STARTERS = new Set([
   "did","didnt","do","dont","does","doesnt","done","doing","ain","aint","is","isnt","are",
   "arent","was","wasnt","were","werent","have","havent","has","hasnt","had","hadnt"
 ]);
-	  
+
     x = x.replace(/\b(oh|ah|yeah|uh)h+\b(?=[\s,!.?\)]|$)/gi, (match, base) => base);
     x = x.replace(/\b(oh|ah|yeah|whoa|ooh|uh|well)\b(?!,)/gi, (m, word, off, str) => {
       const after = str.slice(off + m.length);
@@ -980,18 +980,18 @@ const WELL_CLAUSE_STARTERS = new Set([
 
     x = x.replace(/\b(oh|ah|yeah|whoa|ooh|uh|well)\b\s*,\s*(?=\))/gi, '$1');
 
-    // Dropped-G (smart and safe fix)
-    // Converts "feelin" → "feelin'", but leaves "feeling", "feelin'", "begin", "violin", etc. untouched
-    x = x.replace(/\b([A-Za-z]+in)(?!['’g])\b/g, (match, base) => {
-      const exclusions = new Set([
-        "begin","began","within","cousin","violin","virgin","origin","margin","resin","penguin",
-        "pumpkin","grin","chin","twin","skin","basin","raisn","savin","login","pin","curtain",
-        "fin","din","min","gin","lin","kin","sin","win","bin","thin","tin","akin","leadin","captain","mountain",
-        "fountain","certain","again","gain","spin","twin","main","cain","mantain","retain","detain","vain","regain",
-        // 🔒 New rhyme-based exclusions
-        "rain", "brain", "pain","drain","main","train","grain","chain","plain","remain","campaign","fein",
-        "contain","domain","explain","sustain","obtain","entertain","villain","admin","abstain","stain",
-      ]);
+   // Dropped-G (smart and safe fix)
+// Converts "feelin" → "feelin'", but leaves "feeling", "feelin'", "begin", "violin", etc. untouched
+x = x.replace(/\b([A-Za-z]+in)(?!['’g])\b/g, (match, base) => {
+  const exclusions = new Set([
+    "begin","began","within","cousin","violin","virgin","origin","margin","resin","penguin",
+    "pumpkin","grin","chin","twin","skin","basin","raisn","savin","login","pin","curtain",
+    "fin","din","min","gin","lin","kin","sin","win","bin","thin","tin","akin","leadin","captain","mountain",
+    "fountain","certain","again","gain","spin","twin","main","cain","mantain","retain","detain","vain","regain",
+    // 🔒 New rhyme-based exclusions
+    "rain","brain","pain","drain","main","train","grain","chain","plain","remain","campaign","fein",
+    "contain","domain","explain","sustain","obtain","entertain","villain","admin","abstain","stain",
+  ]);
 
       // skip if in exclusion list (case-insensitive)
       if (exclusions.has(base.toLowerCase())) return match;
@@ -1722,4 +1722,3 @@ x = x
   });
 
 })(typeof globalThis !== 'undefined' ? globalThis : this);
-
