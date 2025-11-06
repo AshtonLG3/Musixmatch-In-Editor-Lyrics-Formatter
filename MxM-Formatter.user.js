@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.61
+// @version      1.1.62
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.61';
+  const SCRIPT_VERSION = '1.1.62';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -34,6 +34,30 @@
     showFloatingButton: !runningAsExtension // show button for userscript installs
   };
   const extensionOptions = { ...extensionDefaults };
+
+  function readLocalOption(key){
+    if(!hasWindow) return null;
+    try{
+      return root.localStorage.getItem(key);
+    }catch{
+      return null;
+    }
+  }
+
+  function writeLocalOption(key,value){
+    if(!hasWindow) return;
+    try{
+      if(value===null) root.localStorage.removeItem(key);
+      else root.localStorage.setItem(key,value);
+    }catch{
+      /* ignore storage errors */
+    }
+  }
+
+  const storedLang = readLocalOption('mxmFmtLang');
+  if(typeof storedLang === 'string' && storedLang) extensionOptions.lang = storedLang;
+  const storedLower = readLocalOption('mxmFmtAutoLowercase');
+  if(storedLower !== null) extensionOptions.autoLowercase = storedLower === '1' || storedLower === 'true';
 
   const BV_FIRST_WORD_EXCEPTIONS = new Set(['I', "I'm", "I'ma", 'i', "i'm", "i'ma"]);
 
@@ -1596,6 +1620,98 @@ x = x
       revertBtn.dataset.mxmStyled='1';
     }
 
+    let gearBtn=container.querySelector('#mxmFmtGear');
+    if(!gearBtn){
+      gearBtn=uiDocument.createElement('button');
+      gearBtn.textContent='⚙️';
+      gearBtn.id='mxmFmtGear';
+      gearBtn.title='Formatter settings';
+      gearBtn.type='button';
+      gearBtn.setAttribute('aria-label','Formatter settings');
+      gearBtn.setAttribute('aria-haspopup','true');
+      gearBtn.setAttribute('aria-expanded','false');
+      container.appendChild(gearBtn);
+    }
+
+    if(!gearBtn.dataset.mxmStyled){
+      Object.assign(gearBtn.style,{fontSize:'16px',marginLeft:'2px',cursor:'pointer',background:'transparent',border:'none',color:'#f5f5f5',padding:'6px'});
+      gearBtn.dataset.mxmStyled='1';
+    }
+
+    gearBtn.onclick=e=>{
+      e.stopPropagation();
+      let pop=uiDocument.getElementById('mxmFmtPopover');
+      if(pop){
+        const closerRef=pop.__mxmCloser;
+        if(typeof closerRef==='function') uiDocument.removeEventListener('click',closerRef);
+        pop.remove();
+        gearBtn.setAttribute('aria-expanded','false');
+        return;
+      }
+
+      pop=uiDocument.createElement('div');
+      pop.id='mxmFmtPopover';
+      Object.assign(pop.style,{position:'absolute',bottom:'42px',right:'0',background:'#1e1e1e',border:'1px solid #333',borderRadius:'10px',padding:'8px 12px',fontSize:'13px',color:'#eee',boxShadow:'0 4px 16px rgba(0,0,0,0.4)',zIndex:2147483647});
+
+      pop.innerHTML=`
+    <div style="margin-bottom:6px;">
+      <label style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <span>Language:</span>
+        <select id="mxmLangSelect" style="background:#222;color:#fff;border:1px solid #444;border-radius:6px;padding:2px 4px;">
+          <option value="EN">EN</option>
+          <option value="RU">RU</option>
+          <option value="ES">ES</option>
+          <option value="PT">PT</option>
+          <option value="FR">FR</option>
+          <option value="IT">IT</option>
+        </select>
+      </label>
+    </div>
+    <div>
+      <label style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <span>Auto Lowercase:</span>
+        <input type="checkbox" id="mxmLowercaseToggle">
+      </label>
+    </div>
+  `.trim();
+
+      const langSel=pop.querySelector('#mxmLangSelect');
+      const lcToggle=pop.querySelector('#mxmLowercaseToggle');
+      const storedLangValue=readLocalOption('mxmFmtLang');
+      langSel.value=storedLangValue||extensionOptions.lang||'EN';
+      if(!langSel.querySelector(`option[value="${langSel.value}"]`))
+        langSel.value=extensionOptions.lang||'EN';
+      if(!langSel.querySelector(`option[value="${langSel.value}"]`))
+        langSel.value='EN';
+      lcToggle.checked=Boolean(extensionOptions.autoLowercase);
+
+      langSel.onchange=ev=>{
+        const nextLang=ev.target.value;
+        extensionOptions.lang=nextLang;
+        writeLocalOption('mxmFmtLang',nextLang);
+        toast(`Language set to ${nextLang}`);
+      };
+      lcToggle.onchange=ev=>{
+        const isChecked=Boolean(ev.target.checked);
+        extensionOptions.autoLowercase=isChecked;
+        writeLocalOption('mxmFmtAutoLowercase',isChecked?'1':'0');
+        toast(`Auto lowercase ${isChecked?'enabled':'disabled'}`);
+      };
+
+      container.appendChild(pop);
+      gearBtn.setAttribute('aria-expanded','true');
+
+      const closer=evt=>{
+        if(!pop.contains(evt.target) && evt.target!==gearBtn){
+          pop.remove();
+          uiDocument.removeEventListener('click',closer);
+          gearBtn.setAttribute('aria-expanded','false');
+        }
+      };
+      pop.__mxmCloser=closer;
+      uiDocument.addEventListener('click',closer);
+    };
+
     if(!container.isConnected) buttonParent.appendChild(container);
 
     container.style.boxShadow='0 6px 18px rgba(0,0,0,.28)';
@@ -1647,6 +1763,12 @@ x = x
     if(floatingButtonResizeHandler){
       hostWindow.removeEventListener('resize',floatingButtonResizeHandler);
       floatingButtonResizeHandler=null;
+    }
+    const popover=uiDocument?.getElementById('mxmFmtPopover');
+    if(popover){
+      const closerRef=popover.__mxmCloser;
+      if(typeof closerRef==='function') uiDocument.removeEventListener('click',closerRef);
+      popover.remove();
     }
     const container=floatingButtonContainer||uiDocument?.getElementById('mxmFmtBtnWrap');
     if(container?.isConnected) container.remove();
@@ -1702,10 +1824,14 @@ x = x
   function applyExtensionOptions(updates={}){
     if(!updates || typeof updates!=='object') return;
     const prevShow=extensionOptions.showFloatingButton;
-    if(Object.prototype.hasOwnProperty.call(updates,'lang') && typeof updates.lang==='string')
+    if(Object.prototype.hasOwnProperty.call(updates,'lang') && typeof updates.lang==='string'){
       extensionOptions.lang=updates.lang;
-    if(Object.prototype.hasOwnProperty.call(updates,'autoLowercase'))
+      writeLocalOption('mxmFmtLang',extensionOptions.lang);
+    }
+    if(Object.prototype.hasOwnProperty.call(updates,'autoLowercase')){
       extensionOptions.autoLowercase=Boolean(updates.autoLowercase);
+      writeLocalOption('mxmFmtAutoLowercase',extensionOptions.autoLowercase?'1':'0');
+    }
     if(Object.prototype.hasOwnProperty.call(updates,'fixBackingVocals'))
       extensionOptions.fixBackingVocals=Boolean(updates.fixBackingVocals);
     let showChanged=false;
