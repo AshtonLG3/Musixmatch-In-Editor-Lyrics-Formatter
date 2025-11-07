@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.1.66
+- Normalize repeated syllables like "na na na" and "nananana" into dashed groups while preserving capitalization after
+  line-ending punctuation.
+- Bump the userscript, extension, and package metadata to reflect the 1.1.66 release.
+
 ## v1.1.65
 - Normalize AM/PM meridian variants to consistently output "a.m." and "p.m." using the formatter pipeline.
 - Bump the userscript, extension, and package metadata to reflect the 1.1.65 release.
