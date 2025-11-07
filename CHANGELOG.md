@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1.65
+- Normalize AM/PM meridian variants to consistently output "a.m." and "p.m." using the formatter pipeline.
+- Bump the userscript, extension, and package metadata to reflect the 1.1.65 release.
+
 ## v1.1.64
 - Recorded the MIT license metadata and bumped the package version for the 1.1.64 release.
 
