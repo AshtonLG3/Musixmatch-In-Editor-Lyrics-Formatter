@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.63
+// @version      1.1.65
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.63';
+  const SCRIPT_VERSION = '1.1.65';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -1007,6 +1007,10 @@ x = x.replace(/\b([A-Za-z]+in)(?!['’g])\b/g, (match, base) => {
     x = applyNumberRules(x);
     x = applyNoCommaRules(x);
 
+    // === Normalize meridian time variants (AM/PM) ===
+    // Converts "AM; am; A.M.; a.m.; PM; pm; P.M.; p.m." → "a.m." / "p.m."
+    x = x.replace(/\b([Aa]\.?[Mm])\.?(?=[^A-Za-z0-9]|$)/g, "a.m.");
+    x = x.replace(/\b([Pp]\.?[Mm])\.?(?=[^A-Za-z0-9]|$)/g, "p.m.");
     // Normalize "god damn" -> "goddamn" while respecting casing
     x = x.replace(/\bgod\s+damn\b/gi, match => {
       if (match === match.toUpperCase()) return 'GODDAMN';
