@@ -1,7 +1,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.67';
+  const SCRIPT_VERSION = '1.1.68';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -631,6 +631,32 @@
     // --- Preserve full Cyrillic/Greek scripts ---
     if (langProfile.preserve.includes('Cyrillic') || langProfile.preserve.includes('Greek')) {
       // No transliteration, only punctuation cleanup applies
+    }
+
+    if (currentLang === 'RU') {
+      // === Normalize anglicisms & ad-libs based on Google Sheet ===
+      const REPLACEMENTS = {
+        "ща": "сейчас",
+        "ваще": "вообще",
+        "че": "что",
+        "чё": "что",
+        "типо": "типа",
+        "ладноу": "",
+        "окей": "ок",
+        "брр": "",
+        "пау": "",
+        "уоу": "",
+        "эй": "эй",
+        "йо": "йо"
+      };
+
+      x = x.replace(/\b[\p{L}’']+\b/gu, word => {
+        const lower = word.toLowerCase();
+        if (Object.prototype.hasOwnProperty.call(REPLACEMENTS, lower)) {
+          return REPLACEMENTS[lower];
+        }
+        return word;
+      });
     }
 
     // Clean + normalize

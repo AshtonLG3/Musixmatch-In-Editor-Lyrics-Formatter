@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1.68
+- Normalize common Russian anglicisms and filler ad-libs using a curated dictionary when the formatter runs in RU mode.
+- Bump the userscript, extension, and package metadata to reflect the 1.1.68 release.
+
 ## v1.1.67
 - Normalize holiday and festive references (including inside parentheses) so phrases like "christmas eve" and
   "new-years day" become consistently capitalized forms.
