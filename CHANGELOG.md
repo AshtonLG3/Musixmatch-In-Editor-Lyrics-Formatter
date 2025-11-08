@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.1.67
+- Normalize holiday and festive references (including inside parentheses) so phrases like "christmas eve" and
+  "new-years day" become consistently capitalized forms.
+- Capitalize proper names and title phrases inside parentheses while respecting common lowercase exceptions such as
+  "of" and "the".
+- Bump the userscript, extension, and package metadata to reflect the 1.1.67 release.
+
 ## v1.1.66
 - Normalize repeated syllables like "na na na" and "nananana" into dashed groups while preserving capitalization after
   line-ending punctuation.

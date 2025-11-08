@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.66
+// @version      1.1.67
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.66';
+  const SCRIPT_VERSION = '1.1.67';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -752,6 +752,39 @@
     x = normalizeStructureTags(x);
     x = normalizeInstrumentalSections(x);
     x = enforceStructureTagSpacing(x);
+
+    // === Normalize common holiday and festive terms (including inside parentheses) ===
+    x = x.replace(/\bchristmas[\s-]*eve\b/gi, "Christmas Eve");
+    x = x.replace(/\bchristmas[\s-]*day\b/gi, "Christmas Day");
+    x = x.replace(/\bchristmas[\s-]*time\b/gi, "Christmastime");
+    x = x.replace(/\bnew[\s-]*year[\s-]*s[\s-]*eve\b/gi, "New Year's Eve");
+    x = x.replace(/\bnew[\s-]*year[\s-]*s[\s-]*day\b/gi, "New Year's Day");
+    x = x.replace(/\bnew[\s-]*years?\b/gi, "New Year");
+    x = x.replace(/\bhappy[\s-]*holidays?\b/gi, "Happy Holidays");
+    x = x.replace(/\bseasons?[\s-]*greetings?\b/gi, "Season's Greetings");
+
+    // === Capitalize proper names or title phrases inside parentheses ===
+    // e.g., (jesus christ) → (Jesus Christ), (cape town) → (Cape Town)
+    x = x.replace(
+      /\(([a-z][^)]{1,40})\)/g,
+      (match, inner) => {
+        // common lowercase exceptions (articles, prepositions, particles)
+        const exceptions = new Set(["of", "the", "in", "and", "at", "on", "for", "van", "von", "de", "der"]);
+
+        // split and capitalize words
+        const words = inner
+          .trim()
+          .split(/\s+/)
+          .map((word, i) => {
+            const lower = word.toLowerCase();
+            if (exceptions.has(lower) && i !== 0) return lower;
+            return lower.charAt(0).toUpperCase() + lower.slice(1);
+          })
+          .join(" ");
+
+        return `(${words})`;
+      }
+    );
 
     x = x.replace(/([A-Za-z])-(?:[ \t]*)(\r?\n)(\s*)(em\b)/gi, (match, letter, newline, spaces, word) => {
       const token = `${HYPHENATED_EM_TOKEN}${hyphenatedEmTokens.length}${HYPHENATED_EM_TOKEN}`;
