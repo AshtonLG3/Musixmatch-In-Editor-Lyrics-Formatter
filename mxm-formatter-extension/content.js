@@ -1,7 +1,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.68';
+  const SCRIPT_VERSION = '1.1.69';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -22,11 +22,16 @@
       tagMap: {
         куплет: '#VERSE',
         припев: '#CHORUS',
+        хук: '#HOOK',
         бридж: '#BRIDGE',
+        интерлюдия: '#BRIDGE',
+        брейкдаун: '#BRIDGE',
+        брэйкдаун: '#BRIDGE',
+        инструментал: '#INSTRUMENTAL',
         интро: '#INTRO',
         аутро: '#OUTRO',
-        инструментал: '#INSTRUMENTAL',
-        хук: '#HOOK'
+        предприпев: '#PRE-CHORUS',
+        'пред-припев': '#PRE-CHORUS'
       }
     },
     ES: {
@@ -639,8 +644,11 @@
       .replace(/ {2,}/g, " ")
       .replace(/\n{3,}/g, "\n\n")
       .replace(/[\u2019\u2018\u0060\u00b4]/gu, "'")
-      .replace(/[\u2013\u2014]/gu, "-")
       .replace(/[\u{1F300}-\u{1FAFF}\u{FE0F}\u2600-\u26FF\u2700-\u27BF\u2669-\u266F]/gu, "");
+
+    if (currentLang !== 'RU') {
+      x = x.replace(/[\u2013\u2014]/gu, "-");
+    }
 
     if (currentLang === 'RU') {
       const RU_REPLACEMENTS = {
@@ -687,6 +695,41 @@
     });
 
     x = normalizeStructureTags(x);
+
+    if (currentLang === 'RU') {
+      // === Russian Structure Tag Normalization ===
+      const RU_STRUCTURE_RE =
+        /(^|\n)\s*[\[(]*(куплет|припев|хук|бридж|интерлюдия|брейкдаун|брэйкдаун|инструментал|интро|аутро|предприпев|пред-припев)[\])]*(?:\s*[-:–—]\s*[\p{L}\d .,'’&()-]*)?(?=\n|$)/gimu;
+
+      x = x.replace(RU_STRUCTURE_RE, (_, boundary, raw) => {
+        const lower = raw.toLowerCase();
+        switch (lower) {
+          case 'куплет':
+            return `${boundary}#VERSE`;
+          case 'припев':
+            return `${boundary}#CHORUS`;
+          case 'хук':
+            return `${boundary}#HOOK`;
+          case 'бридж':
+          case 'интерлюдия':
+          case 'брейкдаун':
+          case 'брэйкдаун':
+            return `${boundary}#BRIDGE`;
+          case 'инструментал':
+            return `${boundary}#INSTRUMENTAL`;
+          case 'интро':
+            return `${boundary}#INTRO`;
+          case 'аутро':
+            return `${boundary}#OUTRO`;
+          case 'предприпев':
+          case 'пред-припев':
+            return `${boundary}#PRE-CHORUS`;
+          default:
+            return _;
+        }
+      });
+    }
+
     x = normalizeInstrumentalSections(x);
     x = enforceStructureTagSpacing(x);
 

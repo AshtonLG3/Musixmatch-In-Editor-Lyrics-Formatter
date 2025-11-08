@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.1.69
+- Extend the Russian structure tag map with bridge, pre-chorus, and hook synonyms to cover common Musixmatch variants.
+- Normalize Russian section headings that include performer names, numbering, or brackets so they convert to canonical tags.
+- Preserve em dashes for Russian lyrics while continuing to normalize dashes for other languages.
+- Bump the userscript, extension, and package metadata to reflect the 1.1.69 release.
+
 ## v1.1.68
 - Load dropped-G exclusions from a shared Google Sheets CSV with local caching so the list stays synced for the team.
 - Bump the userscript, extension, and package metadata to reflect the 1.1.68 release.
