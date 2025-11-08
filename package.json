@@ -3,7 +3,19 @@
   "version": "1.1.70",
   "private": true,
   "license": "MIT",
+  "type": "module",
   "scripts": {
-    "test": "node test.js"
+    "test": "node test.js",
+    "prettier:check": "prettier --check .",
+    "prettier:fix": "prettier --write .",
+    "eslint:check": "eslint .",
+    "eslint:fix": "eslint --fix .",
+    "format:check": "npm run prettier:check && npm run eslint:check",
+    "format:fix": "npm run prettier:fix && npm run eslint:fix"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "eslint": "^9.39.1",
+    "prettier": "^3.6.2"
   }
 }
