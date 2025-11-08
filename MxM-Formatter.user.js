@@ -1,21 +1,21 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.67
+// @version      1.1.68
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
 // @match        https://curators-beta.musixmatch.com/*
 // @run-at       document-idle
 // @grant        none
-// @downloadURL  https://raw.githubusercontent.com/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/main/MxM-Formatter.user.js?v=1.1.67
-// @updateURL    https://raw.githubusercontent.com/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/main/MxM-Formatter.meta.js?v=1.1.67
+// @downloadURL  https://raw.githubusercontent.com/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/main/MxM-Formatter.user.js?v=1.1.68
+// @updateURL    https://raw.githubusercontent.com/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/main/MxM-Formatter.meta.js?v=1.1.68
 // ==/UserScript==
 
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.67';
+  const SCRIPT_VERSION = '1.1.68';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -1013,27 +1013,52 @@ const WELL_CLAUSE_STARTERS = new Set([
 
     x = x.replace(/\b(oh|ah|yeah|whoa|ooh|uh|well)\b\s*,\s*(?=\))/gi, '$1');
 
-    // Dropped-G (smart and safe fix)
-    // Converts "feelin" → "feelin'", but leaves "feeling", "feelin'", "begin", "violin", etc. untouched
-    x = x.replace(/\b([A-Za-z]+in)(?!['’g])\b/g, (match, base) => {
-      const exclusions = new Set([
+    // === Dropped-G (smart and safe fix, live CSV cache + sync fallback) ===
+    (() => {
+      const CSV_URL =
+        "https://docs.google.com/spreadsheets/d/e/2PACX-1vSQY2TH74oBLQWTeI0j7WobaPUe-UC4Vdc2dn7nVjgtT9h9H7AFAmErladiu6SgT2Wacuk4oEMBieKD/pub?output=csv";
+      const LOCAL_KEY = "mxmDroppedGExclusionsCSV.v1";
+
+      const LOCAL_EXCLUSIONS = new Set([
         "begin","began","within","cousin","violin","virgin","origin","margin","resin","penguin",
         "pumpkin","grin","chin","twin","skin","basin","raisn","savin","login","pin","curtain",
         "fin","din","min","gin","lin","kin","sin","win","bin","thin","tin","akin","leadin","captain","mountain",
-        "fountain","certain","again","gain","spin","twin","main","cain","mantain","retain","detain","vain","regain",
-        // 🔒 New rhyme-based exclusions
-        "rain", "brain", "pain","drain","main","train","grain","cabin","satin","chain","plain","remain","campaign","fein",
-        "contain","domain","explain","sustain","pertain","obtain","entertain","villain","admin","abstain","stain",
+        "fountain","certain","again","gain","spin","twin","main","cain","maintain","retain","detain","vain","regain",
+        "rain","brain","pain","drain","train","grain","cabin","satin","chain","plain","remain","campaign",
+        "fein","contain","domain","explain","sustain","pertain","obtain","entertain","villain","admin","abstain","stain"
       ]);
 
-      // skip if in exclusion list (case-insensitive)
-      if (exclusions.has(base.toLowerCase())) return match;
+      const parseCSV = (text) =>
+        new Set(
+          text
+            .split(/\r?\n/)
+            .map((l) => l.trim().split(",")[0]?.toLowerCase())
+            .filter((w) => w && /^[a-z]+$/.test(w))
+        );
 
-      // Preserve casing of the original word
-      if (match === match.toUpperCase()) return base.toUpperCase() + "'";
-      if (match[0] === match[0].toUpperCase()) return base[0].toUpperCase() + base.slice(1) + "'";
-      return base + "'";
-    });
+      // Try to read cached exclusions first
+      let EXCLUSIONS = LOCAL_EXCLUSIONS;
+      try {
+        const cached = localStorage.getItem(LOCAL_KEY);
+        if (cached) EXCLUSIONS = parseCSV(cached);
+      } catch {}
+
+      // Fire-and-forget fetch (updates cache asynchronously)
+      fetch(CSV_URL)
+        .then((r) => (r.ok ? r.text() : ""))
+        .then((t) => {
+          if (t) localStorage.setItem(LOCAL_KEY, t);
+        })
+        .catch(() => {});
+
+      // Apply Dropped-G immediately
+      x = x.replace(/\b([A-Za-z]+in)(?!['’g])\b/g, (match, base) => {
+        if (EXCLUSIONS.has(base.toLowerCase())) return match;
+        if (match === match.toUpperCase()) return base.toUpperCase() + "'";
+        if (match[0] === match[0].toUpperCase()) return base[0].toUpperCase() + base.slice(1) + "'";
+        return base + "'";
+      });
+    })();
 
     // Numbers & timing logic
     x = normalizeOClock(x);

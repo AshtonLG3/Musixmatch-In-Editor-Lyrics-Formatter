@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1.68
+- Load dropped-G exclusions from a shared Google Sheets CSV with local caching so the list stays synced for the team.
+- Bump the userscript, extension, and package metadata to reflect the 1.1.68 release.
+
 ## v1.1.67
 - Normalize holiday and festive references (including inside parentheses) so phrases like "christmas eve" and
   "new-years day" become consistently capitalized forms.
