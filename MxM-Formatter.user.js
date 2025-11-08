@@ -8,8 +8,8 @@
 // @match        https://curators-beta.musixmatch.com/*
 // @run-at       document-idle
 // @grant        none
-// @downloadURL  https://raw.githubusercontent.com/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/main/MxM-Formatter.user.js?v=1.1.70
-// @updateURL    https://raw.githubusercontent.com/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/main/MxM-Formatter.meta.js?v=1.1.70
+// @downloadURL  https://raw.githubusercontent.com/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/main/MxM-Formatter.user
+// @updateURL    https://raw.githubusercontent.com/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/main/MxM-Formatter.meta.js
 // ==/UserScript==
 
 (function (global) {
