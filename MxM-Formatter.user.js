@@ -730,6 +730,36 @@
       .replace(/[\u2013\u2014]/gu, "-")
       .replace(/[\u{1F300}-\u{1FAFF}\u{FE0F}\u2600-\u26FF\u2700-\u27BF\u2669-\u266F]/gu, "");
 
+    if (currentLang === 'RU') {
+      const RU_REPLACEMENTS = {
+        "ща": "сейчас",
+        "ваще": "вообще",
+        "че": "что",
+        "чё": "что",
+        "типо": "типа",
+        "ладноу": "",
+        "окей": "ок",
+        "брр": "",
+        "пау": "",
+        "уоу": "",
+        "эй": "эй",
+        "йо": "йо"
+      };
+
+      x = x.replace(/\b[\p{L}’']+\b/gu, (word) => {
+        const lower = word.toLowerCase();
+        if (!Object.prototype.hasOwnProperty.call(RU_REPLACEMENTS, lower)) return word;
+
+        const replacement = RU_REPLACEMENTS[lower];
+        if (!replacement) return replacement;
+        if (word === word.toUpperCase()) return replacement.toUpperCase();
+        if (word[0] === word[0].toUpperCase() && word.slice(1) === word.slice(1).toLowerCase()) {
+          return replacement.charAt(0).toUpperCase() + replacement.slice(1);
+        }
+        return replacement;
+      });
+    }
+
     x = x.replace(/[【〔［｛〈《]/g, '[')
          .replace(/[】〕］｝〉》]/g, ']')
          .replace(/[（﹙]/g, '(')
