@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.1.71
+- Remove destructive BV title-case rewrite from v1.1.70.
+- Move line-start "(" capitalization to the final pass for stability.
+- Normalize “Christmastime” as single-word proper noun.
+- Maintain all 1.1.70 fixes for duplicate tags, proper nouns, and holidays.
+
 ## v1.1.70
 - Correct Christmas spellings, title-case proper nouns in backing vocal parentheses, and lowercase interjection syllables.
 - Collapse duplicate structure headers and reduce excessive blank lines so tags stay unique.
