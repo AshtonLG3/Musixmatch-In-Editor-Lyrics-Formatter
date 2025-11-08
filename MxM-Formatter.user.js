@@ -715,6 +715,37 @@
       x = x.replace(rx, `$1${tag}`);
     }
 
+    // --- RU structure normalization (runs BEFORE generic [ ... ] mapper) ---
+    // Accepts: optional leading #[, (, spaces], the Russian label, optional number,
+    // optional separators/credits, then optional closing ], )
+    // Examples matched:
+    //   [Куплет 1: Artist], (Припев — Мумий Тролль), #Интерлюдия - Имя, Инструментал
+    if (currentLang === 'RU') {
+      const RU_STRUCTURE_RE =
+        /(^|\n)\s*#?\s*[\[\(\s]*\s*(куплет|припев|хук|бридж|интерлюдия|брейкдаун|брэйкдаун|инструментал|интро|аутро|предприпев|пред-припев)(?:\s*\d+)?(?:\s*[-:–—]\s*[\p{L}\d .,'’&()\-–—]*)?[\]\)\s]*(?=\n|$)/gimu;
+
+      x = x.replace(RU_STRUCTURE_RE, (match, boundary, raw) => {
+        switch (raw.toLowerCase()) {
+          case 'куплет': return `${boundary}#VERSE`;
+          case 'припев': return `${boundary}#CHORUS`;
+          case 'хук': return `${boundary}#HOOK`;
+          case 'бридж':
+          case 'интерлюдия':
+          case 'брейкдаун':
+          case 'брэйкдаун':
+            return `${boundary}#BRIDGE`;
+          case 'инструментал': return `${boundary}#INSTRUMENTAL`;
+          case 'интро': return `${boundary}#INTRO`;
+          case 'аутро': return `${boundary}#OUTRO`;
+          case 'предприпев':
+          case 'пред-припев':
+            return `${boundary}#PRE-CHORUS`;
+          default:
+            return match;
+        }
+      });
+    }
+
     // --- Conditional Cyrillic “e” conversion ---
     // Only for Latin-script languages
     if (langProfile.preserve.includes('Latin')) {
@@ -726,7 +757,7 @@
       // No transliteration, only punctuation cleanup applies
     }
 
-    // Clean + normalize
+    // Clean + normalize (dash behavior differs for RU)
     x = x
       .replace(/[\u2000-\u200b\u202f\u205f\u2060\u00a0]/gu, " ")
       .replace(/ {2,}/g, " ")
