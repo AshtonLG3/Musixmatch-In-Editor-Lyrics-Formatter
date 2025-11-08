@@ -30,14 +30,14 @@ if (!userHeaderVersion) {
 
 if (metaVersion !== userHeaderVersion) {
   throw new Error(
-    `Version mismatch: meta script is ${metaVersion} but user script header is ${userHeaderVersion}`
+    `Version mismatch: meta script is ${metaVersion} but user script header is ${userHeaderVersion}`,
   );
 }
 
 const scriptConstantVersion = extractScriptConstantVersion(userContent);
 if (scriptConstantVersion && scriptConstantVersion !== metaVersion) {
   throw new Error(
-    `Version mismatch: meta script is ${metaVersion} but SCRIPT_VERSION constant is ${scriptConstantVersion}`
+    `Version mismatch: meta script is ${metaVersion} but SCRIPT_VERSION constant is ${scriptConstantVersion}`,
   );
 }
 
@@ -56,7 +56,9 @@ const sampleBlock = 'Yeah\n(YEAH, YEAH)\nOh';
 const formattedBlock = formatLyrics(sampleBlock).split('\n');
 const preservedLine = formattedBlock[1];
 if (preservedLine !== '(YEAH, YEAH)') {
-  throw new Error('Standalone parenthetical lines inside multi-line blocks must retain original casing');
+  throw new Error(
+    'Standalone parenthetical lines inside multi-line blocks must retain original casing',
+  );
 }
 
 const countingLine = '1 2 3 4';
@@ -71,7 +73,7 @@ if (formatLyrics(countingCommaLine) !== 'One, two, three, four') {
 
 const oClockDigits = "It's 3 o clock";
 if (formatLyrics(oClockDigits) !== "It's three o'clock") {
-  throw new Error("Numeric o clock phrases should gain an apostrophe and word-based hour");
+  throw new Error('Numeric o clock phrases should gain an apostrophe and word-based hour');
 }
 
 const oClockWords = "Twenty one o'clock";
@@ -81,7 +83,9 @@ if (formatLyrics(oClockWords) !== "Twenty one o'clock") {
 
 const twentyOneLine = 'Twenty one reasons';
 if (formatLyrics(twentyOneLine) !== '21 reasons') {
-  throw new Error('Aggressive number mode should collapse written 21 into numerals outside protected contexts');
+  throw new Error(
+    'Aggressive number mode should collapse written 21 into numerals outside protected contexts',
+  );
 }
 
 const timeContextLine = 'Meet me at 7:30 pm';

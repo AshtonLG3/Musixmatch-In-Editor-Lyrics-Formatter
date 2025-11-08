@@ -1,51 +1,65 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-  <meta charset="utf-8">
-  <title>MxM Formatter</title>
-  <style>
-    body {
-      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-      background: #181818;
-      color: #f1f1f1;
-      width: 200px;
-      padding: 10px;
-    }
-    select, input[type="checkbox"] {
-      accent-color: #e74c3c;
-    }
-    button {
-      width: 100%;
-      margin-top: 10px;
-      padding: 8px;
-      background: #e74c3c;
-      border: none;
-      border-radius: 8px;
-      color: white;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    label { display: flex; align-items: center; margin: 4px 0; gap: 6px; }
-    select { width: 100%; border-radius: 6px; padding: 3px; }
-  </style>
-</head>
-<body>
-  <label>
-    Lang:
-    <select id="lang">
-      <option>EN</option>
-      <option>LT</option>
-      <option>PL</option>
-      <option>RU</option>
-      <option>FR</option>
-      <option>FR1</option>
-    </select>
-  </label>
-  <label><input type="checkbox" id="autoLower"> Auto lowercase</label>
-  <label><input type="checkbox" id="fixBV" checked> Fix backing vocals</label>
-  <label><input type="checkbox" id="showButton"> Show floating button</label>
-  <button id="formatBtn">Format Lyrics</button>
+  <head>
+    <meta charset="utf-8" />
+    <title>MxM Formatter</title>
+    <style>
+      body {
+        font-family:
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          sans-serif;
+        background: #181818;
+        color: #f1f1f1;
+        width: 200px;
+        padding: 10px;
+      }
+      select,
+      input[type="checkbox"] {
+        accent-color: #e74c3c;
+      }
+      button {
+        width: 100%;
+        margin-top: 10px;
+        padding: 8px;
+        background: #e74c3c;
+        border: none;
+        border-radius: 8px;
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      label {
+        display: flex;
+        align-items: center;
+        margin: 4px 0;
+        gap: 6px;
+      }
+      select {
+        width: 100%;
+        border-radius: 6px;
+        padding: 3px;
+      }
+    </style>
+  </head>
+  <body>
+    <label>
+      Lang:
+      <select id="lang">
+        <option>EN</option>
+        <option>LT</option>
+        <option>PL</option>
+        <option>RU</option>
+        <option>FR</option>
+        <option>FR1</option>
+      </select>
+    </label>
+    <label><input type="checkbox" id="autoLower" /> Auto lowercase</label>
+    <label><input type="checkbox" id="fixBV" checked /> Fix backing vocals</label>
+    <label><input type="checkbox" id="showButton" /> Show floating button</label>
+    <button id="formatBtn">Format Lyrics</button>
 
-  <script src="popup.js"></script>
-</body>
+    <script src="popup.js"></script>
+  </body>
 </html>
