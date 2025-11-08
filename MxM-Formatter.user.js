@@ -13,8 +13,7 @@
 // ==/UserScript==
 
 (function (global) {
-  const hasWindow =
-    typeof window !== 'undefined' && typeof document !== 'undefined';
+  const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
   const SCRIPT_VERSION = '1.1.71';
   const ALWAYS_AGGRESSIVE = true;
@@ -24,9 +23,7 @@
   let lastFormatState = null;
 
   const runningAsExtension =
-    typeof chrome !== 'undefined' &&
-    typeof chrome.runtime === 'object' &&
-    !!chrome.runtime?.id;
+    typeof chrome !== 'undefined' && typeof chrome.runtime === 'object' && !!chrome.runtime?.id;
 
   const extensionDefaults = {
     lang: 'EN',
@@ -132,8 +129,7 @@
   }
   const storedLower = readLocalOption('mxmFmtAutoLowercase');
   if (storedLower !== null) {
-    extensionOptions.autoLowercase =
-      storedLower === '1' || storedLower === 'true';
+    extensionOptions.autoLowercase = storedLower === '1' || storedLower === 'true';
   }
 
   const BV_FIRST_WORD_EXCEPTIONS = new Set([
@@ -212,8 +208,7 @@
   const focusTrackedDocs = new WeakSet();
   const shortcutTrackedDocs = new WeakSet();
 
-  const INSTRUMENTAL_PHRASE_RE =
-    /^(?:instrumental(?:\s+(?:break|bridge|outro|interlude|solo))?)$/i;
+  const INSTRUMENTAL_PHRASE_RE = /^(?:instrumental(?:\s+(?:break|bridge|outro|interlude|solo))?)$/i;
 
   // ---------- Dynamic Focus Tracker ----------
   let currentEditable = null;
@@ -308,10 +303,7 @@
   }
   function isDateContext(line, s, e) {
     const ctx = line.slice(Math.max(0, s - 6), Math.min(line.length, e + 6));
-    return (
-      /(?:\d{1,2}[\/-]\d{1,2}(?:[\/-]\d{2,4})?)/.test(ctx) ||
-      /\b(19|20)\d{2}\b/.test(ctx)
-    );
+    return /(?:\d{1,2}[\/-]\d{1,2}(?:[\/-]\d{2,4})?)/.test(ctx) || /\b(19|20)\d{2}\b/.test(ctx);
   }
   function isDecadeNumeric(line, _s, e) {
     const after = line.slice(e);
@@ -357,11 +349,7 @@
       const s = m.index,
         e = s + m[0].length,
         num = parseInt(m[0], 10);
-      if (
-        isTimeContext(line, s, e) ||
-        isDateContext(line, s, e) ||
-        isDecadeNumeric(line, s, e)
-      ) {
+      if (isTimeContext(line, s, e) || isDateContext(line, s, e) || isDecadeNumeric(line, s, e)) {
         out += line.slice(last, e);
       } else out += line.slice(last, s) + NUM_WORDS_0_10[num];
       last = e;
@@ -403,9 +391,7 @@
       const numCount = (currentLine.match(/\b\d+\b/g) || []).length;
       const useNumerals =
         numCount >= 3 ||
-        /\b(19|20)\d{2}\b|['’]\d0s|\d{1,2}:\d{2}\s*(?:a\.m\.|p\.m\.)/i.test(
-          currentLine,
-        );
+        /\b(19|20)\d{2}\b|['’]\d0s|\d{1,2}:\d{2}\s*(?:a\.m\.|p\.m\.)/i.test(currentLine);
       if (useNumerals && settings.aggressiveNumbers) {
         lines[i] = currentLine;
       } else {
@@ -441,8 +427,7 @@
         normalizedWord = baseWord;
       }
       const tailLetters = tail.replace(/[^A-Za-z]/g, '');
-      const isAllCaps =
-        tailLetters && tailLetters === tailLetters.toUpperCase();
+      const isAllCaps = tailLetters && tailLetters === tailLetters.toUpperCase();
       if (isAllCaps) normalizedWord = normalizedWord.toUpperCase();
       const clockPart = isAllCaps ? " O'CLOCK" : " o'clock";
       return normalizedWord + clockPart;
@@ -486,17 +471,14 @@
       return letter === 'a' ? 'a.m.' : 'p.m.';
     };
 
-    text = text.replace(
-      DIGIT_TIME_RE,
-      (match, hourRaw, minuteRaw, meridiemToken) => {
-        const hour = parseInt(hourRaw, 10);
-        if (!Number.isFinite(hour) || hour > 12) return match;
-        if (minuteRaw && minuteRaw.length > 2) return match;
-        const minute = minuteRaw ? minuteRaw.padStart(2, '0') : null;
-        const meridiem = normalizeMeridiem(meridiemToken);
-        return minute ? `${hour}:${minute} ${meridiem}` : `${hour} ${meridiem}`;
-      },
-    );
+    text = text.replace(DIGIT_TIME_RE, (match, hourRaw, minuteRaw, meridiemToken) => {
+      const hour = parseInt(hourRaw, 10);
+      if (!Number.isFinite(hour) || hour > 12) return match;
+      if (minuteRaw && minuteRaw.length > 2) return match;
+      const minute = minuteRaw ? minuteRaw.padStart(2, '0') : null;
+      const meridiem = normalizeMeridiem(meridiemToken);
+      return minute ? `${hour}:${minute} ${meridiem}` : `${hour} ${meridiem}`;
+    });
 
     text = text.replace(WORD_TIME_RE, (match, hourWord, meridiemToken) => {
       const hour = WORD_TO_DIGIT_TIME[hourWord.toLowerCase()];
@@ -671,10 +653,7 @@
     if (!text) return text;
 
     // Exempt idioms like "Say no more" from added commas
-    text = text.replace(
-      /\b(Say|Told|Telling|Tell|Tells)\s+no\s+more\b/gi,
-      (m) => m,
-    );
+    text = text.replace(/\b(Say|Told|Telling|Tell|Tells)\s+no\s+more\b/gi, (m) => m);
 
     text = text.replace(
       NO_FILLER_REMOVE_RE,
@@ -695,10 +674,7 @@
 
         const prevLower = prevWord.replace(/^['’"]+/, '').toLowerCase();
         const nextLower = nextWord.replace(/['’"]+$/, '').toLowerCase();
-        if (
-          nextLower === 'more' &&
-          /^(say|told|telling|tell|tells)$/.test(prevLower)
-        ) {
+        if (nextLower === 'more' && /^(say|told|telling|tell|tells)$/.test(prevLower)) {
           return match;
         }
 
@@ -715,10 +691,7 @@
 
         const prevLower = prevWord.replace(/^['’"]+/, '').toLowerCase();
         const nextLower = nextWord.replace(/['’"]+$/, '').toLowerCase();
-        if (
-          nextLower === 'more' &&
-          /^(say|told|telling|tell|tells)$/.test(prevLower)
-        ) {
+        if (nextLower === 'more' && /^(say|told|telling|tell|tells)$/.test(prevLower)) {
           return match;
         }
 
@@ -735,10 +708,7 @@
 
         const prevLower = prevWord.replace(/^['’"]+/, '').toLowerCase();
         const nextLower = nextWord.replace(/['’"]+$/, '').toLowerCase();
-        if (
-          nextLower === 'more' &&
-          /^(say|told|telling|tell|tells)$/.test(prevLower)
-        ) {
+        if (nextLower === 'more' && /^(say|told|telling|tell|tells)$/.test(prevLower)) {
           return match;
         }
 
@@ -750,16 +720,7 @@
 
     text = text.replace(
       /(\b[\w'"]+)(\s*,\s*|\s+)([Nn][Oo])(\s+)([A-Za-z']+)/g,
-      (
-        match,
-        prevWord,
-        separator,
-        noWord,
-        postSpace,
-        nextWord,
-        offset,
-        str,
-      ) => {
+      (match, prevWord, separator, noWord, postSpace, nextWord, offset, str) => {
         if (separator.includes('\n') || postSpace.includes('\n')) return match;
         const noStart = offset + prevWord.length + separator.length;
         if (!shouldCommaAfterNo(str, noStart + noWord.length)) return match;
@@ -767,10 +728,7 @@
         const nextLower = nextWord.toLowerCase();
         const prevLower = prevWord.replace(/^["']/, '').toLowerCase();
 
-        if (
-          nextLower === 'more' &&
-          /^(say|told|telling|tell|tells)$/.test(prevLower)
-        ) {
+        if (nextLower === 'more' && /^(say|told|telling|tell|tells)$/.test(prevLower)) {
           return match;
         }
 
@@ -791,10 +749,7 @@
       },
     );
 
-    text = text.replace(
-      /\b([Nn][Oo])([ \t]+)(?=[Nn][Oo]\b)/g,
-      (_, word) => word + ', ',
-    );
+    text = text.replace(/\b([Nn][Oo])([ \t]+)(?=[Nn][Oo]\b)/g, (_, word) => word + ', ');
 
     text = text.replace(
       /(\.\.\.|…)([ \t]+)([Nn][Oo])\b(?!\s*,)/g,
@@ -832,21 +787,13 @@
     return text;
   }
 
-  const SENTENCE_ENDER_FOLLOWING_QUOTES = new Set([
-    "'",
-    '"',
-    '‘',
-    '’',
-    '“',
-    '”',
-  ]);
+  const SENTENCE_ENDER_FOLLOWING_QUOTES = new Set(["'", '"', '‘', '’', '“', '”']);
 
   function capitalizeAfterSentenceEnders(text) {
     if (!text) return text;
     const chars = Array.from(text);
     const isSpace = (c) => c === ' ' || c === '\t' || c === '\n';
-    const isSkippable = (c) =>
-      SENTENCE_ENDER_FOLLOWING_QUOTES.has(c) || c === '(' || c === ')';
+    const isSkippable = (c) => SENTENCE_ENDER_FOLLOWING_QUOTES.has(c) || c === '(' || c === ')';
     for (let i = 0; i < chars.length; i++) {
       const ch = chars[i];
       if (ch !== '?' && ch !== '!') continue;
@@ -871,15 +818,7 @@
     return text.replace(/\bi\b/g, 'I');
   }
 
-  const HYPHEN_CHARS = new Set([
-    '-',
-    '\u2010',
-    '\u2011',
-    '\u2012',
-    '\u2013',
-    '\u2014',
-    '\u2212',
-  ]);
+  const HYPHEN_CHARS = new Set(['-', '\u2010', '\u2011', '\u2012', '\u2013', '\u2014', '\u2212']);
   const LETTER_RE = /\p{L}/u;
   const HYPHENATED_EM_TOKEN = '\uF000';
 
@@ -914,42 +853,21 @@
     if (!text) return text;
 
     return text
-      .replace(
-        /(^|\n)\s*intro(?:\s*\d+)?\s*(?=\n)/gi,
-        (_, boundary) => boundary + '#INTRO',
-      )
-      .replace(
-        /(^|\n)\s*verse(?:\s*\d+)?\s*(?=\n)/gi,
-        (_, boundary) => boundary + '#VERSE',
-      )
+      .replace(/(^|\n)\s*intro(?:\s*\d+)?\s*(?=\n)/gi, (_, boundary) => boundary + '#INTRO')
+      .replace(/(^|\n)\s*verse(?:\s*\d+)?\s*(?=\n)/gi, (_, boundary) => boundary + '#VERSE')
       .replace(
         /(^|\n)\s*pre[- ]?chorus(?:\s*\d+)?\s*(?=\n)/gi,
         (_, boundary) => boundary + '#PRE-CHORUS',
       )
-      .replace(
-        /(^|\n)\s*chorus(?:\s*\d+)?\s*(?=\n)/gi,
-        (_, boundary) => boundary + '#CHORUS',
-      )
+      .replace(/(^|\n)\s*chorus(?:\s*\d+)?\s*(?=\n)/gi, (_, boundary) => boundary + '#CHORUS')
       .replace(
         /(^|\n)\s*post[- ]?chorus(?:\s*\d+)?\s*(?=\n)/gi,
         (_, boundary) => boundary + '#HOOK',
       )
-      .replace(
-        /(^|\n)\s*hook(?:\s*\d+)?\s*(?=\n)/gi,
-        (_, boundary) => boundary + '#HOOK',
-      )
-      .replace(
-        /(^|\n)\s*bridge(?:\s*\d+)?\s*(?=\n)/gi,
-        (_, boundary) => boundary + '#BRIDGE',
-      )
-      .replace(
-        /(^|\n)\s*(ad[- ]?libs?|spoken)\s*(?=\n)/gi,
-        (_, boundary) => boundary + '#HOOK',
-      )
-      .replace(
-        /(^|\n)\s*outro(?:\s*\d+)?\s*(?=\n)/gi,
-        (_, boundary) => boundary + '#OUTRO',
-      );
+      .replace(/(^|\n)\s*hook(?:\s*\d+)?\s*(?=\n)/gi, (_, boundary) => boundary + '#HOOK')
+      .replace(/(^|\n)\s*bridge(?:\s*\d+)?\s*(?=\n)/gi, (_, boundary) => boundary + '#BRIDGE')
+      .replace(/(^|\n)\s*(ad[- ]?libs?|spoken)\s*(?=\n)/gi, (_, boundary) => boundary + '#HOOK')
+      .replace(/(^|\n)\s*outro(?:\s*\d+)?\s*(?=\n)/gi, (_, boundary) => boundary + '#OUTRO');
   }
 
   function normalizeInstrumentalSections(text) {
@@ -970,9 +888,7 @@
         .replace(/^[\[(]+/, '')
         .replace(/[\])]+$/, '')
         .trim();
-      normalized = normalized
-        .replace(/^[\-–—:]+\s*/, '')
-        .replace(/\s*[\-–—:]+$/, '');
+      normalized = normalized.replace(/^[\-–—:]+\s*/, '').replace(/\s*[\-–—:]+$/, '');
       normalized = normalized.replace(/[.,!?;:]+$/g, '').trim();
 
       if (normalized && INSTRUMENTAL_PHRASE_RE.test(normalized)) {
@@ -1009,42 +925,33 @@
   function formatLyrics(input, _options = {}) {
     if (!input) return '';
     if (input.length > 50000) {
-      console.warn(
-        'Large input detected (>50k chars): minimal normalization only.',
-      );
+      console.warn('Large input detected (>50k chars): minimal normalization only.');
       return input.replace(/\s+$/gm, '').trim();
     }
     let x = '\n' + input.trim() + '\n';
     const preservedStandaloneParens = [];
     const STANDALONE_PAREN_SENTINEL = '__MXM_SP__';
 
-    x = x.replace(
-      /(^|\n)([^\S\n]*\([^\n]*\)[^\S\n]*)(?=\n)/g,
-      (match, boundary, candidate) => {
-        const trimmed = candidate.trim();
-        if (
-          trimmed.startsWith('(') &&
-          trimmed.endsWith(')') &&
-          !trimmed.includes('\n')
-        ) {
-          const placeholder = `${STANDALONE_PAREN_SENTINEL}${preservedStandaloneParens.length}__`;
+    x = x.replace(/(^|\n)([^\S\n]*\([^\n]*\)[^\S\n]*)(?=\n)/g, (match, boundary, candidate) => {
+      const trimmed = candidate.trim();
+      if (trimmed.startsWith('(') && trimmed.endsWith(')') && !trimmed.includes('\n')) {
+        const placeholder = `${STANDALONE_PAREN_SENTINEL}${preservedStandaloneParens.length}__`;
 
-          let cleaned = candidate
-            .replace(/,([ \t]*\))/g, '$1') // remove comma before )
-            .replace(/[ \t]+\)/g, ')') // remove space before )
-            .replace(/\( +/g, '('); // remove space after (
+        let cleaned = candidate
+          .replace(/,([ \t]*\))/g, '$1') // remove comma before )
+          .replace(/[ \t]+\)/g, ')') // remove space before )
+          .replace(/\( +/g, '('); // remove space after (
 
-          cleaned = cleaned.replace(
-            /(\(\s*)(["'“”‘’]?)([a-z])/g,
-            (_, prefix, quote, letter) => prefix + quote + letter.toUpperCase(),
-          );
+        cleaned = cleaned.replace(
+          /(\(\s*)(["'“”‘’]?)([a-z])/g,
+          (_, prefix, quote, letter) => prefix + quote + letter.toUpperCase(),
+        );
 
-          preservedStandaloneParens.push(cleaned);
-          return boundary + placeholder;
-        }
-        return match;
-      },
-    );
+        preservedStandaloneParens.push(cleaned);
+        return boundary + placeholder;
+      }
+      return match;
+    });
 
     const hyphenatedEmTokens = [];
 
@@ -1100,10 +1007,7 @@
     }
 
     // --- Preserve full Cyrillic/Greek scripts ---
-    if (
-      langProfile.preserve.includes('Cyrillic') ||
-      langProfile.preserve.includes('Greek')
-    ) {
+    if (langProfile.preserve.includes('Cyrillic') || langProfile.preserve.includes('Greek')) {
       // No transliteration, only punctuation cleanup applies
     }
 
@@ -1113,10 +1017,7 @@
       .replace(/ {2,}/g, ' ')
       .replace(/\n{3,}/g, '\n\n')
       .replace(/[\u2019\u2018\u0060\u00b4]/gu, "'")
-      .replace(
-        /[\u{1F300}-\u{1FAFF}\u{FE0F}\u2600-\u26FF\u2700-\u27BF\u2669-\u266F]/gu,
-        '',
-      );
+      .replace(/[\u{1F300}-\u{1FAFF}\u{FE0F}\u2600-\u26FF\u2700-\u27BF\u2669-\u266F]/gu, '');
 
     if (currentLang !== 'RU') {
       x = x.replace(/[\u2013\u2014]/gu, '-');
@@ -1147,10 +1048,7 @@
         const replacement = RU_REPLACEMENTS[lower];
         if (!replacement) return replacement;
         if (word === word.toUpperCase()) return replacement.toUpperCase();
-        if (
-          word[0] === word[0].toUpperCase() &&
-          word.slice(1) === word.slice(1).toLowerCase()
-        ) {
+        if (word[0] === word[0].toUpperCase() && word.slice(1) === word.slice(1).toLowerCase()) {
           return replacement.charAt(0).toUpperCase() + replacement.slice(1);
         }
         return replacement;
@@ -1171,20 +1069,14 @@
       if (/^pre[- ]?chorus/.test(t)) return '#PRE-CHORUS';
       if (/^chorus/.test(t)) return '#CHORUS';
       if (/^bridge/.test(t)) return '#BRIDGE';
-      if (
-        /^(hook|refrain|post-chorus|postchorus|drop|break|interlude)/.test(t)
-      ) {
+      if (/^(hook|refrain|post-chorus|postchorus|drop|break|interlude)/.test(t)) {
         return '#HOOK';
       }
       if (/^outro/.test(t)) return '#OUTRO';
-      if (
-        /^instrumental(?:\s+(?:break|bridge|outro|interlude|solo))?/.test(t)
-      ) {
+      if (/^instrumental(?:\s+(?:break|bridge|outro|interlude|solo))?/.test(t)) {
         return '#INSTRUMENTAL';
       }
-      return (
-        '#' + String(raw).toUpperCase().replace(/\d+/g, '').replace(/ +/g, '-')
-      );
+      return '#' + String(raw).toUpperCase().replace(/\d+/g, '').replace(/ +/g, '-');
     });
 
     x = normalizeStructureTags(x);
@@ -1296,13 +1188,11 @@
           const nextChar = nextIndex < str.length ? str[nextIndex] : '';
           if (/\w/.test(prevChar) || /\w/.test(nextChar)) return match;
 
-          const hasLeadingApostrophe =
-            match[0] === "'" || match[0] === '\u2019';
+          const hasLeadingApostrophe = match[0] === "'" || match[0] === '\u2019';
           const core = hasLeadingApostrophe ? match.slice(1) : match;
           const firstChar = core[0] ?? '';
           const isAllUpper = core === core.toUpperCase();
-          const isTitleCase =
-            firstChar !== '' && firstChar === firstChar.toUpperCase();
+          const isTitleCase = firstChar !== '' && firstChar === firstChar.toUpperCase();
           const isLineStart = offset === 0;
 
           if (isAllUpper) return "'CAUSE";
@@ -1364,8 +1254,7 @@
       const start = offset + boundary.length;
       const afterStart = start + 4;
       const lineEnd = str.indexOf('\n', afterStart);
-      const rest =
-        lineEnd === -1 ? str.slice(afterStart) : str.slice(afterStart, lineEnd);
+      const rest = lineEnd === -1 ? str.slice(afterStart) : str.slice(afterStart, lineEnd);
       const hasLower = /[a-z]/.test(rest);
       const hasUpper = /[A-Z]/.test(rest);
       const replacement = hasUpper && !hasLower ? "'TIL" : "'Til";
@@ -1378,14 +1267,8 @@
     x = normalizeEmPronouns(x);
 
     if (hyphenatedEmTokens.length) {
-      const tokenRe = new RegExp(
-        `${HYPHENATED_EM_TOKEN}(\\d+)${HYPHENATED_EM_TOKEN}`,
-        'g',
-      );
-      x = x.replace(
-        tokenRe,
-        (_, idx) => hyphenatedEmTokens[Number(idx)] ?? 'em',
-      );
+      const tokenRe = new RegExp(`${HYPHENATED_EM_TOKEN}(\\d+)${HYPHENATED_EM_TOKEN}`, 'g');
+      x = x.replace(tokenRe, (_, idx) => hyphenatedEmTokens[Number(idx)] ?? 'em');
     }
 
     // Interjections
@@ -1713,105 +1596,94 @@
       'hadnt',
     ]);
 
-    x = x.replace(
-      /\b(oh|ah|yeah|uh)h+\b(?=[\s,!.?\)]|$)/gi,
-      (match, base) => base,
-    );
-    x = x.replace(
-      /\b(oh|ah|yeah|whoa|ooh|uh|well)\b(?!,)/gi,
-      (m, word, off, str) => {
-        const after = str.slice(off + m.length);
-        const lower = word.toLowerCase();
+    x = x.replace(/\b(oh|ah|yeah|uh)h+\b(?=[\s,!.?\)]|$)/gi, (match, base) => base);
+    x = x.replace(/\b(oh|ah|yeah|whoa|ooh|uh|well)\b(?!,)/gi, (m, word, off, str) => {
+      const after = str.slice(off + m.length);
+      const lower = word.toLowerCase();
 
-        let idx = 0;
+      let idx = 0;
+      while (idx < after.length && /\s/.test(after[idx])) idx++;
+      if (idx >= after.length) return lower === 'well' ? m : m + ',';
+
+      if (after[idx] === ',') return m;
+
+      while (idx < after.length && CLOSING_QUOTES.has(after[idx])) {
+        idx++;
         while (idx < after.length && /\s/.test(after[idx])) idx++;
-        if (idx >= after.length) return lower === 'well' ? m : m + ',';
-
-        if (after[idx] === ',') return m;
-
-        while (idx < after.length && CLOSING_QUOTES.has(after[idx])) {
-          idx++;
-          while (idx < after.length && /\s/.test(after[idx])) idx++;
-          if (idx >= after.length) return m;
-          if (after[idx] === ',') return m;
-        }
-
         if (idx >= after.length) return m;
+        if (after[idx] === ',') return m;
+      }
 
-        const next = after[idx];
+      if (idx >= after.length) return m;
 
-        if (lower === 'well') {
-          const before = str.slice(0, off);
-          const trimmedBefore = before.replace(/\s+$/, '');
-          const prevChar = trimmedBefore.slice(-1);
-          const prevWordMatch = trimmedBefore.match(
-            /([A-Za-z'’]+)[^A-Za-z'’]*$/,
-          );
-          const prevWord = prevWordMatch
-            ? prevWordMatch[1].replace(/^['’]+/, '').toLowerCase()
-            : null;
+      const next = after[idx];
 
-          if (prevWord && WELL_PRECEDER_WORDS.has(prevWord)) return m;
-          if (
-            prevChar &&
-            /[A-Za-z0-9]/.test(prevChar) &&
-            (!prevWord || !WELL_ALLOWED_PRECEDERS.has(prevWord))
-          ) {
-            return m;
-          }
-          if (INTERJECTION_STOPPERS.includes(next)) return m;
+      if (lower === 'well') {
+        const before = str.slice(0, off);
+        const trimmedBefore = before.replace(/\s+$/, '');
+        const prevChar = trimmedBefore.slice(-1);
+        const prevWordMatch = trimmedBefore.match(/([A-Za-z'’]+)[^A-Za-z'’]*$/);
+        const prevWord = prevWordMatch
+          ? prevWordMatch[1].replace(/^['’]+/, '').toLowerCase()
+          : null;
 
-          let clauseIdx = idx;
-          while (clauseIdx < after.length && '([{'.includes(after[clauseIdx])) {
-            clauseIdx++;
-            while (clauseIdx < after.length && /\s/.test(after[clauseIdx])) {
-              clauseIdx++;
-            }
-          }
-
-          while (
-            clauseIdx < after.length &&
-            CLOSING_QUOTES.has(after[clauseIdx])
-          ) {
-            clauseIdx++;
-            while (clauseIdx < after.length && /\s/.test(after[clauseIdx])) {
-              clauseIdx++;
-            }
-          }
-
-          if (clauseIdx >= after.length) return m;
-
-          const clauseStart = after.slice(clauseIdx);
-          const nextWordMatch = clauseStart.match(/^([A-Za-z'’]+)/);
-          if (!nextWordMatch) return m;
-
-          let candidate = nextWordMatch[1].toLowerCase().replace(/[’]/g, "'");
-          candidate = candidate.replace(/^'+/, '');
-          if (!candidate) return m;
-
-          const forms = new Set([candidate]);
-          const noApos = candidate.replace(/'/g, '');
-          forms.add(noApos);
-          const noSuffix = candidate.replace(/(?:'ll|'re|'ve|'d|'m|'s)$/g, '');
-          if (noSuffix && noSuffix !== candidate) {
-            forms.add(noSuffix);
-            forms.add(noSuffix.replace(/'/g, ''));
-          }
-
-          for (const form of forms) {
-            const normalized = form.replace(/'/g, '');
-            if (normalized && WELL_CLAUSE_STARTERS.has(normalized)) {
-              return m + ',';
-            }
-          }
-
+        if (prevWord && WELL_PRECEDER_WORDS.has(prevWord)) return m;
+        if (
+          prevChar &&
+          /[A-Za-z0-9]/.test(prevChar) &&
+          (!prevWord || !WELL_ALLOWED_PRECEDERS.has(prevWord))
+        ) {
           return m;
         }
-
         if (INTERJECTION_STOPPERS.includes(next)) return m;
-        return m + ',';
-      },
-    );
+
+        let clauseIdx = idx;
+        while (clauseIdx < after.length && '([{'.includes(after[clauseIdx])) {
+          clauseIdx++;
+          while (clauseIdx < after.length && /\s/.test(after[clauseIdx])) {
+            clauseIdx++;
+          }
+        }
+
+        while (clauseIdx < after.length && CLOSING_QUOTES.has(after[clauseIdx])) {
+          clauseIdx++;
+          while (clauseIdx < after.length && /\s/.test(after[clauseIdx])) {
+            clauseIdx++;
+          }
+        }
+
+        if (clauseIdx >= after.length) return m;
+
+        const clauseStart = after.slice(clauseIdx);
+        const nextWordMatch = clauseStart.match(/^([A-Za-z'’]+)/);
+        if (!nextWordMatch) return m;
+
+        let candidate = nextWordMatch[1].toLowerCase().replace(/[’]/g, "'");
+        candidate = candidate.replace(/^'+/, '');
+        if (!candidate) return m;
+
+        const forms = new Set([candidate]);
+        const noApos = candidate.replace(/'/g, '');
+        forms.add(noApos);
+        const noSuffix = candidate.replace(/(?:'ll|'re|'ve|'d|'m|'s)$/g, '');
+        if (noSuffix && noSuffix !== candidate) {
+          forms.add(noSuffix);
+          forms.add(noSuffix.replace(/'/g, ''));
+        }
+
+        for (const form of forms) {
+          const normalized = form.replace(/'/g, '');
+          if (normalized && WELL_CLAUSE_STARTERS.has(normalized)) {
+            return m + ',';
+          }
+        }
+
+        return m;
+      }
+
+      if (INTERJECTION_STOPPERS.includes(next)) return m;
+      return m + ',';
+    });
 
     x = x.replace(/\b(oh|ah|yeah|whoa|ooh|uh|well)\b\s*,\s*(?=\))/gi, '$1');
 
@@ -1950,28 +1822,22 @@
     x = ensureStandaloneICapitalized(x);
 
     // Ensure "'cause" is capitalized at the start of lines while respecting all-caps lines
-    x = x.replace(
-      /(^|\n)(\s*)('?cause)\b/gi,
-      (match, boundary, spaces, token, offset, str) => {
-        const tokenEnd =
-          offset + boundary.length + spaces.length + token.length;
-        const lineEnd = str.indexOf('\n', tokenEnd);
-        const rest =
-          lineEnd === -1 ? str.slice(tokenEnd) : str.slice(tokenEnd, lineEnd);
-        const hasLower = /[a-z]/.test(rest);
-        const hasUpper = /[A-Z]/.test(rest);
-        if ((hasUpper && !hasLower) || token === token.toUpperCase()) {
-          return boundary + spaces + "'CAUSE";
-        }
-        return boundary + spaces + "'Cause";
-      },
-    );
+    x = x.replace(/(^|\n)(\s*)('?cause)\b/gi, (match, boundary, spaces, token, offset, str) => {
+      const tokenEnd = offset + boundary.length + spaces.length + token.length;
+      const lineEnd = str.indexOf('\n', tokenEnd);
+      const rest = lineEnd === -1 ? str.slice(tokenEnd) : str.slice(tokenEnd, lineEnd);
+      const hasLower = /[a-z]/.test(rest);
+      const hasUpper = /[A-Z]/.test(rest);
+      if ((hasUpper && !hasLower) || token === token.toUpperCase()) {
+        return boundary + spaces + "'CAUSE";
+      }
+      return boundary + spaces + "'Cause";
+    });
 
     // Capitalize first letter of each line (ignoring leading whitespace)
     x = x.replace(
       /(^|\n)(\s*)(["'“”‘’]?)(\p{Ll})/gu,
-      (_, boundary, space, quote, letter) =>
-        boundary + space + quote + letter.toLocaleUpperCase(),
+      (_, boundary, space, quote, letter) => boundary + space + quote + letter.toLocaleUpperCase(),
     );
 
     // BV lowercase (except I, I'm, I'ma) — refined proper-noun aware
@@ -2000,25 +1866,20 @@
       const firstLower = coreFirstWord.toLocaleLowerCase();
 
       // Preserve I, I'm, I'ma
-      if (
-        BV_FIRST_WORD_EXCEPTIONS.has(coreFirstWord) ||
-        BV_FIRST_WORD_EXCEPTIONS.has(firstLower)
-      ) {
+      if (BV_FIRST_WORD_EXCEPTIONS.has(coreFirstWord) || BV_FIRST_WORD_EXCEPTIONS.has(firstLower)) {
         return match;
       }
 
       // Detect if ALL words are proper-cased ("Jesus Christ my Lord" stays intact)
       const words = trimmed.split(/\s+/);
-      const allProper =
-        words.length > 1 && words.every((w) => /^[A-Z][a-z]+/.test(w));
+      const allProper = words.length > 1 && words.every((w) => /^[A-Z][a-z]+/.test(w));
 
       // NEW: detect if it's *partially* proper but not starting with one (e.g., "Thank you, Jesus Christ my Lord")
       const startsProper = /^[A-Z][a-z]+$/.test(coreFirstWord);
       if (allProper && startsProper) return match;
 
       // Otherwise, lowercase the first word
-      const loweredFirst =
-        leadingQuotes + firstLower + (hasTrailingComma ? ',' : '');
+      const loweredFirst = leadingQuotes + firstLower + (hasTrailingComma ? ',' : '');
       const remainder = trimmed.slice(firstToken.length);
       return `(${leadingSpace}${loweredFirst}${remainder}${trailingSpace})`;
     });
@@ -2034,15 +1895,12 @@
     x = capitalizeAfterSentenceEnders(x);
 
     // Smart comma relocation: only move if there's text after ")" (idempotent), otherwise remove
-    x = x.replace(
-      /,[ \t]*\(([^)]*?)\)(?=[ \t]*\S)/g,
-      (match, inner, offset, str) => {
-        // [FIXED]
-        const afterIdx = offset + match.length;
-        if (str[afterIdx] === ',') return match;
-        return ` (${inner}),`;
-      },
-    );
+    x = x.replace(/,[ \t]*\(([^)]*?)\)(?=[ \t]*\S)/g, (match, inner, offset, str) => {
+      // [FIXED]
+      const afterIdx = offset + match.length;
+      if (str[afterIdx] === ',') return match;
+      return ` (${inner}),`;
+    });
     x = x.replace(/,[ \t]*\(([^)]*?)\)[ \t]*$/gm, ' ($1)'); // [FIXED] if line ends after ")", remove comma
 
     // === Normalize syllable repetitions (na, la, etc.) ===
@@ -2061,10 +1919,7 @@
 
         const parts = [];
         for (let i = 0; i < total; i += 4) {
-          const group = Array.from(
-            { length: Math.min(4, total - i) },
-            () => syllable,
-          ).join('-');
+          const group = Array.from({ length: Math.min(4, total - i) }, () => syllable).join('-');
           parts.push(group);
         }
 
@@ -2097,9 +1952,7 @@
     // ✅ Only lowercase the first word after ")" (except I / I'm / I'ma)
     x = x.replace(/(?<![?!])\)[ \t]+(\p{Lu}\p{Ll}*)\b/gu, (match, word) => {
       const exceptions = ['I', "I'm", "I'ma"];
-      return exceptions.includes(word)
-        ? `) ${word}`
-        : `) ${word.toLocaleLowerCase()}`;
+      return exceptions.includes(word) ? `) ${word}` : `) ${word.toLocaleLowerCase()}`;
     });
 
     x = x
@@ -2145,10 +1998,7 @@
     x = x.replace(/(\))[ \t]*\n(?=[^\n])/g, '$1\n');
 
     // Remove overly aggressive BV adjacency merging
-    x = x.replace(
-      /((?:\)|\byeah\b)[,!?]*)\s*\n(?=\([^)]+\)\s*[a-z])/gi,
-      '$1\n',
-    );
+    x = x.replace(/((?:\)|\byeah\b)[,!?]*)\s*\n(?=\([^)]+\)\s*[a-z])/gi, '$1\n');
     x = x.replace(/([.!?])([ \t]*["'“”‘’])[ \t]*\n(?=[^\n])/g, '$1$2\n');
 
     if (preservedStandaloneParens.length > 0) {
@@ -2194,23 +2044,14 @@
     x = x.replace(/\bchristmas[\s-]*eve\b/gi, 'Christmas Eve');
 
     // === Merge duplicate structure tags & remove blank spacing ===
-    x = x.replace(
-      /(#(INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))(\n\s*\n\1)+/g,
-      '$1',
-    );
+    x = x.replace(/(#(INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))(\n\s*\n\1)+/g, '$1');
     x = x.replace(/(#\w+\n)\n+/g, '$1');
 
     // === Ensure blank line before structure tags for readability ===
-    x = x.replace(
-      /([^\n#])\n(?=#(INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))/g,
-      '$1\n\n',
-    );
+    x = x.replace(/([^\n#])\n(?=#(INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))/g, '$1\n\n');
 
     // === Prevent #HOOK duplication after non-verbal insertion ===
-    x = x.replace(
-      /(#(INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))(\n\1)+/g,
-      '$1',
-    );
+    x = x.replace(/(#(INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))(\n\1)+/g, '$1');
 
     // === Only single blank line between tags ===
     x = x.replace(/\n{3,}/g, '\n\n');
@@ -2386,8 +2227,7 @@
     const buttonParent = uiDocument.body || uiDocument.documentElement;
     if (!buttonParent) return;
 
-    let container =
-      floatingButtonContainer || uiDocument.getElementById('mxmFmtBtnWrap');
+    let container = floatingButtonContainer || uiDocument.getElementById('mxmFmtBtnWrap');
     if (!container) {
       container = uiDocument.createElement('div');
       container.id = 'mxmFmtBtnWrap';
@@ -2407,8 +2247,7 @@
       });
     }
 
-    let formatBtn =
-      floatingFormatButton || container.querySelector('#mxmFmtBtn');
+    let formatBtn = floatingFormatButton || container.querySelector('#mxmFmtBtn');
     if (!formatBtn) {
       formatBtn = uiDocument.createElement('button');
       formatBtn.id = 'mxmFmtBtn';
@@ -2425,8 +2264,7 @@
         border: '1px solid #303030',
         background: 'linear-gradient(135deg,#181818,#101010)',
         color: '#f9f9f9',
-        fontFamily:
-          'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+        fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
         fontSize: '13px',
         letterSpacing: '0.3px',
         cursor: 'pointer',
@@ -2450,8 +2288,7 @@
       formatBtn.dataset.mxmStyled = '1';
     }
 
-    let revertBtn =
-      floatingRevertButton || container.querySelector('#mxmFmtRevertBtn');
+    let revertBtn = floatingRevertButton || container.querySelector('#mxmFmtRevertBtn');
     if (!revertBtn) {
       revertBtn = uiDocument.createElement('button');
       revertBtn.id = 'mxmFmtRevertBtn';
@@ -2468,8 +2305,7 @@
         border: '1px solid #3a3a3a',
         background: 'linear-gradient(135deg,#222,#161616)',
         color: '#f0f0f0',
-        fontFamily:
-          'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+        fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
         fontSize: '13px',
         letterSpacing: '0.3px',
         cursor: 'pointer',
@@ -2483,17 +2319,13 @@
       });
       revertBtn.addEventListener('mouseleave', () => {
         revertBtn.style.transform = '';
-        revertBtn.style.boxShadow = revertBtn.disabled
-          ? ''
-          : '0 6px 18px rgba(0,0,0,.24)';
+        revertBtn.style.boxShadow = revertBtn.disabled ? '' : '0 6px 18px rgba(0,0,0,.24)';
       });
       revertBtn.addEventListener('focus', () => {
         revertBtn.style.boxShadow = '0 0 0 3px rgba(255,255,255,.18)';
       });
       revertBtn.addEventListener('blur', () => {
-        revertBtn.style.boxShadow = revertBtn.disabled
-          ? ''
-          : '0 6px 18px rgba(0,0,0,.24)';
+        revertBtn.style.boxShadow = revertBtn.disabled ? '' : '0 6px 18px rgba(0,0,0,.24)';
       });
       revertBtn.dataset.mxmStyled = '1';
     }
@@ -2674,8 +2506,7 @@
       }
       popover.remove();
     }
-    const container =
-      floatingButtonContainer || uiDocument?.getElementById('mxmFmtBtnWrap');
+    const container = floatingButtonContainer || uiDocument?.getElementById('mxmFmtBtnWrap');
     if (container?.isConnected) container.remove();
     floatingButtonContainer = null;
     floatingFormatButton = null;
@@ -2689,8 +2520,7 @@
   }
 
   function updateRevertButtonState() {
-    const btn =
-      floatingRevertButton || uiDocument?.getElementById('mxmFmtRevertBtn');
+    const btn = floatingRevertButton || uiDocument?.getElementById('mxmFmtRevertBtn');
     if (!btn) return;
     const hasStored = lastFormatState !== null || readStoredOriginal() !== null;
     btn.disabled = !hasStored;
@@ -2708,9 +2538,7 @@
   function revertLastFormat() {
     const original = getLastOriginalText();
     if (original === null) {
-      alert(
-        'No previous lyrics stored. Format the lyrics before trying to revert.',
-      );
+      alert('No previous lyrics stored. Format the lyrics before trying to revert.');
       return;
     }
     let target = null;
@@ -2732,19 +2560,13 @@
   function applyExtensionOptions(updates = {}) {
     if (!updates || typeof updates !== 'object') return;
     const prevShow = extensionOptions.showFloatingButton;
-    if (
-      Object.prototype.hasOwnProperty.call(updates, 'lang') &&
-      typeof updates.lang === 'string'
-    ) {
+    if (Object.prototype.hasOwnProperty.call(updates, 'lang') && typeof updates.lang === 'string') {
       extensionOptions.lang = updates.lang;
       writeLocalOption('mxmFmtLang', extensionOptions.lang);
     }
     if (Object.prototype.hasOwnProperty.call(updates, 'autoLowercase')) {
       extensionOptions.autoLowercase = Boolean(updates.autoLowercase);
-      writeLocalOption(
-        'mxmFmtAutoLowercase',
-        extensionOptions.autoLowercase ? '1' : '0',
-      );
+      writeLocalOption('mxmFmtAutoLowercase', extensionOptions.autoLowercase ? '1' : '0');
     }
     if (Object.prototype.hasOwnProperty.call(updates, 'fixBackingVocals')) {
       extensionOptions.fixBackingVocals = Boolean(updates.fixBackingVocals);
@@ -2764,22 +2586,18 @@
   function initializeExtensionOptions() {
     ensureShortcutListeners();
     syncFloatingButtonVisibility();
-    const chromeStorage =
-      typeof chrome !== 'undefined' ? chrome.storage : undefined;
+    const chromeStorage = typeof chrome !== 'undefined' ? chrome.storage : undefined;
     if (!chromeStorage?.sync) return;
 
-    chromeStorage.sync.get(
-      ['mxmLang', 'mxmLower', 'mxmBV', 'mxmButton'],
-      (data) => {
-        const payload = data || {};
-        applyExtensionOptions({
-          lang: payload.mxmLang || extensionDefaults.lang,
-          autoLowercase: Boolean(payload.mxmLower),
-          fixBackingVocals: payload.mxmBV ?? extensionDefaults.fixBackingVocals,
-          showFloatingButton: Boolean(payload.mxmButton),
-        });
-      },
-    );
+    chromeStorage.sync.get(['mxmLang', 'mxmLower', 'mxmBV', 'mxmButton'], (data) => {
+      const payload = data || {};
+      applyExtensionOptions({
+        lang: payload.mxmLang || extensionDefaults.lang,
+        autoLowercase: Boolean(payload.mxmLower),
+        fixBackingVocals: payload.mxmBV ?? extensionDefaults.fixBackingVocals,
+        showFloatingButton: Boolean(payload.mxmButton),
+      });
+    });
 
     if (chromeStorage.onChanged?.addListener) {
       chromeStorage.onChanged.addListener((changes, area) => {
@@ -2792,8 +2610,7 @@
           updates.autoLowercase = Boolean(changes.mxmLower.newValue);
         }
         if (Object.prototype.hasOwnProperty.call(changes, 'mxmBV')) {
-          updates.fixBackingVocals =
-            changes.mxmBV.newValue ?? extensionDefaults.fixBackingVocals;
+          updates.fixBackingVocals = changes.mxmBV.newValue ?? extensionDefaults.fixBackingVocals;
         }
         if (Object.prototype.hasOwnProperty.call(changes, 'mxmButton')) {
           updates.showFloatingButton = Boolean(changes.mxmButton.newValue);
@@ -2807,18 +2624,14 @@
   function toast(msg) {
     if (!uiDocument) return;
     const t = uiDocument.createElement('div');
-    const toastBottom = Math.max(
-      latestButtonBottom + 48,
-      BUTTON_BASE_BOTTOM + 48,
-    );
+    const toastBottom = Math.max(latestButtonBottom + 48, BUTTON_BASE_BOTTOM + 48);
     Object.assign(t.style, {
       background: 'rgba(17,17,17,.95)',
       color: '#eaeaea',
       border: '1px solid #333',
       borderRadius: '10px',
       padding: '8px 10px',
-      fontFamily:
-        'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+      fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
       fontSize: '12px',
       position: 'fixed',
       right: `${BUTTON_RIGHT_OFFSET}px`,
@@ -2843,22 +2656,13 @@
       ) {
         updates.lang = passedOptions.lang;
       }
-      if (
-        Object.prototype.hasOwnProperty.call(passedOptions, 'autoLowercase')
-      ) {
+      if (Object.prototype.hasOwnProperty.call(passedOptions, 'autoLowercase')) {
         updates.autoLowercase = Boolean(passedOptions.autoLowercase);
       }
-      if (
-        Object.prototype.hasOwnProperty.call(passedOptions, 'fixBackingVocals')
-      ) {
+      if (Object.prototype.hasOwnProperty.call(passedOptions, 'fixBackingVocals')) {
         updates.fixBackingVocals = Boolean(passedOptions.fixBackingVocals);
       }
-      if (
-        Object.prototype.hasOwnProperty.call(
-          passedOptions,
-          'showFloatingButton',
-        )
-      ) {
+      if (Object.prototype.hasOwnProperty.call(passedOptions, 'showFloatingButton')) {
         updates.showFloatingButton = Boolean(passedOptions.showFloatingButton);
       }
       if (Object.keys(updates).length) applyExtensionOptions(updates);
