@@ -989,7 +989,7 @@ const WELL_CLAUSE_STARTERS = new Set([
         "fin","din","min","gin","lin","kin","sin","win","bin","thin","tin","akin","leadin","captain","mountain",
         "fountain","certain","again","gain","spin","twin","main","cain","mantain","retain","detain","vain","regain",
         // 🔒 New rhyme-based exclusions
-        "rain", "brain", "pain","drain","main","train","grain","chain","plain","remain","campaign","fein",
+        "rain", "brain", "pain","drain","main","train","grain","cabin","satin","chain","plain","remain","campaign","fein",
         "contain","domain","explain","sustain","pertain","obtain","entertain","villain","admin","abstain","stain",
       ]);
 
