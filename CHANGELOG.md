@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.1.70
+- Correct Christmas spellings, title-case proper nouns in backing vocal parentheses, and lowercase interjection syllables.
+- Collapse duplicate structure headers and reduce excessive blank lines so tags stay unique.
+- Bump the userscript, extension, and package metadata to reflect the 1.1.70 release.
+
 ## v1.1.69
 - Extend the Russian structure tag map with bridge, pre-chorus, and hook synonyms to cover common Musixmatch variants.
 - Normalize Russian section headings that include performer names, numbering, or brackets so they convert to canonical tags.

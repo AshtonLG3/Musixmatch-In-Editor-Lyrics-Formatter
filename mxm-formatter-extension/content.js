@@ -1,7 +1,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.69';
+  const SCRIPT_VERSION = '1.1.70';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -85,7 +85,26 @@
     EL: { preserve: ['Greek'], droppedG: false, tagMap: {} }
   };
 
-  const BV_FIRST_WORD_EXCEPTIONS = new Set(['I', "I'm", "I'ma", 'i', "i'm", "i'ma"]);
+  const BV_FIRST_WORD_EXCEPTIONS = new Set([
+    'I',
+    "I'm",
+    "I'ma",
+    "I'll",
+    "I'd",
+    'i',
+    "i'm",
+    "i'ma",
+    "i'll",
+    "i'd",
+    'Jesus',
+    'Christ',
+    'God',
+    'Lord',
+    'jesus',
+    'christ',
+    'god',
+    'lord'
+  ]);
 
   function loadSettings() {
     if (!hasWindow) return { ...defaults };
@@ -1463,6 +1482,47 @@
       /(\b(?:yeah|oh|whoa|huh)\b|\))[ \t]*\n+(?=#(?:INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))/gim,
       '$1\n\n'
     );
+
+    // === Fix: Holiday and Proper Noun Corrections ===
+    x = x.replace(/\bchrismast\b/gi, 'Christmas');
+    x = x.replace(/\bchristmastime\b/gi, 'Christmas time');
+    x = x.replace(/\bchristmas eve\b/gi, 'Christmas Eve');
+
+    // === Fix: Merge duplicate structure tags & remove blank spacing ===
+    x = x.replace(/(#(INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))(\n\s*\n\1)+/g, '$1');
+    x = x.replace(/(#\w+\n)\n+/g, '$1');
+
+    // === Fix: Backing Vocal (BV) Proper Nouns & Title Case ===
+    x = x.replace(/\(([^)]+)\)/g, (m, inner, offset, str) => {
+      const lineStartIdx = str.lastIndexOf('\n', offset);
+      const lineEndIdx = str.indexOf('\n', offset + m.length);
+      const lineStart = lineStartIdx === -1 ? 0 : lineStartIdx + 1;
+      const lineEnd = lineEndIdx === -1 ? str.length : lineEndIdx;
+      const line = str.slice(lineStart, lineEnd);
+      if (line.trim() === m.trim()) {
+        return m;
+      }
+
+      // Skip capitalization changes for interjections or syllabic BVs
+      if (/\b(yeah|la|na|whoa|woo|ah|oh|hey|ha)\b/i.test(inner)) {
+        return '(' + inner.toLowerCase() + ')';
+      }
+
+      // Proper noun and title case logic
+      const words = inner.split(/\s+/).map(w => {
+        return BV_FIRST_WORD_EXCEPTIONS.has(w)
+          ? w
+          : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+      });
+
+      return '(' + words.join(' ') + ')';
+    });
+
+    // === Fix: Prevent #HOOK duplication after non-verbal insertion ===
+    x = x.replace(/(#(INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))(\n\1)+/g, '$1');
+
+    // === Optional: ensure only single blank line between structure tags ===
+    x = x.replace(/\n{3,}/g, '\n\n');
 
     // 4️⃣ Remove stray indentation and trailing spaces on each line
     x = x.replace(/^[ \t]+/gm, "");
