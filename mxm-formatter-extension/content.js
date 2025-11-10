@@ -1,7 +1,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.72';
+  const SCRIPT_VERSION = '1.1.72-internal.2';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -719,6 +719,9 @@
 
     x = normalizeStructureTags(x);
 
+    // Normalize any hook variants into #HOOK
+    x = x.replace(/(^|\n)\s*[\[(]?(hook|HOOK)[\])]?(\s*\d+)?\s*(?=\n|$)/g, (_, b) => `${b}#HOOK`);
+
     if (currentLang === 'RU') {
       // === Russian Structure Tag Normalization ===
       const RU_STRUCTURE_RE =
@@ -1373,28 +1376,19 @@
 
     // === Backing vocals normalization ===
     if (fixBackingVocals) {
-      // Capitalization dictionary for BV words only
-      const BV_CAP_DICT = new Map([
-        ["christmas", "Christmas"],
-        ["santa", "Santa"],
-        ["god", "God"],
-        ["jesus", "Jesus"],
-        ["allah", "Allah"],
-        ["i", "I"]
-      ]);
+      // Lowercase backing vocals only when they appear inline (not at line start)
+      x = x.replace(/(?<!^|\n)\(([^)]+)\)/g, (match, inner) => {
+        const trimmed = inner.trim();
+        if (!trimmed) return match;
 
-      // Inline backing vocals → lowercase first word after '('
-      x = x.replace(/\((\s*)([A-Za-zÀ-ÖØ-öø-ÿ])([^)]*)\)/g, (full, space, first, rest) => {
-        const firstLower = first.toLowerCase();
-        let rebuilt = firstLower + rest;
+        const firstWord = trimmed.split(/\s+/)[0];
+        const lowerFirst = firstWord.toLowerCase();
 
-        // Apply dictionary-based capitalization inside BV parentheses
-        rebuilt = rebuilt.replace(/\b(\p{L}[\p{L}'’\-]*)\b/gu, word => {
-          const lower = word.toLowerCase();
-          return BV_CAP_DICT.has(lower) ? BV_CAP_DICT.get(lower) : word;
-        });
+        // Skip proper nouns and exceptions like I, I'm, I'ma
+        const BV_EXCEPTIONS = new Set(['I', "I'm", "I'ma"]);
+        if (BV_EXCEPTIONS.has(firstWord) || BV_EXCEPTIONS.has(lowerFirst)) return match;
 
-        return `(${space}${rebuilt})`;
+        return `(${lowerFirst}${trimmed.slice(firstWord.length)})`;
       });
     }
 

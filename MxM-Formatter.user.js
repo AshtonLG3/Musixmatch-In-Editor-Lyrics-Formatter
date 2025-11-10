@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.71
+// @version      1.1.72-internal.2
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.71';
+  const SCRIPT_VERSION = '1.1.72-internal.2';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -839,6 +839,9 @@
 
     x = normalizeStructureTags(x);
 
+    // Normalize any hook variants into #HOOK
+    x = x.replace(/(^|\n)\s*[\[(]?(hook|HOOK)[\])]?(\s*\d+)?\s*(?=\n|$)/g, (_, b) => `${b}#HOOK`);
+
     if (currentLang === 'RU') {
       // === Russian Structure Tag Normalization ===
       const RU_STRUCTURE_RE =
@@ -1219,17 +1222,17 @@ const WELL_CLAUSE_STARTERS = new Set([
       boundary + space + quote + letter.toLocaleUpperCase()
     );
 
-    // BV lowercase (except I, I'm, I'ma) — simplified without title-casing
-    x = x.replace(/(\p{L})\(/gu, "$1 (");
-
-    // Simplified BV lowercase without title casing
-    x = x.replace(/\(([^)]+)\)/g, (match, inner) => {
+    // === Backing vocals normalization ===
+    x = x.replace(/(?<!^|\n)\(([^)]+)\)/g, (match, inner) => {
       const trimmed = inner.trim();
       if (!trimmed) return match;
+
       const firstWord = trimmed.split(/\s+/)[0] || '';
       const lowerFirst = firstWord.toLocaleLowerCase();
+
       if (BV_FIRST_WORD_EXCEPTIONS.has(firstWord) || BV_FIRST_WORD_EXCEPTIONS.has(lowerFirst))
         return match;
+
       return `(${lowerFirst}${trimmed.slice(firstWord.length)})`;
     });
 
@@ -1354,7 +1357,7 @@ x = x
     x = x.replace(/(#\w+\n)\n+/g, '$1');
 
     // === Ensure blank line before structure tags for readability ===
-    x = x.replace(/([^\n#])\n(?=#(INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))/g, '$1\n\n');
+    x = x.replace(/([^)#\n])\n(?=#(INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))/g, '$1\n\n');
 
     // === Prevent #HOOK duplication after non-verbal insertion ===
     x = x.replace(/(#(INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))(\n\1)+/g, '$1');
