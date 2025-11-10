@@ -1219,105 +1219,35 @@ const WELL_CLAUSE_STARTERS = new Set([
       boundary + space + quote + letter.toLocaleUpperCase()
     );
 
-    // BV lowercase (except I, I'm, I'ma) — refined proper-noun aware
+    // BV lowercase (except I, I'm, I'ma) — simplified without title-casing
     x = x.replace(/(\p{L})\(/gu, "$1 (");
 
+    // Simplified BV lowercase without title casing
     x = x.replace(/\(([^)]+)\)/g, (match, inner) => {
       const trimmed = inner.trim();
       if (!trimmed) return match;
-
-      const leadingSpace = inner.match(/^\s+/)?.[0] ?? '';
-      const trailingSpace = inner.match(/\s+$/)?.[0] ?? '';
-
-      const firstTokenMatch = trimmed.match(/^\S+/);
-      if (!firstTokenMatch) return match;
-      const firstToken = firstTokenMatch[0];
-
-      const leadingQuotesMatch = firstToken.match(/^["'“”‘’]+/);
-      const leadingQuotes = leadingQuotesMatch ? leadingQuotesMatch[0] : '';
-      const hasTrailingComma = firstToken.endsWith(',');
-      const coreFirstWord = firstToken.slice(
-        leadingQuotes.length,
-        hasTrailingComma ? -1 : undefined
-      );
-      if (!coreFirstWord) return match;
-
-      const firstLower = coreFirstWord.toLocaleLowerCase();
-
-      // Preserve I, I'm, I'ma
-      if (BV_FIRST_WORD_EXCEPTIONS.has(coreFirstWord) || BV_FIRST_WORD_EXCEPTIONS.has(firstLower))
+      const firstWord = trimmed.split(/\s+/)[0] || '';
+      const lowerFirst = firstWord.toLocaleLowerCase();
+      if (BV_FIRST_WORD_EXCEPTIONS.has(firstWord) || BV_FIRST_WORD_EXCEPTIONS.has(lowerFirst))
         return match;
-
-      // Detect if ALL words are proper-cased ("Jesus Christ my Lord" stays intact)
-      const words = trimmed.split(/\s+/);
-      const allProper = words.length > 1 && words.every(w => /^[A-Z][a-z]+/.test(w));
-
-      // NEW: detect if it's *partially* proper but not starting with one (e.g., "Thank you, Jesus Christ my Lord")
-      const startsProper = /^[A-Z][a-z]+$/.test(coreFirstWord);
-      if (allProper && startsProper) return match;
-
-      // Otherwise, lowercase the first word
-      const loweredFirst = leadingQuotes + firstLower + (hasTrailingComma ? ',' : '');
-      const remainder = trimmed.slice(firstToken.length);
-      return `(${leadingSpace}${loweredFirst}${remainder}${trailingSpace})`;
+      return `(${lowerFirst}${trimmed.slice(firstWord.length)})`;
     });
 
-    // Capitalize first letter when line starts with "("
-    x = x.replace(/(^|\n)(\(\s*)(["'“”‘’]?)(\p{Ll})/gu, (_, boundary, parenWithSpace, quote, letter) =>
-      boundary + parenWithSpace + quote + letter.toLocaleUpperCase()
+    // Maintain capitalization for lines starting with "("
+    x = x.replace(/(^|\n)(\(\s*)(["'“”‘’]?)(\p{Ll})/gu,
+      (_, boundary, parenWithSpace, quote, letter) => boundary + parenWithSpace + quote + letter.toLocaleUpperCase()
     );
 
-    // Capitalize words following question or exclamation marks (after parentheses normalization)
+    // Restore normal sentence capitalization
     x = capitalizeAfterSentenceEnders(x);
 
-    // Smart comma relocation: only move if there's text after ")" (idempotent), otherwise remove
-    x = x.replace(/,[ \t]*\(([^)]*?)\)(?=[ \t]*\S)/g, (match, inner, offset, str) => { // [FIXED]
+    // Comma relocation fix retained
+    x = x.replace(/,[ \t]*\(([^)]*?)\)(?=[ \t]*\S)/g, (match, inner, offset, str) => {
       const afterIdx = offset + match.length;
       if (str[afterIdx] === ',') return match;
       return ` (${inner}),`;
     });
-    x = x.replace(/,[ \t]*\(([^)]*?)\)[ \t]*$/gm, ' ($1)');     // [FIXED] if line ends after ")", remove comma
-
-    // === Normalize syllable repetitions (na, la, etc.) ===
-    x = x.replace(
-      /(^|\n|[?!]\s*)((?:na|la))(?:\s+\2){1,}\b|(^|\n|[?!]\s*)(nanananana|nanananana|lalalala|lalalalala)/gi,
-      (full, boundaryA, syllableA, boundaryB, fused) => {
-        const boundary = boundaryA || boundaryB || '';
-        const syllable = (syllableA || fused.slice(0, 2)).toLowerCase();
-        let total;
-
-        if (fused) total = Math.floor(fused.length / 2);
-        else {
-          const count = full.trim().split(/\s+/).length - 1;
-          total = count + 1;
-        }
-
-        const parts = [];
-        for (let i = 0; i < total; i += 4) {
-          const group = Array.from({ length: Math.min(4, total - i) }, () => syllable).join('-');
-          parts.push(group);
-        }
-
-        let formatted = parts.join(', ');
-        if (boundary.endsWith('\n') || /[?!]\s*$/.test(boundary))
-          formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1);
-        return boundary + formatted;
-      }
-    );
-
-    // === Normalize repeated full words ("very very" -> "very, very") ===
-    x = x.replace(
-      /(^|\n|[?!]\s*)(?!na|la|da|ba|ma|pa)([a-z]{2,})(?:\s+\2){1,}\b/gi,
-      (full, boundary, word) => {
-        const lower = word.toLowerCase();
-        if (['to', 'do', 'go'].includes(lower)) return full; // avoid command-type repeats
-        const tokens = full.slice(boundary.length).trim().split(/\s+/);
-        let formatted = tokens.map(() => lower).join(', ');
-        if (boundary.endsWith('\n') || /[?!]\s*$/.test(boundary))
-          formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1);
-        return boundary + formatted;
-      }
-    );
+    x = x.replace(/,[ \t]*\(([^)]*?)\)[ \t]*$/gm, ' ($1)');
 
 
     // ---------- Final Sanitation (Strict Parenthetical Safe) ----------
