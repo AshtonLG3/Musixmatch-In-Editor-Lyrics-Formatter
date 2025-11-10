@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.72-internal.2
+// @version      1.1.72-internal.3
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.72-internal.2';
+  const SCRIPT_VERSION = '1.1.72-internal.3';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -889,29 +889,6 @@
     x = x.replace(/\bhappy[\s-]*holidays?\b/gi, "Happy Holidays");
     x = x.replace(/\bseasons?[\s-]*greetings?\b/gi, "Season's Greetings");
 
-    // === Capitalize proper names or title phrases inside parentheses ===
-    // e.g., (jesus christ) → (Jesus Christ), (cape town) → (Cape Town)
-    x = x.replace(
-      /\(([a-z][^)]{1,40})\)/g,
-      (match, inner) => {
-        // common lowercase exceptions (articles, prepositions, particles)
-        const exceptions = new Set(["of", "the", "in", "and", "at", "on", "for", "van", "von", "de", "der"]);
-
-        // split and capitalize words
-        const words = inner
-          .trim()
-          .split(/\s+/)
-          .map((word, i) => {
-            const lower = word.toLowerCase();
-            if (exceptions.has(lower) && i !== 0) return lower;
-            return lower.charAt(0).toUpperCase() + lower.slice(1);
-          })
-          .join(" ");
-
-        return `(${words})`;
-      }
-    );
-
     x = x.replace(/([A-Za-z])-(?:[ \t]*)(\r?\n)(\s*)(em\b)/gi, (match, letter, newline, spaces, word) => {
       const token = `${HYPHENATED_EM_TOKEN}${hyphenatedEmTokens.length}${HYPHENATED_EM_TOKEN}`;
       hyphenatedEmTokens.push(word);
@@ -1222,7 +1199,7 @@ const WELL_CLAUSE_STARTERS = new Set([
       boundary + space + quote + letter.toLocaleUpperCase()
     );
 
-    // === Backing vocals normalization ===
+    // === Backing vocals normalization (moved earlier to prevent re-capitalization) ===
     x = x.replace(/(?<!^|\n)\(([^)]+)\)/g, (match, inner) => {
       const trimmed = inner.trim();
       if (!trimmed) return match;
@@ -1233,8 +1210,35 @@ const WELL_CLAUSE_STARTERS = new Set([
       if (BV_FIRST_WORD_EXCEPTIONS.has(firstWord) || BV_FIRST_WORD_EXCEPTIONS.has(lowerFirst))
         return match;
 
+      if (/^(yeah|yea|yo|la|na|woo|hey|ha|uh|o+h)$/i.test(firstWord)) {
+        return `(${trimmed.toLocaleLowerCase()})`;
+      }
+
       return `(${lowerFirst}${trimmed.slice(firstWord.length)})`;
     });
+
+    // === Capitalize proper names or title phrases inside parentheses (after BV so it no longer overrides BV case) ===
+    // e.g., (jesus christ) → (Jesus Christ), (cape town) → (Cape Town)
+    x = x.replace(
+      /\(([a-z][^)]{1,40})\)/g,
+      (match, inner) => {
+        // common lowercase exceptions (articles, prepositions, particles)
+        const exceptions = new Set(["of", "the", "in", "and", "at", "on", "for", "van", "von", "de", "der"]);
+
+        // split and capitalize words
+        const words = inner
+          .trim()
+          .split(/\s+/)
+          .map((word, i) => {
+            const lower = word.toLowerCase();
+            if (exceptions.has(lower) && i !== 0) return lower;
+            return lower.charAt(0).toUpperCase() + lower.slice(1);
+          })
+          .join(" ");
+
+        return `(${words})`;
+      }
+    );
 
     // Maintain capitalization for lines starting with "("
     x = x.replace(/(^|\n)(\(\s*)(["'“”‘’]?)(\p{Ll})/gu,
@@ -1362,8 +1366,14 @@ x = x
     // === Prevent #HOOK duplication after non-verbal insertion ===
     x = x.replace(/(#(INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))(\n\1)+/g, '$1');
 
-    // === Only single blank line between tags ===
-    x = x.replace(/\n{3,}/g, '\n\n');
+    // === Final cleanup ===
+    x = x.replace(/ +\n/g, '\n'); // trim spaces before line breaks
+    x = x.replace(/\n{3,}/g, '\n\n'); // collapse 3+ newlines into 2
+
+    // === Strengthened structure tag deduplication (prevents #HOOK double lines) ===
+    x = x.replace(/(#(INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO)\s*\n\s*)+#\2/gi, '#$2');
+    x = x.replace(/(#HOOK\s*\n\s*)+#HOOK/gi, '#HOOK');
+    x = x.replace(/(#CHORUS\s*\n\s*)+#CHORUS/gi, '#CHORUS');
 
     // === Final-Pass: Capitalize first letter when line starts with "(" ===
     x = x.replace(/(^|\n)(\(\s*)(["'“”‘’]?)(\p{Ll})/gu,
