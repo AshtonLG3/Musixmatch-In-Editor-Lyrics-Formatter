@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.71
+// @version      1.1.72
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.71';
+  const SCRIPT_VERSION = '1.1.72';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -728,6 +728,10 @@
 
     const currentLang = (extensionOptions.lang || 'EN').toUpperCase();
     const langProfile = LANG_RULES[currentLang] || LANG_RULES.EN;
+    const fixBackingVocals =
+      (_options && Object.prototype.hasOwnProperty.call(_options, 'fixBackingVocals')
+        ? Boolean(_options.fixBackingVocals)
+        : extensionOptions.fixBackingVocals ?? true);
 
     for (const [src, tag] of Object.entries(langProfile.tagMap)) {
       const rx = new RegExp(`(^|\\n)\\s*\\[?${src}\\]?\\s*(?=\\n|$)`, 'gi');
@@ -886,11 +890,11 @@
     x = x.replace(/\bhappy[\s-]*holidays?\b/gi, "Happy Holidays");
     x = x.replace(/\bseasons?[\s-]*greetings?\b/gi, "Season's Greetings");
 
-    // === Capitalize proper names or title phrases inside parentheses ===
+    // === Capitalize proper names or title phrases inside parentheses (only if the line starts with "(") ===
     // e.g., (jesus christ) → (Jesus Christ), (cape town) → (Cape Town)
     x = x.replace(
-      /\(([a-z][^)]{1,40})\)/g,
-      (match, inner) => {
+      /(^|\n)\(([a-z][^)]{1,40})\)/g,
+      (match, boundary, inner) => {
         // common lowercase exceptions (articles, prepositions, particles)
         const exceptions = new Set(["of", "the", "in", "and", "at", "on", "for", "van", "von", "de", "der"]);
 
@@ -905,7 +909,7 @@
           })
           .join(" ");
 
-        return `(${words})`;
+        return `${boundary}(${words})`;
       }
     );
 
@@ -1219,48 +1223,32 @@ const WELL_CLAUSE_STARTERS = new Set([
       boundary + space + quote + letter.toLocaleUpperCase()
     );
 
-    // BV lowercase (except I, I'm, I'ma) — refined proper-noun aware
-    x = x.replace(/(\p{L})\(/gu, "$1 (");
+    // === Backing vocals normalization ===
+    if (fixBackingVocals) {
+      // Capitalization dictionary for BV words only
+      const BV_CAP_DICT = new Map([
+        ["christmas", "Christmas"],
+        ["santa", "Santa"],
+        ["god", "God"],
+        ["jesus", "Jesus"],
+        ["allah", "Allah"],
+        ["i", "I"]
+      ]);
 
-    x = x.replace(/\(([^)]+)\)/g, (match, inner) => {
-      const trimmed = inner.trim();
-      if (!trimmed) return match;
+      // Inline backing vocals → lowercase first word after '('
+      x = x.replace(/\((\s*)([A-Za-zÀ-ÖØ-öø-ÿ])([^)]*)\)/g, (full, space, first, rest) => {
+        const firstLower = first.toLowerCase();
+        let rebuilt = firstLower + rest;
 
-      const leadingSpace = inner.match(/^\s+/)?.[0] ?? '';
-      const trailingSpace = inner.match(/\s+$/)?.[0] ?? '';
+        // Apply dictionary-based capitalization inside BV parentheses
+        rebuilt = rebuilt.replace(/\b(\p{L}[\p{L}'’\-]*)\b/gu, word => {
+          const lower = word.toLowerCase();
+          return BV_CAP_DICT.has(lower) ? BV_CAP_DICT.get(lower) : word;
+        });
 
-      const firstTokenMatch = trimmed.match(/^\S+/);
-      if (!firstTokenMatch) return match;
-      const firstToken = firstTokenMatch[0];
-
-      const leadingQuotesMatch = firstToken.match(/^["'“”‘’]+/);
-      const leadingQuotes = leadingQuotesMatch ? leadingQuotesMatch[0] : '';
-      const hasTrailingComma = firstToken.endsWith(',');
-      const coreFirstWord = firstToken.slice(
-        leadingQuotes.length,
-        hasTrailingComma ? -1 : undefined
-      );
-      if (!coreFirstWord) return match;
-
-      const firstLower = coreFirstWord.toLocaleLowerCase();
-
-      // Preserve I, I'm, I'ma
-      if (BV_FIRST_WORD_EXCEPTIONS.has(coreFirstWord) || BV_FIRST_WORD_EXCEPTIONS.has(firstLower))
-        return match;
-
-      // Detect if ALL words are proper-cased ("Jesus Christ my Lord" stays intact)
-      const words = trimmed.split(/\s+/);
-      const allProper = words.length > 1 && words.every(w => /^[A-Z][a-z]+/.test(w));
-
-      // NEW: detect if it's *partially* proper but not starting with one (e.g., "Thank you, Jesus Christ my Lord")
-      const startsProper = /^[A-Z][a-z]+$/.test(coreFirstWord);
-      if (allProper && startsProper) return match;
-
-      // Otherwise, lowercase the first word
-      const loweredFirst = leadingQuotes + firstLower + (hasTrailingComma ? ',' : '');
-      const remainder = trimmed.slice(firstToken.length);
-      return `(${leadingSpace}${loweredFirst}${remainder}${trailingSpace})`;
-    });
+        return `(${space}${rebuilt})`;
+      });
+    }
 
     // Capitalize first letter when line starts with "("
     x = x.replace(/(^|\n)(\(\s*)(["'“”‘’]?)(\p{Ll})/gu, (_, boundary, parenWithSpace, quote, letter) =>
