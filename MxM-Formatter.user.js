@@ -1038,7 +1038,7 @@ const WELL_CLAUSE_STARTERS = new Set([
   "did","didnt","do","dont","does","doesnt","done","doing","ain","aint","is","isnt","are",
   "arent","was","wasnt","were","werent","have","havent","has","hasnt","had","hadnt"
 ]);
-	  
+
     x = x.replace(/\b(oh|ah|yeah|uh)h+\b(?=[\s,!.?\)]|$)/gi, (match, base) => base);
     x = x.replace(/\b(oh|ah|yeah|whoa|ooh|uh|well)\b(?!,)/gi, (m, word, off, str) => {
       const after = str.slice(off + m.length);
@@ -1163,6 +1163,46 @@ const WELL_CLAUSE_STARTERS = new Set([
       });
     })();
 
+      // === Normalize syllable repetitions (na, la, etc.) ===
+x = x.replace(
+  /(^|\n|[?!]\s*)((?:na|la))(?:[-\s]+\2){1,}\b|(^|\n|[?!]\s*)((?:na|la){4,})/gi,
+  (full, boundaryA, syllableA, boundaryB, fused) => {
+    const boundary = boundaryA || boundaryB || '';
+    const syllable = (syllableA || fused?.slice(0, 2) || '').toLowerCase();
+    if (!syllable) return full;
+
+    // Count total syllables
+    const matches = (full.match(new RegExp(`${syllable}`, 'gi')) || []).length;
+    const total = Math.max(2, matches);
+
+    // Group syllables in sets of 4, separated by commas every 4 repeats
+    const parts = [];
+    for (let i = 0; i < total; i += 4) {
+      const group = Array.from(
+        { length: Math.min(4, total - i) },
+        () => syllable
+      ).join('-');
+      parts.push(group);
+    }
+
+    // ✅ Specific fix: handle fused 'lalalalala' (5 or more la's)
+    if (/^la+$/.test(fused || '') && total > 4) {
+      const groups = [];
+      for (let i = 0; i < total; i += 4) {
+        const chunk = Math.min(4, total - i);
+        groups.push(Array.from({ length: chunk }, () => syllable).join('-'));
+      }
+      return boundary + groups.join(', ');
+    }
+
+    let formatted = parts.join(', ');
+    if (boundary.endsWith('\n') || /[?!]\s*$/.test(boundary))
+      formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1);
+
+    return boundary + formatted;
+  }
+);
+
     // Numbers & timing logic
     x = normalizeOClock(x);
     x = applyNumberRules(x);
@@ -1217,28 +1257,6 @@ const WELL_CLAUSE_STARTERS = new Set([
       return `(${lowerFirst}${trimmed.slice(firstWord.length)})`;
     });
 
-    // === Capitalize proper names or title phrases inside parentheses (after BV so it no longer overrides BV case) ===
-    // e.g., (jesus christ) → (Jesus Christ), (cape town) → (Cape Town)
-    x = x.replace(
-      /\(([a-z][^)]{1,40})\)/g,
-      (match, inner) => {
-        // common lowercase exceptions (articles, prepositions, particles)
-        const exceptions = new Set(["of", "the", "in", "and", "at", "on", "for", "van", "von", "de", "der"]);
-
-        // split and capitalize words
-        const words = inner
-          .trim()
-          .split(/\s+/)
-          .map((word, i) => {
-            const lower = word.toLowerCase();
-            if (exceptions.has(lower) && i !== 0) return lower;
-            return lower.charAt(0).toUpperCase() + lower.slice(1);
-          })
-          .join(" ");
-
-        return `(${words})`;
-      }
-    );
 
     // Maintain capitalization for lines starting with "("
     x = x.replace(/(^|\n)(\(\s*)(["'“”‘’]?)(\p{Ll})/gu,
@@ -1869,4 +1887,3 @@ x = x
   });
 
 })(typeof globalThis !== 'undefined' ? globalThis : this);
-
