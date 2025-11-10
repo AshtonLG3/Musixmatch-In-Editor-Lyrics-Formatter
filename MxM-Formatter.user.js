@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.72-internal.1
+// @version      1.1.71
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.72-internal.1';
+  const SCRIPT_VERSION = '1.1.71';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -728,10 +728,6 @@
 
     const currentLang = (extensionOptions.lang || 'EN').toUpperCase();
     const langProfile = LANG_RULES[currentLang] || LANG_RULES.EN;
-    const fixBackingVocals =
-      (_options && Object.prototype.hasOwnProperty.call(_options, 'fixBackingVocals')
-        ? Boolean(_options.fixBackingVocals)
-        : extensionOptions.fixBackingVocals ?? true);
 
     for (const [src, tag] of Object.entries(langProfile.tagMap)) {
       const rx = new RegExp(`(^|\\n)\\s*\\[?${src}\\]?\\s*(?=\\n|$)`, 'gi');
@@ -890,11 +886,11 @@
     x = x.replace(/\bhappy[\s-]*holidays?\b/gi, "Happy Holidays");
     x = x.replace(/\bseasons?[\s-]*greetings?\b/gi, "Season's Greetings");
 
-    // === Capitalize proper names or title phrases inside parentheses (only if the line starts with "(") ===
+    // === Capitalize proper names or title phrases inside parentheses ===
     // e.g., (jesus christ) → (Jesus Christ), (cape town) → (Cape Town)
     x = x.replace(
-      /(^|\n)\(([a-z][^)]{1,40})\)/g,
-      (match, boundary, inner) => {
+      /\(([a-z][^)]{1,40})\)/g,
+      (match, inner) => {
         // common lowercase exceptions (articles, prepositions, particles)
         const exceptions = new Set(["of", "the", "in", "and", "at", "on", "for", "van", "von", "de", "der"]);
 
@@ -909,7 +905,7 @@
           })
           .join(" ");
 
-        return `${boundary}(${words})`;
+        return `(${words})`;
       }
     );
 
@@ -1223,32 +1219,48 @@ const WELL_CLAUSE_STARTERS = new Set([
       boundary + space + quote + letter.toLocaleUpperCase()
     );
 
-    // === Backing vocals normalization ===
-    if (fixBackingVocals) {
-      // Capitalization dictionary for BV words only
-      const BV_CAP_DICT = new Map([
-        ["christmas", "Christmas"],
-        ["santa", "Santa"],
-        ["god", "God"],
-        ["jesus", "Jesus"],
-        ["allah", "Allah"],
-        ["i", "I"]
-      ]);
+    // BV lowercase (except I, I'm, I'ma) — refined proper-noun aware
+    x = x.replace(/(\p{L})\(/gu, "$1 (");
 
-      // Inline backing vocals → lowercase first word after '('
-      x = x.replace(/\((\s*)([A-Za-zÀ-ÖØ-öø-ÿ])([^)]*)\)/g, (full, space, first, rest) => {
-        const firstLower = first.toLowerCase();
-        let rebuilt = firstLower + rest;
+    x = x.replace(/\(([^)]+)\)/g, (match, inner) => {
+      const trimmed = inner.trim();
+      if (!trimmed) return match;
 
-        // Apply dictionary-based capitalization inside BV parentheses
-        rebuilt = rebuilt.replace(/\b(\p{L}[\p{L}'’\-]*)\b/gu, word => {
-          const lower = word.toLowerCase();
-          return BV_CAP_DICT.has(lower) ? BV_CAP_DICT.get(lower) : word;
-        });
+      const leadingSpace = inner.match(/^\s+/)?.[0] ?? '';
+      const trailingSpace = inner.match(/\s+$/)?.[0] ?? '';
 
-        return `(${space}${rebuilt})`;
-      });
-    }
+      const firstTokenMatch = trimmed.match(/^\S+/);
+      if (!firstTokenMatch) return match;
+      const firstToken = firstTokenMatch[0];
+
+      const leadingQuotesMatch = firstToken.match(/^["'“”‘’]+/);
+      const leadingQuotes = leadingQuotesMatch ? leadingQuotesMatch[0] : '';
+      const hasTrailingComma = firstToken.endsWith(',');
+      const coreFirstWord = firstToken.slice(
+        leadingQuotes.length,
+        hasTrailingComma ? -1 : undefined
+      );
+      if (!coreFirstWord) return match;
+
+      const firstLower = coreFirstWord.toLocaleLowerCase();
+
+      // Preserve I, I'm, I'ma
+      if (BV_FIRST_WORD_EXCEPTIONS.has(coreFirstWord) || BV_FIRST_WORD_EXCEPTIONS.has(firstLower))
+        return match;
+
+      // Detect if ALL words are proper-cased ("Jesus Christ my Lord" stays intact)
+      const words = trimmed.split(/\s+/);
+      const allProper = words.length > 1 && words.every(w => /^[A-Z][a-z]+/.test(w));
+
+      // NEW: detect if it's *partially* proper but not starting with one (e.g., "Thank you, Jesus Christ my Lord")
+      const startsProper = /^[A-Z][a-z]+$/.test(coreFirstWord);
+      if (allProper && startsProper) return match;
+
+      // Otherwise, lowercase the first word
+      const loweredFirst = leadingQuotes + firstLower + (hasTrailingComma ? ',' : '');
+      const remainder = trimmed.slice(firstToken.length);
+      return `(${leadingSpace}${loweredFirst}${remainder}${trailingSpace})`;
+    });
 
     // Capitalize first letter when line starts with "("
     x = x.replace(/(^|\n)(\(\s*)(["'“”‘’]?)(\p{Ll})/gu, (_, boundary, parenWithSpace, quote, letter) =>
@@ -1402,46 +1414,28 @@ x = x
   .replace(/\b(i['’]?\s?d)(?=[\s,.)!?'"]|$)/gi, "I'd");
 
 
-    // === Fix: Holiday and Proper Noun Corrections ===
+    // === Fix: Holiday and Proper Noun Corrections (adjusted for Christmastime) ===
     x = x.replace(/\bchrismast\b/gi, 'Christmas');
-    x = x.replace(/\bchristmastime\b/gi, 'Christmas time');
-    x = x.replace(/\bchristmas eve\b/gi, 'Christmas Eve');
+    x = x.replace(/\bchristmas[\s-]*time\b/gi, 'Christmastime');
+    x = x.replace(/\bchristmas[\s-]*eve\b/gi, 'Christmas Eve');
 
-    // === Fix: Merge duplicate structure tags & remove blank spacing ===
+    // === Merge duplicate structure tags & remove blank spacing ===
     x = x.replace(/(#(INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))(\n\s*\n\1)+/g, '$1');
     x = x.replace(/(#\w+\n)\n+/g, '$1');
 
-    // === Fix: Backing Vocal (BV) Proper Nouns & Title Case ===
-    x = x.replace(/\(([^)]+)\)/g, (m, inner, offset, str) => {
-      const lineStartIdx = str.lastIndexOf('\n', offset);
-      const lineEndIdx = str.indexOf('\n', offset + m.length);
-      const lineStart = lineStartIdx === -1 ? 0 : lineStartIdx + 1;
-      const lineEnd = lineEndIdx === -1 ? str.length : lineEndIdx;
-      const line = str.slice(lineStart, lineEnd);
-      if (line.trim() === m.trim()) {
-        return m;
-      }
+    // === Ensure blank line before structure tags for readability ===
+    x = x.replace(/([^\n#])\n(?=#(INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))/g, '$1\n\n');
 
-      // Skip capitalization changes for interjections or syllabic BVs
-      if (/\b(yeah|la|na|whoa|woo|ah|oh|hey|ha)\b/i.test(inner)) {
-        return '(' + inner.toLowerCase() + ')';
-      }
-
-      // Proper noun and title case logic
-      const words = inner.split(/\s+/).map(w => {
-        return BV_FIRST_WORD_EXCEPTIONS.has(w)
-          ? w
-          : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
-      });
-
-      return '(' + words.join(' ') + ')';
-    });
-
-    // === Fix: Prevent #HOOK duplication after non-verbal insertion ===
+    // === Prevent #HOOK duplication after non-verbal insertion ===
     x = x.replace(/(#(INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))(\n\1)+/g, '$1');
 
-    // === Optional: ensure only single blank line between structure tags ===
+    // === Only single blank line between tags ===
     x = x.replace(/\n{3,}/g, '\n\n');
+
+    // === Final-Pass: Capitalize first letter when line starts with "(" ===
+    x = x.replace(/(^|\n)(\(\s*)(["'“”‘’]?)(\p{Ll})/gu,
+      (_, b, p, q, l) => b + p + q + l.toLocaleUpperCase()
+    );
 
     // 4️⃣ Remove stray indentation and trailing spaces on each line
     x = x.replace(/^[ \t]+/gm, "");
