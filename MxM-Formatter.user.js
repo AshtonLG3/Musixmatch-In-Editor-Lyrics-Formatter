@@ -29,7 +29,7 @@
     lang: 'EN',
     autoLowercase: false,
     fixBackingVocals: true,
-    showFloatingButton: !true, // show button for userscript installs
+    showFloatingButton: true, // show button for userscript installs
   };
   const extensionOptions = { ...extensionDefaults };
 
