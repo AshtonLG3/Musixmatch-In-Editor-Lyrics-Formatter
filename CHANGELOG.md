@@ -1,7 +1,23 @@
 # Changelog
 
+## v1.1.72
+- Limit parenthetical title-casing to lines that begin with "(" so inline parentheses remain untouched.
+- Rework backing vocal normalization with dictionary-driven proper noun handling gated by the BV toggle.
+- Bump the userscript, extension, and package metadata to reflect the 1.1.72 release.
+
+## v1.1.70
+- Correct Christmas spellings, title-case proper nouns in backing vocal parentheses, and lowercase interjection syllables.
+- Collapse duplicate structure headers and reduce excessive blank lines so tags stay unique.
+- Bump the userscript, extension, and package metadata to reflect the 1.1.70 release.
+
+## v1.1.69
+- Extend the Russian structure tag map with bridge, pre-chorus, and hook synonyms to cover common Musixmatch variants.
+- Normalize Russian section headings that include performer names, numbering, or brackets so they convert to canonical tags.
+- Preserve em dashes for Russian lyrics while continuing to normalize dashes for other languages.
+- Bump the userscript, extension, and package metadata to reflect the 1.1.69 release.
+
 ## v1.1.68
-- Normalize common Russian anglicisms and filler ad-libs using a curated dictionary when the formatter runs in RU mode.
+- Load dropped-G exclusions from a shared Google Sheets CSV with local caching so the list stays synced for the team.
 - Bump the userscript, extension, and package metadata to reflect the 1.1.68 release.
 
 ## v1.1.67

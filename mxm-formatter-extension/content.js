@@ -1,16 +1,23 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.68';
+  const SCRIPT_VERSION = '1.1.72';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
+  const LAST_ORIGINAL_KEY = 'mxmFmtLastOriginal.v1';
+  let lastFormatState = null;
+
+  const runningAsExtension =
+    typeof chrome !== 'undefined' &&
+    typeof chrome.runtime === 'object' &&
+    !!chrome.runtime?.id;
 
   const extensionDefaults = {
     lang: "EN",
     autoLowercase: false,
     fixBackingVocals: true,
-    showFloatingButton: false
+    showFloatingButton: !runningAsExtension // show button for userscript installs
   };
   const extensionOptions = { ...extensionDefaults };
 
@@ -22,11 +29,16 @@
       tagMap: {
         куплет: '#VERSE',
         припев: '#CHORUS',
+        хук: '#HOOK',
         бридж: '#BRIDGE',
+        интерлюдия: '#BRIDGE',
+        брейкдаун: '#BRIDGE',
+        брэйкдаун: '#BRIDGE',
+        инструментал: '#INSTRUMENTAL',
         интро: '#INTRO',
         аутро: '#OUTRO',
-        инструментал: '#INSTRUMENTAL',
-        хук: '#HOOK'
+        предприпев: '#PRE-CHORUS',
+        'пред-припев': '#PRE-CHORUS'
       }
     },
     ES: {
@@ -80,7 +92,50 @@
     EL: { preserve: ['Greek'], droppedG: false, tagMap: {} }
   };
 
-  const BV_FIRST_WORD_EXCEPTIONS = new Set(['I', "I'm", "I'ma", 'i', "i'm", "i'ma"]);
+  function readLocalOption(key){
+    if(!hasWindow) return null;
+    try{
+      return root.localStorage.getItem(key);
+    }catch{
+      return null;
+    }
+  }
+
+  function writeLocalOption(key,value){
+    if(!hasWindow) return;
+    try{
+      if(value===null) root.localStorage.removeItem(key);
+      else root.localStorage.setItem(key,value);
+    }catch{
+      /* ignore storage errors */
+    }
+  }
+
+  const storedLang = readLocalOption('mxmFmtLang');
+  if(typeof storedLang === 'string' && storedLang) extensionOptions.lang = storedLang;
+  const storedLower = readLocalOption('mxmFmtAutoLowercase');
+  if(storedLower !== null) extensionOptions.autoLowercase = storedLower === '1' || storedLower === 'true';
+
+  const BV_FIRST_WORD_EXCEPTIONS = new Set([
+    'I',
+    "I'm",
+    "I'ma",
+    "I'll",
+    "I'd",
+    'i',
+    "i'm",
+    "i'ma",
+    "i'll",
+    "i'd",
+    'Jesus',
+    'Christ',
+    'God',
+    'Lord',
+    'jesus',
+    'christ',
+    'god',
+    'lord'
+  ]);
 
   function loadSettings() {
     if (!hasWindow) return { ...defaults };
@@ -93,6 +148,43 @@
   }
 
   const settings = loadSettings();
+
+  function saveLastOriginal(el, text) {
+    lastFormatState = { text, element: el || null, doc: el?.ownerDocument || null };
+    if (hasWindow) {
+      try {
+        root.localStorage.setItem(LAST_ORIGINAL_KEY, JSON.stringify({ text }));
+      } catch (err) {
+        console.warn('Failed to persist last original:', err);
+        toast('⚠️ Could not store original lyrics (storage full)');
+      }
+    }
+    updateRevertButtonState();
+  }
+
+  function readStoredOriginal() {
+    if (!hasWindow) return null;
+    let raw = null;
+    try {
+      raw = root.localStorage.getItem(LAST_ORIGINAL_KEY);
+    } catch {
+      return null;
+    }
+    if (!raw) return null;
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed.text === 'string') return parsed.text;
+    } catch {
+      return raw;
+    }
+    return null;
+  }
+
+  function getLastOriginalText() {
+    if (lastFormatState) return lastFormatState.text;
+    return readStoredOriginal();
+  }
+
   const focusTrackedDocs = new WeakSet();
   const shortcutTrackedDocs = new WeakSet();
 
@@ -244,20 +336,9 @@
   }
 
   const WORD_TO_DIGIT_TIME = {
-    zero: 0,
-    one: 1,
-    two: 2,
-    three: 3,
-    four: 4,
-    five: 5,
-    six: 6,
-    seven: 7,
-    eight: 8,
-    nine: 9,
-    ten: 10,
-    eleven: 11,
-    twelve: 12
-  };
+  zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6,
+  seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12
+};
 
   const MERIDIEM_PATTERN = '(?:a|p)\\s*\\.?\\s*m\\.?';
   const MERIDIEM_TRAIL = '(?=$|[^A-Za-z0-9_])';
@@ -484,17 +565,20 @@
     if (!text) return text;
     const chars = Array.from(text);
     const isSpace = c => c === ' ' || c === '\t' || c === '\n';
+	const isSkippable = c => SENTENCE_ENDER_FOLLOWING_QUOTES.has(c) || c === '(' || c === ')';
     for (let i = 0; i < chars.length; i++) {
       const ch = chars[i];
       if (ch !== '?' && ch !== '!') continue;
-      let j = i + 1;
-      while (j < chars.length && isSpace(chars[j])) j++;
-      let k = j;
-      while (k < chars.length && chars[k] === '(') {
+      let k = i + 1;
+      while (k < chars.length) {
+        if (isSpace(chars[k]) || isSkippable(chars[k])) {
+
         k++;
-        while (k < chars.length && isSpace(chars[k])) k++;
+          } else {
+          break;
+        }
       }
-      while (k < chars.length && SENTENCE_ENDER_FOLLOWING_QUOTES.has(chars[k])) k++;
+
       if (k < chars.length && chars[k] >= 'a' && chars[k] <= 'z') {
         chars[k] = chars[k].toUpperCase();
       }
@@ -598,6 +682,10 @@
   // ---------- Formatter ----------
   function formatLyrics(input, _options = {}) {
     if (!input) return "";
+    if (input.length > 50000) {
+      console.warn('Large input detected (>50k chars): minimal normalization only.');
+      return input.replace(/\s+$/gm, '').trim();
+    }
     let x = ("\n" + input.trim() + "\n");
     const preservedStandaloneParens = [];
     const STANDALONE_PAREN_SENTINEL = "__MXM_SP__";
@@ -606,7 +694,17 @@
       const trimmed = candidate.trim();
       if (trimmed.startsWith("(") && trimmed.endsWith(")") && !trimmed.includes("\n")) {
         const placeholder = `${STANDALONE_PAREN_SENTINEL}${preservedStandaloneParens.length}__`;
-        preservedStandaloneParens.push(candidate);
+
+        let cleaned = candidate
+          .replace(/,([ \t]*\))/g, "$1")  // remove comma before )
+          .replace(/[ \t]+\)/g, ")")      // remove space before )
+          .replace(/\( +/g, "(");          // remove space after (
+
+        cleaned = cleaned.replace(/(\(\s*)(["'“”‘’]?)([a-z])/g, (_, prefix, quote, letter) =>
+          prefix + quote + letter.toUpperCase()
+        );
+
+        preservedStandaloneParens.push(cleaned);
         return boundary + placeholder;
       }
       return match;
@@ -622,6 +720,37 @@
       x = x.replace(rx, `$1${tag}`);
     }
 
+    // --- RU structure normalization (runs BEFORE generic [ ... ] mapper) ---
+    // Accepts: optional leading #[, (, spaces], the Russian label, optional number,
+    // optional separators/credits, then optional closing ], )
+    // Examples matched:
+    //   [Куплет 1: Artist], (Припев — Мумий Тролль), #Интерлюдия - Имя, Инструментал
+    if (currentLang === 'RU') {
+      const RU_STRUCTURE_RE =
+        /(^|\n)\s*#?\s*[\[\(\s]*\s*(куплет|припев|хук|бридж|интерлюдия|брейкдаун|брэйкдаун|инструментал|интро|аутро|предприпев|пред-припев)(?:\s*\d+)?(?:\s*[-:–—]\s*[\p{L}\d .,'’&()\-–—]*)?[\]\)\s]*(?=\n|$)/gimu;
+
+      x = x.replace(RU_STRUCTURE_RE, (match, boundary, raw) => {
+        switch (raw.toLowerCase()) {
+          case 'куплет': return `${boundary}#VERSE`;
+          case 'припев': return `${boundary}#CHORUS`;
+          case 'хук': return `${boundary}#HOOK`;
+          case 'бридж':
+          case 'интерлюдия':
+          case 'брейкдаун':
+          case 'брэйкдаун':
+            return `${boundary}#BRIDGE`;
+          case 'инструментал': return `${boundary}#INSTRUMENTAL`;
+          case 'интро': return `${boundary}#INTRO`;
+          case 'аутро': return `${boundary}#OUTRO`;
+          case 'предприпев':
+          case 'пред-припев':
+            return `${boundary}#PRE-CHORUS`;
+          default:
+            return match;
+        }
+      });
+    }
+
     // --- Conditional Cyrillic “e” conversion ---
     // Only for Latin-script languages
     if (langProfile.preserve.includes('Latin')) {
@@ -633,9 +762,20 @@
       // No transliteration, only punctuation cleanup applies
     }
 
+    // Clean + normalize (dash behavior differs for RU)
+    x = x
+      .replace(/[\u2000-\u200b\u202f\u205f\u2060\u00a0]/gu, " ")
+      .replace(/ {2,}/g, " ")
+      .replace(/\n{3,}/g, "\n\n")
+      .replace(/[\u2019\u2018\u0060\u00b4]/gu, "'")
+      .replace(/[\u{1F300}-\u{1FAFF}\u{FE0F}\u2600-\u26FF\u2700-\u27BF\u2669-\u266F]/gu, "");
+
+    if (currentLang !== 'RU') {
+      x = x.replace(/[\u2013\u2014]/gu, "-");
+    }
+
     if (currentLang === 'RU') {
-      // === Normalize anglicisms & ad-libs based on Google Sheet ===
-      const REPLACEMENTS = {
+      const RU_REPLACEMENTS = {
         "ща": "сейчас",
         "ваще": "вообще",
         "че": "что",
@@ -650,23 +790,24 @@
         "йо": "йо"
       };
 
-      x = x.replace(/\b[\p{L}’']+\b/gu, word => {
+      x = x.replace(/\b[\p{L}’']+\b/gu, (word) => {
         const lower = word.toLowerCase();
-        if (Object.prototype.hasOwnProperty.call(REPLACEMENTS, lower)) {
-          return REPLACEMENTS[lower];
+        if (!Object.prototype.hasOwnProperty.call(RU_REPLACEMENTS, lower)) return word;
+
+        const replacement = RU_REPLACEMENTS[lower];
+        if (!replacement) return replacement;
+        if (word === word.toUpperCase()) return replacement.toUpperCase();
+        if (word[0] === word[0].toUpperCase() && word.slice(1) === word.slice(1).toLowerCase()) {
+          return replacement.charAt(0).toUpperCase() + replacement.slice(1);
         }
-        return word;
+        return replacement;
       });
     }
 
-    // Clean + normalize
-    x = x
-      .replace(/[\u2000-\u200b\u202f\u205f\u2060\u00a0]/gu, " ")
-      .replace(/ {2,}/g, " ")
-      .replace(/\n{3,}/g, "\n\n")
-      .replace(/[\u2019\u2018\u0060\u00b4]/gu, "'")
-      .replace(/[\u2013\u2014]/gu, "-")
-      .replace(/[\u{1F300}-\u{1FAFF}\u{FE0F}\u2600-\u26FF\u2700-\u27BF\u2669-\u266F]/gu, "");
+    x = x.replace(/[【〔［｛〈《]/g, '[')
+         .replace(/[】〕］｝〉》]/g, ']')
+         .replace(/[（﹙]/g, '(')
+         .replace(/[）﹚]/g, ')');
 
     // Section tags
     x = x.replace(/\[(.*?)\]/g, (_, raw) => {
@@ -683,6 +824,44 @@
     });
 
     x = normalizeStructureTags(x);
+
+    // Normalize any hook variants into #HOOK
+    x = x.replace(/(^|\n)\s*[\[(]?(hook|HOOK)[\])]?(\s*\d+)?\s*(?=\n|$)/g, (_, b) => `${b}#HOOK`);
+
+    if (currentLang === 'RU') {
+      // === Russian Structure Tag Normalization ===
+      const RU_STRUCTURE_RE =
+        /(^|\n)\s*[\[(]*(куплет|припев|хук|бридж|интерлюдия|брейкдаун|брэйкдаун|инструментал|интро|аутро|предприпев|пред-припев)[\])]*(?:\s*[-:–—]\s*[\p{L}\d .,'’&()-]*)?(?=\n|$)/gimu;
+
+      x = x.replace(RU_STRUCTURE_RE, (_, boundary, raw) => {
+        const lower = raw.toLowerCase();
+        switch (lower) {
+          case 'куплет':
+            return `${boundary}#VERSE`;
+          case 'припев':
+            return `${boundary}#CHORUS`;
+          case 'хук':
+            return `${boundary}#HOOK`;
+          case 'бридж':
+          case 'интерлюдия':
+          case 'брейкдаун':
+          case 'брэйкдаун':
+            return `${boundary}#BRIDGE`;
+          case 'инструментал':
+            return `${boundary}#INSTRUMENTAL`;
+          case 'интро':
+            return `${boundary}#INTRO`;
+          case 'аутро':
+            return `${boundary}#OUTRO`;
+          case 'предприпев':
+          case 'пред-припев':
+            return `${boundary}#PRE-CHORUS`;
+          default:
+            return _;
+        }
+      });
+    }
+
     x = normalizeInstrumentalSections(x);
     x = enforceStructureTagSpacing(x);
 
@@ -695,29 +874,6 @@
     x = x.replace(/\bnew[\s-]*years?\b/gi, "New Year");
     x = x.replace(/\bhappy[\s-]*holidays?\b/gi, "Happy Holidays");
     x = x.replace(/\bseasons?[\s-]*greetings?\b/gi, "Season's Greetings");
-
-    // === Capitalize proper names or title phrases inside parentheses ===
-    // e.g., (jesus christ) → (Jesus Christ), (cape town) → (Cape Town)
-    x = x.replace(
-      /\(([a-z][^)]{1,40})\)/g,
-      (match, inner) => {
-        // common lowercase exceptions (articles, prepositions, particles)
-        const exceptions = new Set(["of", "the", "in", "and", "at", "on", "for", "van", "von", "de", "der"]);
-
-        // split and capitalize words
-        const words = inner
-          .trim()
-          .split(/\s+/)
-          .map((word, i) => {
-            const lower = word.toLowerCase();
-            if (exceptions.has(lower) && i !== 0) return lower;
-            return lower.charAt(0).toUpperCase() + lower.slice(1);
-          })
-          .join(" ");
-
-        return `(${words})`;
-      }
-    );
 
     x = x.replace(/([A-Za-z])-(?:[ \t]*)(\r?\n)(\s*)(em\b)/gi, (match, letter, newline, spaces, word) => {
       const token = `${HYPHENATED_EM_TOKEN}${hyphenatedEmTokens.length}${HYPHENATED_EM_TOKEN}`;
@@ -765,6 +921,10 @@
         });
         line = line.replace(/\b'til\b/gi, "'til");
         line = line.replace(/\bimma\b/gi, "I'ma");
+		line = line.replace(/\bi'll\b/gi, "I'll");
+		line = line.replace(/\bive\b/gi, "I've");
+		line = line.replace(/\bi've\b/gi, "I've");
+		line = line.replace(/\bi'd\b/gi, "I'd");
         line = line.replace(/\bim'ma\b/gi, "I'ma");
         line = line.replace(/\bem'(?!\w)/gi, (match, offset, str) => {
           const prev = offset > 0 ? str[offset - 1] : '';
@@ -787,12 +947,20 @@
         return "'til";
       })
       .replace(/\bima\b/gi, "I'ma")
+	  .replace(/\bimma\b/gi, "I'ma")
+	  .replace(/\bi'mma\b/gi, "I'ma")
       .replace(/\bim\b/gi, "I'm")
       .replace(/\bdont\b/gi, "don't")
       .replace(/\bcant\b/gi, "can't")
       .replace(/\bwont\b/gi, "won't")
       .replace(/\baint\b/gi, "ain't")
-      .replace(/\bwoah\b/gi, "whoa");
+      .replace(/\bwoah\b/gi, "whoa")
+	  .replace(/\byall\b/gi, "y'all")
+	  .replace(/\bya'll\b/gi, "y'all")
+	  .replace(/\bmhm\b/gi, "hmm")
+	  .replace(/\bmhmm\b/gi, "hmm")
+	  .replace(/\bmmh\b/gi, "hmm")
+	  .replace(/\trynna\b/gi, "tryna");
 
     x = x.replace(/((?:^|\n)\s*)'til\b/g, (match, boundary, offset, str) => {
       const start = offset + boundary.length;
@@ -815,327 +983,48 @@
       x = x.replace(tokenRe, (_, idx) => hyphenatedEmTokens[Number(idx)] ?? 'em');
     }
 
-    // Interjections
-    const CLOSING_QUOTES = new Set(["'", '"', "’", "”"]);
-    const INTERJECTION_STOPPERS = ",!?.-;:)]}";
-    const WELL_ALLOWED_PRECEDERS = new Set([
-      "oh",
-      "ah",
-      "yeah",
-      "yea",
-      "yah",
-      "uh",
-      "um",
-      "huh",
-      "hmm",
-      "mm",
-      "aw",
-      "aww",
-      "awww",
-      "gee",
-      "gosh",
-      "hey",
-      "and",
-      "but",
-      "so",
-      "yet",
-      "or",
-      "anyway",
-      "anyways",
-      "well"
-    ]);
-    const WELL_PRECEDER_WORDS = new Set([
-      "a",
-      "an",
-      "the",
-      "this",
-      "that",
-      "these",
-      "those",
-      "my",
-      "your",
-      "his",
-      "her",
-      "their",
-      "our",
-      "its",
-      "some",
-      "any",
-      "such",
-      "each",
-      "every",
-      "too",
-      "very",
-      "so",
-      "as",
-      "quite",
-      "pretty",
-      "rather",
-      "really",
-      "real",
-      "feel",
-      "feels",
-      "felt",
-      "feeling",
-      "do",
-      "does",
-      "did",
-      "doing",
-      "done",
-      "to",
-      "am",
-      "is",
-      "are",
-      "was",
-      "were",
-      "be",
-      "been",
-      "being",
-      "stay",
-      "stays",
-      "stayed",
-      "staying",
-      "keep",
-      "keeps",
-      "kept",
-      "keeping",
-      "remain",
-      "remains",
-      "remained",
-      "remaining",
-      "seem",
-      "seems",
-      "seemed",
-      "seeming",
-      "sound",
-      "sounds",
-      "sounded",
-      "sounding",
-      "look",
-      "looks",
-      "looked",
-      "looking",
-      "become",
-      "becomes",
-      "became",
-      "becoming",
-      "grow",
-      "grows",
-      "grew",
-      "growing",
-      "live",
-      "lives",
-      "lived",
-      "living",
-      "work",
-      "works",
-      "worked",
-      "working",
-      "play",
-      "plays",
-      "played",
-      "playing"
-    ]);
-    const WELL_CLAUSE_STARTERS = new Set([
-      "i",
-      "im",
-      "id",
-      "ill",
-      "ive",
-      "you",
-      "youre",
-      "youd",
-      "youll",
-      "youve",
-      "ya",
-      "yall",
-      "yous",
-      "youse",
-      "he",
-      "hes",
-      "hed",
-      "hell",
-      "she",
-      "shes",
-      "shed",
-      "shell",
-      "we",
-      "were",
-      "wed",
-      "well",
-      "weve",
-      "they",
-      "theyre",
-      "theyd",
-      "theyll",
-      "theyve",
-      "it",
-      "its",
-      "itd",
-      "itll",
-      "this",
-      "that",
-      "these",
-      "those",
-      "there",
-      "theres",
-      "therell",
-      "thered",
-      "thereve",
-      "therere",
-      "who",
-      "whos",
-      "what",
-      "whats",
-      "where",
-      "wheres",
-      "when",
-      "whens",
-      "why",
-      "whys",
-      "how",
-      "hows",
-      "the",
-      "a",
-      "an",
-      "another",
-      "all",
-      "someone",
-      "somebody",
-      "anyone",
-      "anybody",
-      "everyone",
-      "everybody",
-      "nobody",
-      "nothing",
-      "something",
-      "anything",
-      "everything",
-      "so",
-      "then",
-      "now",
-      "anyway",
-      "anyways",
-      "anyhow",
-      "anyhoo",
-      "guess",
-      "maybe",
-      "perhaps",
-      "alright",
-      "alrighty",
-      "allright",
-      "okay",
-      "ok",
-      "okey",
-      "uh",
-      "oh",
-      "well",
-      "right",
-      "listen",
-      "look",
-      "hey",
-      "hi",
-      "hello",
-      "yo",
-      "dude",
-      "man",
-      "girl",
-      "boy",
-      "baby",
-      "honey",
-      "buddy",
-      "sir",
-      "maam",
-      "ladies",
-      "folks",
-      "guys",
-      "people",
-      "kid",
-      "kids",
-      "partner",
-      "friend",
-      "friends",
-      "gimme",
-      "lemme",
-      "dear",
-      "cause",
-      "because",
-      "cuz",
-      "cos",
-      "coz",
-      "if",
-      "when",
-      "whenever",
-      "while",
-      "since",
-      "once",
-      "after",
-      "before",
-      "for",
-      "and",
-      "but",
-      "or",
-      "yet",
-      "though",
-      "let",
-      "lets",
-      "gonna",
-      "please",
-      "cmon",
-      "come",
-      "should",
-      "shoulda",
-      "shouldve",
-      "shouldnt",
-      "could",
-      "coulda",
-      "couldve",
-      "couldnt",
-      "would",
-      "woulda",
-      "wouldve",
-      "wouldnt",
-      "might",
-      "mighta",
-      "mightve",
-      "mightnt",
-      "may",
-      "must",
-      "mustve",
-      "mustnt",
-      "shall",
-      "shant",
-      "can",
-      "cant",
-      "cannot",
-      "won",
-      "wont",
-      "will",
-      "did",
-      "didnt",
-      "do",
-      "dont",
-      "does",
-      "doesnt",
-      "done",
-      "doing",
-      "ain",
-      "aint",
-      "is",
-      "isnt",
-      "are",
-      "arent",
-      "was",
-      "wasnt",
-      "were",
-      "werent",
-      "have",
-      "havent",
-      "has",
-      "hasnt",
-      "had",
-      "hadnt"
-    ]);
+   // Interjections
+const CLOSING_QUOTES = new Set(["'", '"', "’", "”"]);
+const INTERJECTION_STOPPERS = ",!?.-;:)]}";
+
+const WELL_ALLOWED_PRECEDERS = new Set([
+  "oh","ah","yeah","yea","yah","uh","um","huh","hmm","mm",
+  "aw","aww","awww","gee","gosh","hey","and","but","so","yet",
+  "or","anyway","anyways","well"
+]);
+
+const WELL_PRECEDER_WORDS = new Set([
+  "a","an","the","this","that","these","those","my","your","his","her","their","our",
+  "its","some","any","such","each","every","too","very","so","as","quite","pretty",
+  "rather","really","real","feel","feels","felt","feeling","do","does","did","doing",
+  "done","to","am","is","are","was","were","be","been","being","stay","stays","stayed",
+  "staying","keep","keeps","kept","keeping","remain","remains","remained","remaining",
+  "seem","seems","seemed","seeming","sound","sounds","sounded","sounding","look",
+  "looks","looked","looking","become","becomes","became","becoming","grow","grows",
+  "grew","growing","live","lives","lived","living","work","works","worked","working",
+  "play","plays","played","playing"
+]);
+
+const WELL_CLAUSE_STARTERS = new Set([
+  "i","im","id","ill","ive","you","youre","youd","youll","youve","ya","yall","yous",
+  "youse","he","hes","hed","hell","she","shes","shed","shell","we","were","wed","well",
+  "weve","they","theyre","theyd","theyll","theyve","it","its","itd","itll","this","that",
+  "these","those","there","theres","therell","thered","thereve","therere","who","whos",
+  "what","whats","where","wheres","when","whens","why","whys","how","hows","the","a","an",
+  "another","all","someone","somebody","anyone","anybody","everyone","everybody","nobody",
+  "nothing","something","anything","everything","so","then","now","anyway","anyways","anyhow",
+  "anyhoo","guess","maybe","perhaps","alright","alrighty","allright","okay","ok","okey","uh",
+  "oh","well","right","listen","look","hey","hi","hello","yo","dude","man","girl","boy","baby",
+  "honey","buddy","sir","maam","ladies","folks","guys","people","kid","kids","partner","friend",
+  "friends","gimme","lemme","dear","cause","because","cuz","cos","coz","if","when","whenever",
+  "while","since","once","after","before","for","and","but","or","yet","though","let","lets",
+  "gonna","please","cmon","come","should","shoulda","shouldve","shouldnt","could","coulda",
+  "couldve","couldnt","would","woulda","wouldve","wouldnt","might","mighta","mightve","mightnt",
+  "may","must","mustve","mustnt","shall","shant","can","cant","cannot","won","wont","will",
+  "did","didnt","do","dont","does","doesnt","done","doing","ain","aint","is","isnt","are",
+  "arent","was","wasnt","were","werent","have","havent","has","hasnt","had","hadnt"
+]);
+
     x = x.replace(/\b(oh|ah|yeah|uh)h+\b(?=[\s,!.?\)]|$)/gi, (match, base) => base);
     x = x.replace(/\b(oh|ah|yeah|whoa|ooh|uh|well)\b(?!,)/gi, (m, word, off, str) => {
       const after = str.slice(off + m.length);
@@ -1213,34 +1102,97 @@
 
     x = x.replace(/\b(oh|ah|yeah|whoa|ooh|uh|well)\b\s*,\s*(?=\))/gi, '$1');
 
-    // Dropped-G (smart and safe fix)
-    // Converts "feelin" → "feelin'", but leaves "feeling", "feelin'", "begin", "violin", etc. untouched
-    x = x.replace(/\b([A-Za-z]+in)(?!['’g])\b/g, (match, base) => {
-      const exclusions = new Set([
-        "begin","began","within","cousin","violin","origin","margin","resin","penguin",
-        "pumpkin","grin","chin","twin","skin","basin","raisn","savin","login","pin",
-        "fin","din","min","sin","win","bin","thin","akin","leadin","captain","mountain",
-        "fountain","certain","again"
+    // === Dropped-G (smart and safe fix, live CSV cache + sync fallback) ===
+    (() => {
+      const CSV_URL =
+        "https://docs.google.com/spreadsheets/d/e/2PACX-1vSQY2TH74oBLQWTeI0j7WobaPUe-UC4Vdc2dn7nVjgtT9h9H7AFAmErladiu6SgT2Wacuk4oEMBieKD/pub?output=csv";
+      const LOCAL_KEY = "mxmDroppedGExclusionsCSV.v1";
+
+      const LOCAL_EXCLUSIONS = new Set([
+        "begin","began","within","cousin","violin","virgin","origin","margin","resin","penguin",
+        "pumpkin","grin","chin","twin","skin","basin","raisn","savin","login","pin","curtain",
+        "fin","din","min","gin","lin","kin","sin","win","bin","thin","tin","akin","leadin","captain","mountain",
+        "fountain","certain","again","gain","spin","twin","main","cain","maintain","retain","detain","vain","regain",
+        "rain","brain","pain","drain","train","grain","cabin","satin","chain","plain","remain","campaign",
+        "fein","contain","domain","explain","sustain","pertain","obtain","entertain","villain","admin","abstain","stain"
       ]);
 
-      // skip if in exclusion list (case-insensitive)
-      if (exclusions.has(base.toLowerCase())) return match;
+      const parseCSV = (text) =>
+        new Set(
+          text
+            .split(/\r?\n/)
+            .map((l) => l.trim().split(",")[0]?.toLowerCase())
+            .filter((w) => w && /^[a-z]+$/.test(w))
+        );
 
-      // Preserve casing of the original word
-      if (match === match.toUpperCase()) return base.toUpperCase() + "'";
-      if (match[0] === match[0].toUpperCase()) return base[0].toUpperCase() + base.slice(1) + "'";
-      return base + "'";
-    });
+      // Try to read cached exclusions first
+      let EXCLUSIONS = LOCAL_EXCLUSIONS;
+      try {
+        const cached = localStorage.getItem(LOCAL_KEY);
+        if (cached) EXCLUSIONS = parseCSV(cached);
+      } catch {}
+
+      // Fire-and-forget fetch (updates cache asynchronously)
+      fetch(CSV_URL)
+        .then((r) => (r.ok ? r.text() : ""))
+        .then((t) => {
+          if (t) localStorage.setItem(LOCAL_KEY, t);
+        })
+        .catch(() => {});
+
+      // Apply Dropped-G immediately
+      x = x.replace(/\b([A-Za-z]+in)(?!['’g])\b/g, (match, base) => {
+        if (EXCLUSIONS.has(base.toLowerCase())) return match;
+        if (match === match.toUpperCase()) return base.toUpperCase() + "'";
+        if (match[0] === match[0].toUpperCase()) return base[0].toUpperCase() + base.slice(1) + "'";
+        return base + "'";
+      });
+    })();
+
+      // === Normalize syllable repetitions (na, la, etc.) ===
+x = x.replace(
+  /(^|\n|[?!]\s*)((?:na|la))(?:[-\s]+\2){1,}\b|(^|\n|[?!]\s*)((?:na|la){4,})/gi,
+  (full, boundaryA, syllableA, boundaryB, fused) => {
+    const boundary = boundaryA || boundaryB || '';
+    const syllable = (syllableA || fused?.slice(0, 2) || '').toLowerCase();
+    if (!syllable) return full;
+
+    // Count total syllables
+    const matches = (full.match(new RegExp(`${syllable}`, 'gi')) || []).length;
+    const total = Math.max(2, matches);
+
+    // Group syllables in sets of 4, separated by commas every 4 repeats
+    const parts = [];
+    for (let i = 0; i < total; i += 4) {
+      const group = Array.from(
+        { length: Math.min(4, total - i) },
+        () => syllable
+      ).join('-');
+      parts.push(group);
+    }
+
+    // ✅ Specific fix: handle fused 'lalalalala' (5 or more la's)
+    if (/^la+$/.test(fused || '') && total > 4) {
+      const groups = [];
+      for (let i = 0; i < total; i += 4) {
+        const chunk = Math.min(4, total - i);
+        groups.push(Array.from({ length: chunk }, () => syllable).join('-'));
+      }
+      return boundary + groups.join(', ');
+    }
+
+    let formatted = parts.join(', ');
+    if (boundary.endsWith('\n') || /[?!]\s*$/.test(boundary))
+      formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1);
+
+    return boundary + formatted;
+  }
+);
 
     // Numbers & timing logic
     x = normalizeOClock(x);
     x = applyNumberRules(x);
     x = applyNoCommaRules(x);
-
-    // === Normalize meridian time variants (AM/PM) ===
-    // Converts "AM; am; A.M.; a.m.; PM; pm; P.M.; p.m." → "a.m." / "p.m."
-    x = x.replace(/\b([Aa]\.?[Mm])\.?(?=[^A-Za-z0-9]|$)/g, "a.m.");
-    x = x.replace(/\b([Pp]\.?[Mm])\.?(?=[^A-Za-z0-9]|$)/g, "p.m.");
 
     // Normalize "god damn" -> "goddamn" while respecting casing
     x = x.replace(/\bgod\s+damn\b/gi, match => {
@@ -1273,69 +1225,47 @@
       boundary + space + quote + letter.toLocaleUpperCase()
     );
 
-    // BV lowercase (except I, I'm, I'ma) — refined proper-noun aware
-    x = x.replace(/(\p{L})\(/gu, "$1 (");
-
-    x = x.replace(/\(([^)]+)\)/g, (match, inner) => {
+    // === Backing vocals normalization (moved earlier to prevent re-capitalization) ===
+    x = x.replace(/(?<!^|\n)\(([^)]+)\)/g, (match, inner) => {
       const trimmed = inner.trim();
       if (!trimmed) return match;
 
-      const leadingSpace = inner.match(/^\s+/)?.[0] ?? '';
-      const trailingSpace = inner.match(/\s+$/)?.[0] ?? '';
+      const firstWord = trimmed.split(/\s+/)[0] || '';
+      const lowerFirst = firstWord.toLocaleLowerCase();
 
-      const firstTokenMatch = trimmed.match(/^\S+/);
-      if (!firstTokenMatch) return match;
-      const firstToken = firstTokenMatch[0];
-
-      const leadingQuotesMatch = firstToken.match(/^["'“”‘’]+/);
-      const leadingQuotes = leadingQuotesMatch ? leadingQuotesMatch[0] : '';
-      const hasTrailingComma = firstToken.endsWith(',');
-      const coreFirstWord = firstToken.slice(
-        leadingQuotes.length,
-        hasTrailingComma ? -1 : undefined
-      );
-      if (!coreFirstWord) return match;
-
-      const firstLower = coreFirstWord.toLocaleLowerCase();
-
-      // Preserve I, I'm, I'ma
-      if (BV_FIRST_WORD_EXCEPTIONS.has(coreFirstWord) || BV_FIRST_WORD_EXCEPTIONS.has(firstLower))
+      if (BV_FIRST_WORD_EXCEPTIONS.has(firstWord) || BV_FIRST_WORD_EXCEPTIONS.has(lowerFirst))
         return match;
 
-      // Detect if ALL words are proper-cased ("Jesus Christ my Lord" stays intact)
-      const words = trimmed.split(/\s+/);
-      const allProper = words.length > 1 && words.every(w => /^[A-Z][a-z]+/.test(w));
+      if (/^(yeah|yea|yo|la|na|woo|hey|ha|uh|o+h)$/i.test(firstWord)) {
+        return `(${trimmed.toLocaleLowerCase()})`;
+      }
 
-      // NEW: detect if it's *partially* proper but not starting with one (e.g., "Thank you, Jesus Christ my Lord")
-      const startsProper = /^[A-Z][a-z]+$/.test(coreFirstWord);
-      if (allProper && startsProper) return match;
-
-      // Otherwise, lowercase the first word
-      const loweredFirst = leadingQuotes + firstLower + (hasTrailingComma ? ',' : '');
-      const remainder = trimmed.slice(firstToken.length);
-      return `(${leadingSpace}${loweredFirst}${remainder}${trailingSpace})`;
+      return `(${lowerFirst}${trimmed.slice(firstWord.length)})`;
     });
 
-    // Capitalize first letter when line starts with "("
-    x = x.replace(/(^|\n)\(\s*(\p{Ll})/gu, (_, a, b) => a + "(" + b.toLocaleUpperCase());
 
-    // Capitalize words following question or exclamation marks (after parentheses normalization)
+    // Maintain capitalization for lines starting with "("
+    x = x.replace(/(^|\n)(\(\s*)(["'“”‘’]?)(\p{Ll})/gu,
+      (_, boundary, parenWithSpace, quote, letter) => boundary + parenWithSpace + quote + letter.toLocaleUpperCase()
+    );
+
+    // Restore normal sentence capitalization
     x = capitalizeAfterSentenceEnders(x);
 
-    // Smart comma relocation: only move if there's text after ")" (idempotent), otherwise remove
-    x = x.replace(/,[ \t]*\(([^)]*?)\)(?=[ \t]*\S)/g, (match, inner, offset, str) => { // [FIXED]
+    // Comma relocation fix retained
+    x = x.replace(/,[ \t]*\(([^)]*?)\)(?=[ \t]*\S)/g, (match, inner, offset, str) => {
       const afterIdx = offset + match.length;
       if (str[afterIdx] === ',') return match;
       return ` (${inner}),`;
     });
-    x = x.replace(/,[ \t]*\(([^)]*?)\)[ \t]*$/gm, ' ($1)');     // [FIXED] if line ends after ")", remove comma
+    x = x.replace(/,[ \t]*\(([^)]*?)\)[ \t]*$/gm, ' ($1)');
 
 
     // ---------- Final Sanitation (Strict Parenthetical Safe) ----------
 
     // ❌ Do not add, remove, or alter newlines anywhere
     // ✅ Only lowercase the first word after ")" (except I / I'm / I'ma)
-    x = x.replace(/\)[ \t]+(\p{Lu}\p{Ll}*)\b/gu, (match, word) => {
+    x = x.replace(/(?<![?!])\)[ \t]+(\p{Lu}\p{Ll}*)\b/gu, (match, word) => {
       const exceptions = ['I', "I'm", "I'ma"];
       return exceptions.includes(word) ? `) ${word}` : `) ${word.toLocaleLowerCase()}`;
     });
@@ -1358,7 +1288,8 @@
       .replace(/ +/g, " ")                           // collapse multiple spaces
       .replace(/[ \t]+([,.;!?\)])/g, "$1")           // preserve newlines, remove only spaces before punctuation (except before "(")
       .replace(/([!?])[ \t]+(?=")/g, '$1')            // keep punctuation tight to closing quotes
-      .replace(/(?<=\S)"(?=[^\s"!.?,;:)\]])/g, '" ') // ensure space after closing quotes when followed by text
+      .replace(/([!?])(?=\s*["“(])/g, '$1 ')          // preserve space before opening quotes
+      .replace(/(?<=[A-Za-z0-9])"(?=[^\s"!.?,;:)\]])/g, '" ') // ensure space after closing quotes when followed by text
       .replace(/([!?])[ \t]*(?=\()/g, "$1 ")         // ensure space between !/? and following "("
       .replace(/([A-Za-z])\(/g, "$1 (")              // space before (
       .replace(/\)([A-Za-z])/g, ") $1")              // space after )
@@ -1366,14 +1297,23 @@
       .replace(/,{2,}/g, ",")                        // collapse duplicate commas
       .replace(/,([ \t]*\))/g, "$1");                // remove commas immediately before a closing parenthesis
 
+ // --- PATCH START: Prevent quote-line merging ---
+
+// Optional: if a quote starts the next line right after text, force proper spacing
+x = x.replace(/([A-Za-z])(\r?\n)"(?=[A-Za-z])/g, '$1\n"');
+
+// --- PATCH END ---
+
     // 1️⃣ Remove trailing commas from line endings entirely
     x = x.replace(/,+\s*$/gm, "");
+    x = x.replace(/([!?])[ \t]+(["'“”‘’])/g, "$1$2"); // remove space between punctuation and any quote mark
 
     // Prevent any amalgamation of lines ending with ")" or BV phrases
     x = x.replace(/(\))[ \t]*\n(?=[^\n])/g, '$1\n');
 
     // Remove overly aggressive BV adjacency merging
     x = x.replace(/((?:\)|\byeah\b)[,!?]*)\s*\n(?=\([^)]+\)\s*[a-z])/gi, '$1\n');
+      x = x.replace(/([.!?])([ \t]*["'“”‘’])[ \t]*\n(?=[^\n])/g, '$1$2\n');
 
     if (preservedStandaloneParens.length > 0) {
       const restoreRe = new RegExp(`${STANDALONE_PAREN_SENTINEL}(\\d+)__`, 'g');
@@ -1385,8 +1325,63 @@
 
     // 2️⃣ Ensure a blank line before structure tags when previous stanza ends with yeah/oh/whoa/huh or ")"
     x = x.replace(
-      /(\b(?:yeah|oh|whoa|huh)\b|\))[ \t]*\n+(?=#(?:INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))/gim,
+      /(\b(?:yeah|oh|whoa|huh|ooh|ah|uh)\b|\))[ \t]*\n+(?=#(?:INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))/gim,
       '$1\n\n'
+    );
+
+// --- PATCH START: Strict fix for double commas + quote spacing ---
+
+// 1️⃣ Collapse redundant commas but keep line integrity
+x = x.replace(/,{2,}/g, ',');          // collapse double commas
+x = x.replace(/\s*,\s*/g, ', ');       // normalize comma spacing
+x = x.replace(/,\s+,/g, ', ');         // safety fix for broken comma pairs
+
+// 2️⃣ Fix quote spacing inside parentheses — no other structure touched
+x = x
+  .replace(/\(\s*["“]/g, '("')         // remove space between ( and "
+  .replace(/["”]\s*\)/g, '")')         // remove space before closing )
+
+
+
+// --- PATCH END ---
+
+     // --- Final I-contraction normalization (post-format override) ---
+x = x
+  // I'll corrections (ill / i'll)
+  .replace(/\b(i['’]?\s?ll)(?=[\s,.)!?'"]|$)/gi, "I'll")
+  // I've corrections (ive / i've)
+  .replace(/\b(i['’]?\s?ve)(?=[\s,.)!?'"]|$)/gi, "I've")
+  // I'd corrections (id / i'd)
+  .replace(/\b(i['’]?\s?d)(?=[\s,.)!?'"]|$)/gi, "I'd");
+
+
+    // === Fix: Holiday and Proper Noun Corrections (adjusted for Christmastime) ===
+    x = x.replace(/\bchrismast\b/gi, 'Christmas');
+    x = x.replace(/\bchristmas[\s-]*time\b/gi, 'Christmastime');
+    x = x.replace(/\bchristmas[\s-]*eve\b/gi, 'Christmas Eve');
+
+    // === Merge duplicate structure tags & remove blank spacing ===
+    x = x.replace(/(#(INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))(\n\s*\n\1)+/g, '$1');
+    x = x.replace(/(#\w+\n)\n+/g, '$1');
+
+    // === Ensure blank line before structure tags for readability ===
+    x = x.replace(/([^)#\n])\n(?=#(INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))/g, '$1\n\n');
+
+    // === Prevent #HOOK duplication after non-verbal insertion ===
+    x = x.replace(/(#(INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))(\n\1)+/g, '$1');
+
+    // === Final cleanup ===
+    x = x.replace(/ +\n/g, '\n'); // trim spaces before line breaks
+    x = x.replace(/\n{3,}/g, '\n\n'); // collapse 3+ newlines into 2
+
+    // === Strengthened structure tag deduplication (prevents #HOOK double lines) ===
+    x = x.replace(/(#(INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO)\s*\n\s*)+#\2/gi, '#$2');
+    x = x.replace(/(#HOOK\s*\n\s*)+#HOOK/gi, '#HOOK');
+    x = x.replace(/(#CHORUS\s*\n\s*)+#CHORUS/gi, '#CHORUS');
+
+    // === Final-Pass: Capitalize first letter when line starts with "(" ===
+    x = x.replace(/(^|\n)(\(\s*)(["'“”‘’]?)(\p{Ll})/gu,
+      (_, b, p, q, l) => b + p + q + l.toLocaleUpperCase()
     );
 
     // 4️⃣ Remove stray indentation and trailing spaces on each line
@@ -1511,35 +1506,161 @@
     if(uiDocument && uiDocument!==document) bindShortcutListener(uiDocument);
   }
 
-  let floatingButton=null;
+  let floatingButtonContainer=null;
+  let floatingFormatButton=null;
+  let floatingRevertButton=null;
   let floatingButtonIntervalId=null;
   let floatingButtonResizeHandler=null;
+  let repositionTimeout=null;
 
   function createFloatingButton(){
     if(!uiDocument?.documentElement) return;
     const buttonParent=uiDocument.body||uiDocument.documentElement;
     if(!buttonParent) return;
 
-    let btn=floatingButton||uiDocument.getElementById('mxmFmtBtn');
-    if(!btn){
-      btn=uiDocument.createElement('button');
-      btn.id='mxmFmtBtn';
-      btn.type='button';
-      btn.textContent='Format MxM';
-      btn.setAttribute('aria-label','Format lyrics (Alt+M)');
-      Object.assign(btn.style,{padding:'10px 14px',borderRadius:'12px',border:'1px solid #303030',background:'linear-gradient(135deg,#181818,#101010)',color:'#f9f9f9',fontFamily:'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',fontSize:'13px',letterSpacing:'0.3px',cursor:'pointer',position:'fixed',zIndex:2147483647,transition:'transform .18s ease, box-shadow .18s ease'});
-      btn.addEventListener('mouseenter',()=>{btn.style.transform='translateY(-2px)';btn.style.boxShadow='0 10px 24px rgba(0,0,0,.32)';});
-      btn.addEventListener('mouseleave',()=>{btn.style.transform='';btn.style.boxShadow='0 6px 18px rgba(0,0,0,.28)';});
-      btn.addEventListener('focus',()=>{btn.style.boxShadow='0 0 0 3px rgba(255,255,255,.18)';});
-      btn.addEventListener('blur',()=>{btn.style.boxShadow='0 6px 18px rgba(0,0,0,.28)';});
+    let container=floatingButtonContainer||uiDocument.getElementById('mxmFmtBtnWrap');
+    if(!container){
+      container=uiDocument.createElement('div');
+      container.id='mxmFmtBtnWrap';
+      container.setAttribute('role','group');
+      container.setAttribute('aria-label','Lyrics formatter controls');
+      Object.assign(container.style,{display:'flex',gap:'10px',alignItems:'center',position:'fixed',zIndex:2147483647,padding:'8px 10px',borderRadius:'16px',border:'1px solid #252525',background:'rgba(18,18,18,.92)',backdropFilter:'blur(12px)'});
     }
 
-    if(!btn.isConnected) buttonParent.appendChild(btn);
+    let formatBtn=floatingFormatButton||container.querySelector('#mxmFmtBtn');
+    if(!formatBtn){
+      formatBtn=uiDocument.createElement('button');
+      formatBtn.id='mxmFmtBtn';
+      formatBtn.type='button';
+      formatBtn.textContent='Format MxM';
+      formatBtn.setAttribute('aria-label','Format lyrics (Alt+M)');
+      container.appendChild(formatBtn);
+    }
 
-    btn.style.boxShadow='0 6px 18px rgba(0,0,0,.28)';
-    btn.style.position='fixed';
-    btn.style.zIndex='2147483647';
-    placeButton(btn);
+    if(!formatBtn.dataset.mxmStyled){
+      Object.assign(formatBtn.style,{padding:'10px 14px',borderRadius:'12px',border:'1px solid #303030',background:'linear-gradient(135deg,#181818,#101010)',color:'#f9f9f9',fontFamily:'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',fontSize:'13px',letterSpacing:'0.3px',cursor:'pointer',transition:'transform .18s ease, box-shadow .18s ease',boxShadow:'0 6px 18px rgba(0,0,0,.28)'});
+      formatBtn.addEventListener('mouseenter',()=>{formatBtn.style.transform='translateY(-2px)';formatBtn.style.boxShadow='0 10px 24px rgba(0,0,0,.32)';});
+      formatBtn.addEventListener('mouseleave',()=>{formatBtn.style.transform='';formatBtn.style.boxShadow='0 6px 18px rgba(0,0,0,.28)';});
+      formatBtn.addEventListener('focus',()=>{formatBtn.style.boxShadow='0 0 0 3px rgba(255,255,255,.18)';});
+      formatBtn.addEventListener('blur',()=>{formatBtn.style.boxShadow='0 6px 18px rgba(0,0,0,.28)';});
+      formatBtn.dataset.mxmStyled='1';
+    }
+
+    let revertBtn=floatingRevertButton||container.querySelector('#mxmFmtRevertBtn');
+    if(!revertBtn){
+      revertBtn=uiDocument.createElement('button');
+      revertBtn.id='mxmFmtRevertBtn';
+      revertBtn.type='button';
+      revertBtn.textContent='Revert';
+      revertBtn.setAttribute('aria-label','Revert to original lyrics');
+      container.appendChild(revertBtn);
+    }
+
+    if(!revertBtn.dataset.mxmStyled){
+      Object.assign(revertBtn.style,{padding:'10px 14px',borderRadius:'12px',border:'1px solid #3a3a3a',background:'linear-gradient(135deg,#222,#161616)',color:'#f0f0f0',fontFamily:'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',fontSize:'13px',letterSpacing:'0.3px',cursor:'pointer',transition:'transform .18s ease, box-shadow .18s ease',boxShadow:'0 6px 18px rgba(0,0,0,.24)'});
+      revertBtn.addEventListener('mouseenter',()=>{if(revertBtn.disabled) return;revertBtn.style.transform='translateY(-2px)';revertBtn.style.boxShadow='0 10px 24px rgba(0,0,0,.28)';});
+      revertBtn.addEventListener('mouseleave',()=>{revertBtn.style.transform='';revertBtn.style.boxShadow=revertBtn.disabled?'':'0 6px 18px rgba(0,0,0,.24)';});
+      revertBtn.addEventListener('focus',()=>{revertBtn.style.boxShadow='0 0 0 3px rgba(255,255,255,.18)';});
+      revertBtn.addEventListener('blur',()=>{revertBtn.style.boxShadow=revertBtn.disabled?'':'0 6px 18px rgba(0,0,0,.24)';});
+      revertBtn.dataset.mxmStyled='1';
+    }
+
+    let gearBtn=container.querySelector('#mxmFmtGear');
+    if(!gearBtn){
+      gearBtn=uiDocument.createElement('button');
+      gearBtn.textContent='⚙️';
+      gearBtn.id='mxmFmtGear';
+      gearBtn.title='Formatter settings';
+      gearBtn.type='button';
+      gearBtn.setAttribute('aria-label','Formatter settings');
+      gearBtn.setAttribute('aria-haspopup','true');
+      gearBtn.setAttribute('aria-expanded','false');
+      container.appendChild(gearBtn);
+    }
+
+    if(!gearBtn.dataset.mxmStyled){
+      Object.assign(gearBtn.style,{fontSize:'16px',marginLeft:'2px',cursor:'pointer',background:'transparent',border:'none',color:'#f5f5f5',padding:'6px'});
+      gearBtn.dataset.mxmStyled='1';
+    }
+
+    gearBtn.onclick=e=>{
+      e.stopPropagation();
+      let pop=uiDocument.getElementById('mxmFmtPopover');
+      if(pop){
+        const closerRef=pop.__mxmCloser;
+        if(typeof closerRef==='function') uiDocument.removeEventListener('click',closerRef);
+        pop.remove();
+        gearBtn.setAttribute('aria-expanded','false');
+        return;
+      }
+
+      pop=uiDocument.createElement('div');
+      pop.id='mxmFmtPopover';
+      Object.assign(pop.style,{position:'absolute',bottom:'42px',right:'0',background:'#1e1e1e',border:'1px solid #333',borderRadius:'10px',padding:'8px 12px',fontSize:'13px',color:'#eee',boxShadow:'0 4px 16px rgba(0,0,0,0.4)',zIndex:2147483647});
+
+      pop.innerHTML=`
+    <div style="margin-bottom:6px;">
+      <label style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <span>Language:</span>
+        <select id="mxmLangSelect" style="background:#222;color:#fff;border:1px solid #444;border-radius:6px;padding:2px 4px;">
+          <option value="EN">EN</option>
+          <option value="RU">RU</option>
+          <option value="ES">ES</option>
+          <option value="PT">PT</option>
+          <option value="FR">FR</option>
+          <option value="IT">IT</option>
+        </select>
+      </label>
+    </div>
+    <div>
+      <label style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <span>Auto Lowercase:</span>
+        <input type="checkbox" id="mxmLowercaseToggle">
+      </label>
+    </div>
+  `.trim();
+
+      const langSel=pop.querySelector('#mxmLangSelect');
+      const lcToggle=pop.querySelector('#mxmLowercaseToggle');
+      const storedLangValue=readLocalOption('mxmFmtLang');
+      langSel.value=storedLangValue||extensionOptions.lang||'EN';
+      if(!langSel.querySelector(`option[value="${langSel.value}"]`))
+        langSel.value=extensionOptions.lang||'EN';
+      if(!langSel.querySelector(`option[value="${langSel.value}"]`))
+        langSel.value='EN';
+      lcToggle.checked=Boolean(extensionOptions.autoLowercase);
+
+      langSel.onchange=ev=>{
+        const nextLang=ev.target.value;
+        extensionOptions.lang=nextLang;
+        writeLocalOption('mxmFmtLang',nextLang);
+        toast(`Language set to ${nextLang}`);
+      };
+      lcToggle.onchange=ev=>{
+        const isChecked=Boolean(ev.target.checked);
+        extensionOptions.autoLowercase=isChecked;
+        writeLocalOption('mxmFmtAutoLowercase',isChecked?'1':'0');
+        toast(`Auto lowercase ${isChecked?'enabled':'disabled'}`);
+      };
+
+      container.appendChild(pop);
+      gearBtn.setAttribute('aria-expanded','true');
+
+      const closer=evt=>{
+        if(!pop.contains(evt.target) && evt.target!==gearBtn){
+          pop.remove();
+          uiDocument.removeEventListener('click',closer);
+          gearBtn.setAttribute('aria-expanded','false');
+        }
+      };
+      pop.__mxmCloser=closer;
+      uiDocument.addEventListener('click',closer);
+    };
+
+    if(!container.isConnected) buttonParent.appendChild(container);
+
+    container.style.boxShadow='0 6px 18px rgba(0,0,0,.28)';
+    placeButton(container);
 
     const hostWindow=uiWindow||window;
     if(floatingButtonIntervalId){
@@ -1549,7 +1670,7 @@
     let repositionCount=0;
     floatingButtonIntervalId=hostWindow.setInterval(()=>{
       repositionCount++;
-      placeButton(btn);
+      placeButton(container);
       if(repositionCount>=REPOSITION_ATTEMPTS){
         hostWindow.clearInterval(floatingButtonIntervalId);
         floatingButtonIntervalId=null;
@@ -1559,11 +1680,18 @@
     if(floatingButtonResizeHandler){
       hostWindow.removeEventListener('resize',floatingButtonResizeHandler);
     }
-    floatingButtonResizeHandler=()=>placeButton(btn);
+    floatingButtonResizeHandler=()=>{
+      if(repositionTimeout) clearTimeout(repositionTimeout);
+      repositionTimeout=setTimeout(()=>placeButton(container),150);
+    };
     hostWindow.addEventListener('resize',floatingButtonResizeHandler);
 
-    btn.onclick=()=>runFormat();
-    floatingButton=btn;
+    formatBtn.onclick=()=>runFormat();
+    revertBtn.onclick=()=>revertLastFormat();
+    floatingButtonContainer=container;
+    floatingFormatButton=formatBtn;
+    floatingRevertButton=revertBtn;
+    updateRevertButtonState();
     ensureShortcutListeners();
   }
 
@@ -1573,13 +1701,25 @@
       hostWindow.clearInterval(floatingButtonIntervalId);
       floatingButtonIntervalId=null;
     }
+    if(repositionTimeout){
+      clearTimeout(repositionTimeout);
+      repositionTimeout=null;
+    }
     if(floatingButtonResizeHandler){
       hostWindow.removeEventListener('resize',floatingButtonResizeHandler);
       floatingButtonResizeHandler=null;
     }
-    const btn=floatingButton||uiDocument?.getElementById('mxmFmtBtn');
-    if(btn?.isConnected) btn.remove();
-    floatingButton=null;
+    const popover=uiDocument?.getElementById('mxmFmtPopover');
+    if(popover){
+      const closerRef=popover.__mxmCloser;
+      if(typeof closerRef==='function') uiDocument.removeEventListener('click',closerRef);
+      popover.remove();
+    }
+    const container=floatingButtonContainer||uiDocument?.getElementById('mxmFmtBtnWrap');
+    if(container?.isConnected) container.remove();
+    floatingButtonContainer=null;
+    floatingFormatButton=null;
+    floatingRevertButton=null;
     latestButtonBottom=BUTTON_BASE_BOTTOM;
   }
 
@@ -1588,13 +1728,55 @@
     else removeFloatingButton();
   }
 
+  function updateRevertButtonState(){
+    const btn=floatingRevertButton||uiDocument?.getElementById('mxmFmtRevertBtn');
+    if(!btn) return;
+    const hasStored=lastFormatState!==null || readStoredOriginal()!==null;
+    btn.disabled=!hasStored;
+    btn.setAttribute('aria-disabled',btn.disabled?'true':'false');
+    btn.style.opacity=btn.disabled?'0.55':'1';
+    btn.style.cursor=btn.disabled?'not-allowed':'pointer';
+    if(btn.disabled){
+      btn.style.transform='';
+      btn.style.boxShadow='';
+    }else if(!btn.style.boxShadow){
+      btn.style.boxShadow='0 6px 18px rgba(0,0,0,.24)';
+    }
+  }
+
+  function revertLastFormat(){
+    const original=getLastOriginalText();
+    if(original===null){
+      alert('No previous lyrics stored. Format the lyrics before trying to revert.');
+      return;
+    }
+    let target=null;
+    if(lastFormatState?.element && lastFormatState.element.isConnected){
+      target=lastFormatState.element;
+    }
+    if(!target){
+      const docCandidate=lastFormatState?.doc||uiDocument||document;
+      target=findDeepEditable(docCandidate)||currentEditable;
+    }
+    if(!target){
+      alert('Click inside the lyrics field first, then press Revert.');
+      return;
+    }
+    writeToEditor(target,original);
+    toast('Restored original lyrics');
+  }
+
   function applyExtensionOptions(updates={}){
     if(!updates || typeof updates!=='object') return;
     const prevShow=extensionOptions.showFloatingButton;
-    if(Object.prototype.hasOwnProperty.call(updates,'lang') && typeof updates.lang==='string')
+    if(Object.prototype.hasOwnProperty.call(updates,'lang') && typeof updates.lang==='string'){
       extensionOptions.lang=updates.lang;
-    if(Object.prototype.hasOwnProperty.call(updates,'autoLowercase'))
+      writeLocalOption('mxmFmtLang',extensionOptions.lang);
+    }
+    if(Object.prototype.hasOwnProperty.call(updates,'autoLowercase')){
       extensionOptions.autoLowercase=Boolean(updates.autoLowercase);
+      writeLocalOption('mxmFmtAutoLowercase',extensionOptions.autoLowercase?'1':'0');
+    }
     if(Object.prototype.hasOwnProperty.call(updates,'fixBackingVocals'))
       extensionOptions.fixBackingVocals=Boolean(updates.fixBackingVocals);
     let showChanged=false;
@@ -1604,7 +1786,7 @@
       extensionOptions.showFloatingButton=nextShow;
     }
     if(showChanged) syncFloatingButtonVisibility();
-    else if(extensionOptions.showFloatingButton && !floatingButton) createFloatingButton();
+    else if(extensionOptions.showFloatingButton && !floatingButtonContainer) createFloatingButton();
   }
 
   function initializeExtensionOptions(){
@@ -1672,6 +1854,7 @@
     const el=currentEditable||findDeepEditable(searchDoc);
     if(!el){alert('Click inside the lyrics field first, then press Alt+M.');return;}
     const before=getEditorText(el);
+    saveLastOriginal(el,before);
     const effectiveOptions={...extensionOptions};
     let out=formatLyrics(before,effectiveOptions);
     if(effectiveOptions.autoLowercase) out=out.toLowerCase();

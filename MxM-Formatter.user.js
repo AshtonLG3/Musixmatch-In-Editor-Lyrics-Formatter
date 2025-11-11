@@ -1,21 +1,21 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.68
+// @version      1.1.72
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
 // @match        https://curators-beta.musixmatch.com/*
 // @run-at       document-idle
 // @grant        none
-// @downloadURL  https://raw.githubusercontent.com/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/main/MxM-Formatter.user.js?v=1.1.68
-// @updateURL    https://raw.githubusercontent.com/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/main/MxM-Formatter.meta.js?v=1.1.68
+// @downloadURL  https://raw.githubusercontent.com/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/main/MxM-Formatter.user.js
+// @updateURL    https://raw.githubusercontent.com/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/main/MxM-Formatter.meta.js
 // ==/UserScript==
 
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.68';
+  const SCRIPT_VERSION = '1.1.72';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -43,11 +43,16 @@
       tagMap: {
         куплет: '#VERSE',
         припев: '#CHORUS',
+        хук: '#HOOK',
         бридж: '#BRIDGE',
+        интерлюдия: '#BRIDGE',
+        брейкдаун: '#BRIDGE',
+        брэйкдаун: '#BRIDGE',
+        инструментал: '#INSTRUMENTAL',
         интро: '#INTRO',
         аутро: '#OUTRO',
-        инструментал: '#INSTRUMENTAL',
-        хук: '#HOOK'
+        предприпев: '#PRE-CHORUS',
+        'пред-припев': '#PRE-CHORUS'
       }
     },
     ES: {
@@ -125,7 +130,26 @@
   const storedLower = readLocalOption('mxmFmtAutoLowercase');
   if(storedLower !== null) extensionOptions.autoLowercase = storedLower === '1' || storedLower === 'true';
 
-  const BV_FIRST_WORD_EXCEPTIONS = new Set(['I', "I'm", "I'ma", 'i', "i'm", "i'ma"]);
+  const BV_FIRST_WORD_EXCEPTIONS = new Set([
+    'I',
+    "I'm",
+    "I'ma",
+    "I'll",
+    "I'd",
+    'i',
+    "i'm",
+    "i'ma",
+    "i'll",
+    "i'd",
+    'Jesus',
+    'Christ',
+    'God',
+    'Lord',
+    'jesus',
+    'christ',
+    'god',
+    'lord'
+  ]);
 
   function loadSettings() {
     if (!hasWindow) return { ...defaults };
@@ -710,6 +734,37 @@
       x = x.replace(rx, `$1${tag}`);
     }
 
+    // --- RU structure normalization (runs BEFORE generic [ ... ] mapper) ---
+    // Accepts: optional leading #[, (, spaces], the Russian label, optional number,
+    // optional separators/credits, then optional closing ], )
+    // Examples matched:
+    //   [Куплет 1: Artist], (Припев — Мумий Тролль), #Интерлюдия - Имя, Инструментал
+    if (currentLang === 'RU') {
+      const RU_STRUCTURE_RE =
+        /(^|\n)\s*#?\s*[\[\(\s]*\s*(куплет|припев|хук|бридж|интерлюдия|брейкдаун|брэйкдаун|инструментал|интро|аутро|предприпев|пред-припев)(?:\s*\d+)?(?:\s*[-:–—]\s*[\p{L}\d .,'’&()\-–—]*)?[\]\)\s]*(?=\n|$)/gimu;
+
+      x = x.replace(RU_STRUCTURE_RE, (match, boundary, raw) => {
+        switch (raw.toLowerCase()) {
+          case 'куплет': return `${boundary}#VERSE`;
+          case 'припев': return `${boundary}#CHORUS`;
+          case 'хук': return `${boundary}#HOOK`;
+          case 'бридж':
+          case 'интерлюдия':
+          case 'брейкдаун':
+          case 'брэйкдаун':
+            return `${boundary}#BRIDGE`;
+          case 'инструментал': return `${boundary}#INSTRUMENTAL`;
+          case 'интро': return `${boundary}#INTRO`;
+          case 'аутро': return `${boundary}#OUTRO`;
+          case 'предприпев':
+          case 'пред-припев':
+            return `${boundary}#PRE-CHORUS`;
+          default:
+            return match;
+        }
+      });
+    }
+
     // --- Conditional Cyrillic “e” conversion ---
     // Only for Latin-script languages
     if (langProfile.preserve.includes('Latin')) {
@@ -721,9 +776,20 @@
       // No transliteration, only punctuation cleanup applies
     }
 
+    // Clean + normalize (dash behavior differs for RU)
+    x = x
+      .replace(/[\u2000-\u200b\u202f\u205f\u2060\u00a0]/gu, " ")
+      .replace(/ {2,}/g, " ")
+      .replace(/\n{3,}/g, "\n\n")
+      .replace(/[\u2019\u2018\u0060\u00b4]/gu, "'")
+      .replace(/[\u{1F300}-\u{1FAFF}\u{FE0F}\u2600-\u26FF\u2700-\u27BF\u2669-\u266F]/gu, "");
+
+    if (currentLang !== 'RU') {
+      x = x.replace(/[\u2013\u2014]/gu, "-");
+    }
+
     if (currentLang === 'RU') {
-      // === Normalize anglicisms & ad-libs based on Google Sheet ===
-      const REPLACEMENTS = {
+      const RU_REPLACEMENTS = {
         "ща": "сейчас",
         "ваще": "вообще",
         "че": "что",
@@ -738,23 +804,19 @@
         "йо": "йо"
       };
 
-      x = x.replace(/\b[\p{L}’']+\b/gu, word => {
+      x = x.replace(/\b[\p{L}’']+\b/gu, (word) => {
         const lower = word.toLowerCase();
-        if (Object.prototype.hasOwnProperty.call(REPLACEMENTS, lower)) {
-          return REPLACEMENTS[lower];
+        if (!Object.prototype.hasOwnProperty.call(RU_REPLACEMENTS, lower)) return word;
+
+        const replacement = RU_REPLACEMENTS[lower];
+        if (!replacement) return replacement;
+        if (word === word.toUpperCase()) return replacement.toUpperCase();
+        if (word[0] === word[0].toUpperCase() && word.slice(1) === word.slice(1).toLowerCase()) {
+          return replacement.charAt(0).toUpperCase() + replacement.slice(1);
         }
-        return word;
+        return replacement;
       });
     }
-
-    // Clean + normalize
-    x = x
-      .replace(/[\u2000-\u200b\u202f\u205f\u2060\u00a0]/gu, " ")
-      .replace(/ {2,}/g, " ")
-      .replace(/\n{3,}/g, "\n\n")
-      .replace(/[\u2019\u2018\u0060\u00b4]/gu, "'")
-      .replace(/[\u2013\u2014]/gu, "-")
-      .replace(/[\u{1F300}-\u{1FAFF}\u{FE0F}\u2600-\u26FF\u2700-\u27BF\u2669-\u266F]/gu, "");
 
     x = x.replace(/[【〔［｛〈《]/g, '[')
          .replace(/[】〕］｝〉》]/g, ']')
@@ -776,6 +838,44 @@
     });
 
     x = normalizeStructureTags(x);
+
+    // Normalize any hook variants into #HOOK
+    x = x.replace(/(^|\n)\s*[\[(]?(hook|HOOK)[\])]?(\s*\d+)?\s*(?=\n|$)/g, (_, b) => `${b}#HOOK`);
+
+    if (currentLang === 'RU') {
+      // === Russian Structure Tag Normalization ===
+      const RU_STRUCTURE_RE =
+        /(^|\n)\s*[\[(]*(куплет|припев|хук|бридж|интерлюдия|брейкдаун|брэйкдаун|инструментал|интро|аутро|предприпев|пред-припев)[\])]*(?:\s*[-:–—]\s*[\p{L}\d .,'’&()-]*)?(?=\n|$)/gimu;
+
+      x = x.replace(RU_STRUCTURE_RE, (_, boundary, raw) => {
+        const lower = raw.toLowerCase();
+        switch (lower) {
+          case 'куплет':
+            return `${boundary}#VERSE`;
+          case 'припев':
+            return `${boundary}#CHORUS`;
+          case 'хук':
+            return `${boundary}#HOOK`;
+          case 'бридж':
+          case 'интерлюдия':
+          case 'брейкдаун':
+          case 'брэйкдаун':
+            return `${boundary}#BRIDGE`;
+          case 'инструментал':
+            return `${boundary}#INSTRUMENTAL`;
+          case 'интро':
+            return `${boundary}#INTRO`;
+          case 'аутро':
+            return `${boundary}#OUTRO`;
+          case 'предприпев':
+          case 'пред-припев':
+            return `${boundary}#PRE-CHORUS`;
+          default:
+            return _;
+        }
+      });
+    }
+
     x = normalizeInstrumentalSections(x);
     x = enforceStructureTagSpacing(x);
 
@@ -788,29 +888,6 @@
     x = x.replace(/\bnew[\s-]*years?\b/gi, "New Year");
     x = x.replace(/\bhappy[\s-]*holidays?\b/gi, "Happy Holidays");
     x = x.replace(/\bseasons?[\s-]*greetings?\b/gi, "Season's Greetings");
-
-    // === Capitalize proper names or title phrases inside parentheses ===
-    // e.g., (jesus christ) → (Jesus Christ), (cape town) → (Cape Town)
-    x = x.replace(
-      /\(([a-z][^)]{1,40})\)/g,
-      (match, inner) => {
-        // common lowercase exceptions (articles, prepositions, particles)
-        const exceptions = new Set(["of", "the", "in", "and", "at", "on", "for", "van", "von", "de", "der"]);
-
-        // split and capitalize words
-        const words = inner
-          .trim()
-          .split(/\s+/)
-          .map((word, i) => {
-            const lower = word.toLowerCase();
-            if (exceptions.has(lower) && i !== 0) return lower;
-            return lower.charAt(0).toUpperCase() + lower.slice(1);
-          })
-          .join(" ");
-
-        return `(${words})`;
-      }
-    );
 
     x = x.replace(/([A-Za-z])-(?:[ \t]*)(\r?\n)(\s*)(em\b)/gi, (match, letter, newline, spaces, word) => {
       const token = `${HYPHENATED_EM_TOKEN}${hyphenatedEmTokens.length}${HYPHENATED_EM_TOKEN}`;
@@ -961,7 +1038,7 @@ const WELL_CLAUSE_STARTERS = new Set([
   "did","didnt","do","dont","does","doesnt","done","doing","ain","aint","is","isnt","are",
   "arent","was","wasnt","were","werent","have","havent","has","hasnt","had","hadnt"
 ]);
-	  
+
     x = x.replace(/\b(oh|ah|yeah|uh)h+\b(?=[\s,!.?\)]|$)/gi, (match, base) => base);
     x = x.replace(/\b(oh|ah|yeah|whoa|ooh|uh|well)\b(?!,)/gi, (m, word, off, str) => {
       const after = str.slice(off + m.length);
@@ -1039,27 +1116,92 @@ const WELL_CLAUSE_STARTERS = new Set([
 
     x = x.replace(/\b(oh|ah|yeah|whoa|ooh|uh|well)\b\s*,\s*(?=\))/gi, '$1');
 
-    // Dropped-G (smart and safe fix)
-    // Converts "feelin" → "feelin'", but leaves "feeling", "feelin'", "begin", "violin", etc. untouched
-    x = x.replace(/\b([A-Za-z]+in)(?!['’g])\b/g, (match, base) => {
-      const exclusions = new Set([
+    // === Dropped-G (smart and safe fix, live CSV cache + sync fallback) ===
+    (() => {
+      const CSV_URL =
+        "https://docs.google.com/spreadsheets/d/e/2PACX-1vSQY2TH74oBLQWTeI0j7WobaPUe-UC4Vdc2dn7nVjgtT9h9H7AFAmErladiu6SgT2Wacuk4oEMBieKD/pub?output=csv";
+      const LOCAL_KEY = "mxmDroppedGExclusionsCSV.v1";
+
+      const LOCAL_EXCLUSIONS = new Set([
         "begin","began","within","cousin","violin","virgin","origin","margin","resin","penguin",
         "pumpkin","grin","chin","twin","skin","basin","raisn","savin","login","pin","curtain",
         "fin","din","min","gin","lin","kin","sin","win","bin","thin","tin","akin","leadin","captain","mountain",
-        "fountain","certain","again","gain","spin","twin","main","cain","mantain","retain","detain","vain","regain",
-        // 🔒 New rhyme-based exclusions
-        "rain", "brain", "pain","drain","main","train","grain","cabin","satin","chain","plain","remain","campaign","fein",
-        "contain","domain","explain","sustain","pertain","obtain","entertain","villain","admin","abstain","stain",
+        "fountain","certain","again","gain","spin","twin","main","cain","maintain","retain","detain","vain","regain",
+        "rain","brain","pain","drain","train","grain","cabin","satin","chain","plain","remain","campaign",
+        "fein","contain","domain","explain","sustain","pertain","obtain","entertain","villain","admin","abstain","stain"
       ]);
 
-      // skip if in exclusion list (case-insensitive)
-      if (exclusions.has(base.toLowerCase())) return match;
+      const parseCSV = (text) =>
+        new Set(
+          text
+            .split(/\r?\n/)
+            .map((l) => l.trim().split(",")[0]?.toLowerCase())
+            .filter((w) => w && /^[a-z]+$/.test(w))
+        );
 
-      // Preserve casing of the original word
-      if (match === match.toUpperCase()) return base.toUpperCase() + "'";
-      if (match[0] === match[0].toUpperCase()) return base[0].toUpperCase() + base.slice(1) + "'";
-      return base + "'";
-    });
+      // Try to read cached exclusions first
+      let EXCLUSIONS = LOCAL_EXCLUSIONS;
+      try {
+        const cached = localStorage.getItem(LOCAL_KEY);
+        if (cached) EXCLUSIONS = parseCSV(cached);
+      } catch {}
+
+      // Fire-and-forget fetch (updates cache asynchronously)
+      fetch(CSV_URL)
+        .then((r) => (r.ok ? r.text() : ""))
+        .then((t) => {
+          if (t) localStorage.setItem(LOCAL_KEY, t);
+        })
+        .catch(() => {});
+
+      // Apply Dropped-G immediately
+      x = x.replace(/\b([A-Za-z]+in)(?!['’g])\b/g, (match, base) => {
+        if (EXCLUSIONS.has(base.toLowerCase())) return match;
+        if (match === match.toUpperCase()) return base.toUpperCase() + "'";
+        if (match[0] === match[0].toUpperCase()) return base[0].toUpperCase() + base.slice(1) + "'";
+        return base + "'";
+      });
+    })();
+
+      // === Normalize syllable repetitions (na, la, etc.) ===
+x = x.replace(
+  /(^|\n|[?!]\s*)((?:na|la))(?:[-\s]+\2){1,}\b|(^|\n|[?!]\s*)((?:na|la){4,})/gi,
+  (full, boundaryA, syllableA, boundaryB, fused) => {
+    const boundary = boundaryA || boundaryB || '';
+    const syllable = (syllableA || fused?.slice(0, 2) || '').toLowerCase();
+    if (!syllable) return full;
+
+    // Count total syllables
+    const matches = (full.match(new RegExp(`${syllable}`, 'gi')) || []).length;
+    const total = Math.max(2, matches);
+
+    // Group syllables in sets of 4, separated by commas every 4 repeats
+    const parts = [];
+    for (let i = 0; i < total; i += 4) {
+      const group = Array.from(
+        { length: Math.min(4, total - i) },
+        () => syllable
+      ).join('-');
+      parts.push(group);
+    }
+
+    // ✅ Specific fix: handle fused 'lalalalala' (5 or more la's)
+    if (/^la+$/.test(fused || '') && total > 4) {
+      const groups = [];
+      for (let i = 0; i < total; i += 4) {
+        const chunk = Math.min(4, total - i);
+        groups.push(Array.from({ length: chunk }, () => syllable).join('-'));
+      }
+      return boundary + groups.join(', ');
+    }
+
+    let formatted = parts.join(', ');
+    if (boundary.endsWith('\n') || /[?!]\s*$/.test(boundary))
+      formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1);
+
+    return boundary + formatted;
+  }
+);
 
     // Numbers & timing logic
     x = normalizeOClock(x);
@@ -1097,105 +1239,40 @@ const WELL_CLAUSE_STARTERS = new Set([
       boundary + space + quote + letter.toLocaleUpperCase()
     );
 
-    // BV lowercase (except I, I'm, I'ma) — refined proper-noun aware
-    x = x.replace(/(\p{L})\(/gu, "$1 (");
-
-    x = x.replace(/\(([^)]+)\)/g, (match, inner) => {
+    // === Backing vocals normalization (moved earlier to prevent re-capitalization) ===
+    x = x.replace(/(?<!^|\n)\(([^)]+)\)/g, (match, inner) => {
       const trimmed = inner.trim();
       if (!trimmed) return match;
 
-      const leadingSpace = inner.match(/^\s+/)?.[0] ?? '';
-      const trailingSpace = inner.match(/\s+$/)?.[0] ?? '';
+      const firstWord = trimmed.split(/\s+/)[0] || '';
+      const lowerFirst = firstWord.toLocaleLowerCase();
 
-      const firstTokenMatch = trimmed.match(/^\S+/);
-      if (!firstTokenMatch) return match;
-      const firstToken = firstTokenMatch[0];
-
-      const leadingQuotesMatch = firstToken.match(/^["'“”‘’]+/);
-      const leadingQuotes = leadingQuotesMatch ? leadingQuotesMatch[0] : '';
-      const hasTrailingComma = firstToken.endsWith(',');
-      const coreFirstWord = firstToken.slice(
-        leadingQuotes.length,
-        hasTrailingComma ? -1 : undefined
-      );
-      if (!coreFirstWord) return match;
-
-      const firstLower = coreFirstWord.toLocaleLowerCase();
-
-      // Preserve I, I'm, I'ma
-      if (BV_FIRST_WORD_EXCEPTIONS.has(coreFirstWord) || BV_FIRST_WORD_EXCEPTIONS.has(firstLower))
+      if (BV_FIRST_WORD_EXCEPTIONS.has(firstWord) || BV_FIRST_WORD_EXCEPTIONS.has(lowerFirst))
         return match;
 
-      // Detect if ALL words are proper-cased ("Jesus Christ my Lord" stays intact)
-      const words = trimmed.split(/\s+/);
-      const allProper = words.length > 1 && words.every(w => /^[A-Z][a-z]+/.test(w));
+      if (/^(yeah|yea|yo|la|na|woo|hey|ha|uh|o+h)$/i.test(firstWord)) {
+        return `(${trimmed.toLocaleLowerCase()})`;
+      }
 
-      // NEW: detect if it's *partially* proper but not starting with one (e.g., "Thank you, Jesus Christ my Lord")
-      const startsProper = /^[A-Z][a-z]+$/.test(coreFirstWord);
-      if (allProper && startsProper) return match;
-
-      // Otherwise, lowercase the first word
-      const loweredFirst = leadingQuotes + firstLower + (hasTrailingComma ? ',' : '');
-      const remainder = trimmed.slice(firstToken.length);
-      return `(${leadingSpace}${loweredFirst}${remainder}${trailingSpace})`;
+      return `(${lowerFirst}${trimmed.slice(firstWord.length)})`;
     });
 
-    // Capitalize first letter when line starts with "("
-    x = x.replace(/(^|\n)(\(\s*)(["'“”‘’]?)(\p{Ll})/gu, (_, boundary, parenWithSpace, quote, letter) =>
-      boundary + parenWithSpace + quote + letter.toLocaleUpperCase()
+
+    // Maintain capitalization for lines starting with "("
+    x = x.replace(/(^|\n)(\(\s*)(["'“”‘’]?)(\p{Ll})/gu,
+      (_, boundary, parenWithSpace, quote, letter) => boundary + parenWithSpace + quote + letter.toLocaleUpperCase()
     );
 
-    // Capitalize words following question or exclamation marks (after parentheses normalization)
+    // Restore normal sentence capitalization
     x = capitalizeAfterSentenceEnders(x);
 
-    // Smart comma relocation: only move if there's text after ")" (idempotent), otherwise remove
-    x = x.replace(/,[ \t]*\(([^)]*?)\)(?=[ \t]*\S)/g, (match, inner, offset, str) => { // [FIXED]
+    // Comma relocation fix retained
+    x = x.replace(/,[ \t]*\(([^)]*?)\)(?=[ \t]*\S)/g, (match, inner, offset, str) => {
       const afterIdx = offset + match.length;
       if (str[afterIdx] === ',') return match;
       return ` (${inner}),`;
     });
-    x = x.replace(/,[ \t]*\(([^)]*?)\)[ \t]*$/gm, ' ($1)');     // [FIXED] if line ends after ")", remove comma
-
-    // === Normalize syllable repetitions (na, la, etc.) ===
-    x = x.replace(
-      /(^|\n|[?!]\s*)((?:na|la))(?:\s+\2){1,}\b|(^|\n|[?!]\s*)(nanananana|nanananana|lalalala|lalalalala)/gi,
-      (full, boundaryA, syllableA, boundaryB, fused) => {
-        const boundary = boundaryA || boundaryB || '';
-        const syllable = (syllableA || fused.slice(0, 2)).toLowerCase();
-        let total;
-
-        if (fused) total = Math.floor(fused.length / 2);
-        else {
-          const count = full.trim().split(/\s+/).length - 1;
-          total = count + 1;
-        }
-
-        const parts = [];
-        for (let i = 0; i < total; i += 4) {
-          const group = Array.from({ length: Math.min(4, total - i) }, () => syllable).join('-');
-          parts.push(group);
-        }
-
-        let formatted = parts.join(', ');
-        if (boundary.endsWith('\n') || /[?!]\s*$/.test(boundary))
-          formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1);
-        return boundary + formatted;
-      }
-    );
-
-    // === Normalize repeated full words ("very very" -> "very, very") ===
-    x = x.replace(
-      /(^|\n|[?!]\s*)(?!na|la|da|ba|ma|pa)([a-z]{2,})(?:\s+\2){1,}\b/gi,
-      (full, boundary, word) => {
-        const lower = word.toLowerCase();
-        if (['to', 'do', 'go'].includes(lower)) return full; // avoid command-type repeats
-        const tokens = full.slice(boundary.length).trim().split(/\s+/);
-        let formatted = tokens.map(() => lower).join(', ');
-        if (boundary.endsWith('\n') || /[?!]\s*$/.test(boundary))
-          formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1);
-        return boundary + formatted;
-      }
-    );
+    x = x.replace(/,[ \t]*\(([^)]*?)\)[ \t]*$/gm, ' ($1)');
 
 
     // ---------- Final Sanitation (Strict Parenthetical Safe) ----------
@@ -1291,6 +1368,35 @@ x = x
   // I'd corrections (id / i'd)
   .replace(/\b(i['’]?\s?d)(?=[\s,.)!?'"]|$)/gi, "I'd");
 
+
+    // === Fix: Holiday and Proper Noun Corrections (adjusted for Christmastime) ===
+    x = x.replace(/\bchrismast\b/gi, 'Christmas');
+    x = x.replace(/\bchristmas[\s-]*time\b/gi, 'Christmastime');
+    x = x.replace(/\bchristmas[\s-]*eve\b/gi, 'Christmas Eve');
+
+    // === Merge duplicate structure tags & remove blank spacing ===
+    x = x.replace(/(#(INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))(\n\s*\n\1)+/g, '$1');
+    x = x.replace(/(#\w+\n)\n+/g, '$1');
+
+    // === Ensure blank line before structure tags for readability ===
+    x = x.replace(/([^)#\n])\n(?=#(INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))/g, '$1\n\n');
+
+    // === Prevent #HOOK duplication after non-verbal insertion ===
+    x = x.replace(/(#(INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))(\n\1)+/g, '$1');
+
+    // === Final cleanup ===
+    x = x.replace(/ +\n/g, '\n'); // trim spaces before line breaks
+    x = x.replace(/\n{3,}/g, '\n\n'); // collapse 3+ newlines into 2
+
+    // === Strengthened structure tag deduplication (prevents #HOOK double lines) ===
+    x = x.replace(/(#(INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO)\s*\n\s*)+#\2/gi, '#$2');
+    x = x.replace(/(#HOOK\s*\n\s*)+#HOOK/gi, '#HOOK');
+    x = x.replace(/(#CHORUS\s*\n\s*)+#CHORUS/gi, '#CHORUS');
+
+    // === Final-Pass: Capitalize first letter when line starts with "(" ===
+    x = x.replace(/(^|\n)(\(\s*)(["'“”‘’]?)(\p{Ll})/gu,
+      (_, b, p, q, l) => b + p + q + l.toLocaleUpperCase()
+    );
 
     // 4️⃣ Remove stray indentation and trailing spaces on each line
     x = x.replace(/^[ \t]+/gm, "");
@@ -1781,4 +1887,3 @@ x = x
   });
 
 })(typeof globalThis !== 'undefined' ? globalThis : this);
-
