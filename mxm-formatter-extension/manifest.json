@@ -19,10 +19,7 @@
   ],
   "content_scripts": [
     {
-      "matches": [
-        "https://curators.musixmatch.com/*",
-        "https://curators-beta.musixmatch.com/*"
-      ],
+      "matches": ["https://curators.musixmatch.com/*", "https://curators-beta.musixmatch.com/*"],
       "js": ["content.js"],
       "run_at": "document_idle"
     }

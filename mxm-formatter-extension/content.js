@@ -14,7 +14,7 @@
     !!chrome.runtime?.id;
 
   const extensionDefaults = {
-    lang: "EN",
+    lang: 'EN',
     autoLowercase: false,
     fixBackingVocals: true,
     showFloatingButton: !runningAsExtension // show button for userscript installs
@@ -27,19 +27,19 @@
       preserve: ['Cyrillic'],
       droppedG: false,
       tagMap: {
-        куплет: '#VERSE',
-        припев: '#CHORUS',
-        хук: '#HOOK',
-        бридж: '#BRIDGE',
-        интерлюдия: '#BRIDGE',
-        брейкдаун: '#BRIDGE',
-        брэйкдаун: '#BRIDGE',
-        инструментал: '#INSTRUMENTAL',
-        интро: '#INTRO',
-        аутро: '#OUTRO',
-        предприпев: '#PRE-CHORUS',
-        'пред-припев': '#PRE-CHORUS'
-      }
+        'куплет': '#VERSE',
+        'припев': '#CHORUS',
+        'хук': '#HOOK',
+        'бридж': '#BRIDGE',
+        'интерлюдия': '#BRIDGE',
+        'брейкдаун': '#BRIDGE',
+        'брэйкдаун': '#BRIDGE',
+        'инструментал': '#INSTRUMENTAL',
+        'интро': '#INTRO',
+        'аутро': '#OUTRO',
+        'предприпев': '#PRE-CHORUS',
+        'пред-припев': '#PRE-CHORUS',
+      },
     },
     ES: {
       preserve: ['Latin'],
@@ -50,8 +50,8 @@
         puente: '#BRIDGE',
         intro: '#INTRO',
         outro: '#OUTRO',
-        instrumental: '#INSTRUMENTAL'
-      }
+        instrumental: '#INSTRUMENTAL',
+      },
     },
     PT: {
       preserve: ['Latin'],
@@ -62,8 +62,8 @@
         ponte: '#BRIDGE',
         intro: '#INTRO',
         outro: '#OUTRO',
-        instrumental: '#INSTRUMENTAL'
-      }
+        instrumental: '#INSTRUMENTAL',
+      },
     },
     FR: {
       preserve: ['Latin'],
@@ -74,8 +74,8 @@
         pont: '#BRIDGE',
         intro: '#INTRO',
         outro: '#OUTRO',
-        instrumental: '#INSTRUMENTAL'
-      }
+        instrumental: '#INSTRUMENTAL',
+      },
     },
     IT: {
       preserve: ['Latin'],
@@ -86,10 +86,10 @@
         bridge: '#BRIDGE',
         intro: '#INTRO',
         outro: '#OUTRO',
-        strumentale: '#INSTRUMENTAL'
-      }
+        strumentale: '#INSTRUMENTAL',
+      },
     },
-    EL: { preserve: ['Greek'], droppedG: false, tagMap: {} }
+    EL: { preserve: ['Greek'], droppedG: false, tagMap: {} },
   };
 
   function readLocalOption(key){
@@ -134,7 +134,7 @@
     'jesus',
     'christ',
     'god',
-    'lord'
+    'lord',
   ]);
 
   function loadSettings() {
@@ -195,33 +195,95 @@
   function findDeepEditable(rootDoc) {
     let el = rootDoc.activeElement;
     while (el) {
-      if (el.shadowRoot && el.shadowRoot.activeElement) el = el.shadowRoot.activeElement;
-      else if (el.tagName === "IFRAME" && el.contentDocument?.activeElement)
+      if (el.shadowRoot && el.shadowRoot.activeElement) {
+        el = el.shadowRoot.activeElement;
+      } else if (el.tagName === 'IFRAME' && el.contentDocument?.activeElement) {
         el = el.contentDocument.activeElement;
-      else break;
+      } else break;
     }
-    if (el?.isContentEditable || el?.tagName === "TEXTAREA" || el?.getAttribute?.("role") === "textbox")
+    if (
+      el?.isContentEditable ||
+      el?.tagName === 'TEXTAREA' ||
+      el?.getAttribute?.('role') === 'textbox'
+    ) {
       return el;
+    }
     return null;
   }
 
   // ---------- Number Rules ----------
-  const NUM_WORDS_0_10 = ["zero","one","two","three","four","five","six","seven","eight","nine","ten"];
-  const WORD_TO_NUM_11_19 = { eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19 };
-  const WORD_TO_TENS = { twenty:20,thirty:30,forty:40,fifty:50,sixty:60,seventy:70,eighty:80,ninety:90 };
-  const WORD_TO_ONES = { one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9 };
+  const NUM_WORDS_0_10 = [
+    'zero',
+    'one',
+    'two',
+    'three',
+    'four',
+    'five',
+    'six',
+    'seven',
+    'eight',
+    'nine',
+    'ten',
+  ];
+  const WORD_TO_NUM_11_19 = {
+    eleven: 11,
+    twelve: 12,
+    thirteen: 13,
+    fourteen: 14,
+    fifteen: 15,
+    sixteen: 16,
+    seventeen: 17,
+    eighteen: 18,
+    nineteen: 19,
+  };
+  const WORD_TO_TENS = {
+    twenty: 20,
+    thirty: 30,
+    forty: 40,
+    fifty: 50,
+    sixty: 60,
+    seventy: 70,
+    eighty: 80,
+    ninety: 90,
+  };
+  const WORD_TO_ONES = {
+    one: 1,
+    two: 2,
+    three: 3,
+    four: 4,
+    five: 5,
+    six: 6,
+    seven: 7,
+    eight: 8,
+    nine: 9,
+  };
   const OCLOCK_DIGIT_TO_WORD = {
-    1:"one",2:"two",3:"three",4:"four",5:"five",6:"six",7:"seven",8:"eight",9:"nine",10:"ten",11:"eleven",12:"twelve"
+    1: 'one',
+    2: 'two',
+    3: 'three',
+    4: 'four',
+    5: 'five',
+    6: 'six',
+    7: 'seven',
+    8: 'eight',
+    9: 'nine',
+    10: 'ten',
+    11: 'eleven',
+    12: 'twelve',
   };
   const OCLOCK_WORD_SET = new Set(Object.values(OCLOCK_DIGIT_TO_WORD));
 
   function isTimeContext(line, _s, e) {
     const after = line.slice(e);
-    return (/^\s*:\s*\d{2}/.test(after) || /^\s*(?:a|p)\.?m\.?/i.test(after) || /^\s*(?:am|pm)\b/i.test(after));
+    return (
+      /^\s*:\s*\d{2}/.test(after) ||
+      /^\s*(?:a|p)\.?m\.?/i.test(after) ||
+      /^\s*(?:am|pm)\b/i.test(after)
+    );
   }
   function isDateContext(line, s, e) {
     const ctx = line.slice(Math.max(0, s - 6), Math.min(line.length, e + 6));
-    return (/(?:\d{1,2}[\/-]\d{1,2}(?:[\/-]\d{2,4})?)/.test(ctx) || /\b(19|20)\d{2}\b/.test(ctx));
+    return /(?:\d{1,2}[\/-]\d{1,2}(?:[\/-]\d{2,4})?)/.test(ctx) || /\b(19|20)\d{2}\b/.test(ctx);
   }
   function isDecadeNumeric(line, _s, e) {
     const after = line.slice(e);
@@ -238,40 +300,54 @@
 
   function spellOutCountSequence(line) {
     // Convert each number (0–10) in a count sequence into its word form
-    const numWords = ["zero","one","two","three","four","five","six","seven","eight","nine","ten"];
+    const numWords = [
+      'zero',
+      'one',
+      'two',
+      'three',
+      'four',
+      'five',
+      'six',
+      'seven',
+      'eight',
+      'nine',
+      'ten',
+    ];
     return line
       .replace(/\b(0|[1-9]|10)\b/g, (_, d) => numWords[Number(d)])
       .replace(/([a-z])([a-z])/gi, (m, a, b) => a + b.toLowerCase()) // normalize casing
-      .replace(/(^|\s)([a-z])/g, (m, s, l) => s + l.toUpperCase())   // capitalize first if needed
-      .replace(/\s*,\s*/g, ", ")                                     // clean spacing after commas
-      .replace(/\s+/g, " ");                                         // collapse spaces
+      .replace(/(^|\s)([a-z])/g, (m, s, l) => s + l.toUpperCase()) // capitalize first if needed
+      .replace(/\s*,\s*/g, ', ') // clean spacing after commas
+      .replace(/\s+/g, ' '); // collapse spaces
   }
   function numerals0to10ToWords(line) {
     const re = /\b(0|1|2|3|4|5|6|7|8|9|10)\b/g;
-    let out = "", last = 0, m;
+    let out = '',
+      last = 0,
+      m;
     while ((m = re.exec(line)) !== null) {
-      const s = m.index, e = s + m[0].length, num = parseInt(m[0], 10);
-      if (
-        isTimeContext(line, s, e) ||
-        isDateContext(line, s, e) ||
-        isDecadeNumeric(line, s, e)
-      ) {
+      const s = m.index,
+        e = s + m[0].length,
+        num = parseInt(m[0], 10);
+      if (isTimeContext(line, s, e) || isDateContext(line, s, e) || isDecadeNumeric(line, s, e)) {
         out += line.slice(last, e);
-      }
-      else out += line.slice(last, s) + NUM_WORDS_0_10[num];
+      } else out += line.slice(last, s) + NUM_WORDS_0_10[num];
       last = e;
     }
     out += line.slice(last);
     return out;
   }
-  function words11to99ToNumerals(line) {
-    line = line.replace(/\b(eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen)\b/gi,
+  function words11to99ToNumerals(_line) {
+    let line = _line.replace(
+      /\b(eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen)\b/gi,
       (w, raw, offset, str) => {
         const end = offset + w.length;
         if (isOClockFollowing(str, end)) return w;
         return String(WORD_TO_NUM_11_19[raw.toLowerCase()]);
-      });
-    line = line.replace(/\b(twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)(?:[-\s]+(one|two|three|four|five|six|seven|eight|nine)|(one|two|three|four|five|six|seven|eight|nine))?\b/gi,
+      },
+    );
+    line = line.replace(
+      /\b(twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)(?:[-\s]+(one|two|three|four|five|six|seven|eight|nine)|(one|two|three|four|five|six|seven|eight|nine))?\b/gi,
       (_, tensRaw, onesWithSep, onesBare, offset, str) => {
         const match = _;
         const end = offset + match.length;
@@ -280,7 +356,8 @@
         const onesRaw = onesWithSep || onesBare;
         if (onesRaw) n += WORD_TO_ONES[onesRaw.toLowerCase()];
         return String(n);
-      });
+      },
+    );
     return line;
   }
   function applyNumberRules(text) {
@@ -308,7 +385,8 @@
 
   function normalizeOClock(text) {
     if (!text) return text;
-    const re = /\b(?:(\d{1,2})|(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve))\s*(o['’]?\s*clock)\b/gi;
+    const re =
+      /\b(?:(\d{1,2})|(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve))\s*(o['’]?\s*clock)\b/gi;
     return text.replace(re, (match, digit, word, tail) => {
       let baseWord;
       if (digit) {
@@ -322,8 +400,9 @@
       }
       let normalizedWord;
       if (word) {
-        if (word === word.toUpperCase()) normalizedWord = baseWord.toUpperCase();
-        else normalizedWord = baseWord;
+        if (word === word.toUpperCase()) {
+          normalizedWord = baseWord.toUpperCase();
+        } else normalizedWord = baseWord;
       } else {
         normalizedWord = baseWord;
       }
@@ -342,13 +421,20 @@
 
   const MERIDIEM_PATTERN = '(?:a|p)\\s*\\.?\\s*m\\.?';
   const MERIDIEM_TRAIL = '(?=$|[^A-Za-z0-9_])';
-  const DIGIT_TIME_RE = new RegExp(`\\b(\\d{1,2})(?:\\s*[:.]\\s*(\\d{1,2}))?\\s*(${MERIDIEM_PATTERN})${MERIDIEM_TRAIL}`, 'gi');
-  const WORD_TIME_RE = new RegExp(`\\b(${Object.keys(WORD_TO_DIGIT_TIME).join('|')})\\b\\s*(${MERIDIEM_PATTERN})${MERIDIEM_TRAIL}`, 'gi');
+  const DIGIT_TIME_RE = new RegExp(
+    `\\b(\\d{1,2})(?:\\s*[:.]\\s*(\\d{1,2}))?\\s*(${MERIDIEM_PATTERN})${MERIDIEM_TRAIL}`,
+    'gi',
+  );
+  const WORD_TIME_RE = new RegExp(
+    `\\b(${Object.keys(WORD_TO_DIGIT_TIME).join('|')})\\b\\s*(${MERIDIEM_PATTERN})${MERIDIEM_TRAIL}`,
+    'gi',
+  );
 
-  function normalizeAmPmTimes(text) {
+  function normalizeAmPmTimes(_text) {
+    let text = _text;
     if (!text) return text;
 
-    const normalizeMeridiem = token => {
+    const normalizeMeridiem = (token) => {
       const match = token.match(/[ap]/i);
       const letter = match ? match[0].toLowerCase() : 'a';
       return letter === 'a' ? 'a.m.' : 'p.m.';
@@ -374,27 +460,122 @@
   }
 
   const NO_INTERJECTION_FOLLOWERS = new Set([
-    "i","i'm","im","i'd","i'll","i've","imma",
-    "you","you're","youre","u","ya","y'all","yall","ya'll",
-    "he","she","we","they","it","it's","its",
-    "there","there's","theres","this","that","these","those",
-    "dont","don't","do","does","did","didn't","didnt",
-    "cant","can't","cannot","wont","won't","wouldnt","wouldn't",
-    "shouldnt","shouldn't","couldnt","couldn't","aint","ain't",
-    "never","ever","please","thanks","thank","sorry",
-    "sir","ma'am","maam","bro","dude","man","girl","boy","baby","babe","darling","honey",
-    "stop","wait","listen","hold","hang","come","comeon","c'mon","let","lets","let's",
-    "leave","gimme","gonna","gotta","no","nah"
+    'i',
+    "i'm",
+    'im',
+    "i'd",
+    "i'll",
+    "i've",
+    'imma',
+    'you',
+    "you're",
+    'youre',
+    'u',
+    'ya',
+    "y'all",
+    'yall',
+    "ya'll",
+    'he',
+    'she',
+    'we',
+    'they',
+    'it',
+    "it's",
+    'its',
+    'there',
+    "there's",
+    'theres',
+    'this',
+    'that',
+    'these',
+    'those',
+    'dont',
+    "don't",
+    'do',
+    'does',
+    'did',
+    "didn't",
+    'didnt',
+    'cant',
+    "can't",
+    'cannot',
+    'wont',
+    "won't",
+    'wouldnt',
+    "wouldn't",
+    'shouldnt',
+    "shouldn't",
+    'couldnt',
+    "couldn't",
+    'aint',
+    "ain't",
+    'never',
+    'ever',
+    'please',
+    'thanks',
+    'thank',
+    'sorry',
+    'sir',
+    "ma'am",
+    'maam',
+    'bro',
+    'dude',
+    'man',
+    'girl',
+    'boy',
+    'baby',
+    'babe',
+    'darling',
+    'honey',
+    'stop',
+    'wait',
+    'listen',
+    'hold',
+    'hang',
+    'come',
+    'comeon',
+    "c'mon",
+    'let',
+    'lets',
+    "let's",
+    'leave',
+    'gimme',
+    'gonna',
+    'gotta',
+    'no',
+    'nah',
   ]);
 
   const NO_TRAILING_SKIP_PREV = new Set([
-    "say","says","said","tell","tells","told","ask","asks","asked",
-    "reply","replies","replied","yell","yells","yelled","shout","shouts","shouted",
-    "scream","screams","screamed","whisper","whispers","whispered"
+    'say',
+    'says',
+    'said',
+    'tell',
+    'tells',
+    'told',
+    'ask',
+    'asks',
+    'asked',
+    'reply',
+    'replies',
+    'replied',
+    'yell',
+    'yells',
+    'yelled',
+    'shout',
+    'shouts',
+    'shouted',
+    'scream',
+    'screams',
+    'screamed',
+    'whisper',
+    'whispers',
+    'whispered',
   ]);
 
-  const NO_QUOTE_CHARS = "\"'“”‘’";
-  const NO_BETWEEN_WORDS_RE = /((?:['’]?)[A-Za-z0-9][^\s,.;!?()#"]*)([ \t]+)([Nn][Oo])([ \t]+)((?:['’]?)[A-Za-z0-9][^\s,.;!?()#"]*)/g;
+  const NO_QUOTE_CHARS = '"\'“”‘’';
+  const NO_BETWEEN_WORDS_RE =
+    /((?:['’]?)[A-Za-z0-9][^\s,.;!?()#"]*)([ \t]+)([Nn][Oo])([ \t]+)((?:['’]?)[A-Za-z0-9][^\s,.;!?()#"]*)/g;
   const NO_FILLER_REMOVE_RE =
     /(\b(?:yeah|yea|yah|ya|yup|yep|yuh)\b)(\s*,?\s+)([Nn][Oo])(\s+)((?:['’]?)[A-Za-z0-9][^\s,.;!?()#"]*)/gi;
 
@@ -436,11 +617,12 @@
     return NO_INTERJECTION_FOLLOWERS.has(nextLower);
   }
 
-  function applyNoCommaRules(text) {
+  function applyNoCommaRules(_text) {
+    let text = _text;
     if (!text) return text;
 
     // Exempt idioms like "Say no more" from added commas
-    text = text.replace(/\b(Say|Told|Telling|Tell|Tells)\s+no\s+more\b/gi, m => m);
+    text = text.replace(/\b(Say|Told|Telling|Tell|Tells)\s+no\s+more\b/gi, (m) => m);
 
     text = text.replace(
       NO_FILLER_REMOVE_RE,
@@ -451,7 +633,7 @@
         if (NO_INTERJECTION_FOLLOWERS.has(nextLower)) return match;
         const normalizedSeparator = separator.includes(',') ? ', ' : ' ';
         return `${fillerWord}${normalizedSeparator}${nextWord}`;
-      }
+      },
     );
 
     text = text.replace(
@@ -461,12 +643,14 @@
 
         const prevLower = prevWord.replace(/^['’"]+/, '').toLowerCase();
         const nextLower = nextWord.replace(/['’"]+$/, '').toLowerCase();
-        if (nextLower === 'more' && /^(say|told|telling|tell|tells)$/.test(prevLower)) return match;
+        if (nextLower === 'more' && /^(say|told|telling|tell|tells)$/.test(prevLower)) {
+          return match;
+        }
 
         if (!shouldIsolateStandaloneNo(prevWord, nextWord)) return match;
 
         return `${prevWord}, ${noWord}, ${nextWord}`;
-      }
+      },
     );
 
     text = text.replace(
@@ -476,12 +660,14 @@
 
         const prevLower = prevWord.replace(/^['’"]+/, '').toLowerCase();
         const nextLower = nextWord.replace(/['’"]+$/, '').toLowerCase();
-        if (nextLower === 'more' && /^(say|told|telling|tell|tells)$/.test(prevLower)) return match;
+        if (nextLower === 'more' && /^(say|told|telling|tell|tells)$/.test(prevLower)) {
+          return match;
+        }
 
         if (!shouldIsolateStandaloneNo(prevWord, nextWord)) return match;
 
         return `${prevWord}, ${noWord}, ${nextWord}`;
-      }
+      },
     );
 
     text = text.replace(
@@ -491,12 +677,14 @@
 
         const prevLower = prevWord.replace(/^['’"]+/, '').toLowerCase();
         const nextLower = nextWord.replace(/['’"]+$/, '').toLowerCase();
-        if (nextLower === 'more' && /^(say|told|telling|tell|tells)$/.test(prevLower)) return match;
+        if (nextLower === 'more' && /^(say|told|telling|tell|tells)$/.test(prevLower)) {
+          return match;
+        }
 
         if (!shouldIsolateStandaloneNo(prevWord, nextWord)) return match;
 
         return `${prevWord}, ${noWord}, ${nextWord}`;
-      }
+      },
     );
 
     text = text.replace(
@@ -507,7 +695,7 @@
         if (!shouldCommaAfterNo(str, noStart + noWord.length)) return match;
 
         const nextLower = nextWord.toLowerCase();
-        const prevLower = prevWord.replace(/^["']/,'').toLowerCase();
+        const prevLower = prevWord.replace(/^["']/, '').toLowerCase();
 
         if (nextLower === 'more' && /^(say|told|telling|tell|tells)$/.test(prevLower)) {
           return match;
@@ -518,21 +706,22 @@
         const hasCommaBefore = separator.includes(',');
         const before = hasCommaBefore
           ? `${prevWord}, ${noWord}`
-          : (NO_TRAILING_SKIP_PREV.has(prevLower)
+          : NO_TRAILING_SKIP_PREV.has(prevLower)
             ? `${prevWord} ${noWord}`
-            : `${prevWord}, ${noWord}`);
+            : `${prevWord}, ${noWord}`;
 
         if (NO_INTERJECTION_FOLLOWERS.has(nextLower)) {
           return `${before}, ${nextWord}`;
         }
 
         return `${before} ${nextWord}`;
-      }
+      },
     );
 
     text = text.replace(/\b([Nn][Oo])([ \t]+)(?=[Nn][Oo]\b)/g, (_, word) => word + ', ');
 
-    text = text.replace(/(\.\.\.|…)([ \t]+)([Nn][Oo])\b(?!\s*,)/g,
+    text = text.replace(
+      /(\.\.\.|…)([ \t]+)([Nn][Oo])\b(?!\s*,)/g,
       (match, dots, spaces, noWord, offset, str) => {
         const noStart = offset + dots.length + spaces.length;
         const afterIndex = noStart + noWord.length;
@@ -545,16 +734,24 @@
         if (/[.!?;:)]/.test(str[i])) return `${dots}, ${noWord}`;
 
         return match;
-      });
+      },
+    );
 
-    text = text.replace(/(^|\n)(\s*)([Nn][Oo])\b(?!\s*,)/g, (match, boundary, spaces, word, offset, str) => {
-      const afterIndex = offset + match.length;
-      if (shouldCommaAfterNo(str, afterIndex)) return boundary + spaces + word + ',';
-      return match;
-    });
+    text = text.replace(
+      /(^|\n)(\s*)([Nn][Oo])\b(?!\s*,)/g,
+      (match, boundary, spaces, word, offset, str) => {
+        const afterIndex = offset + match.length;
+        if (shouldCommaAfterNo(str, afterIndex)) {
+          return boundary + spaces + word + ',';
+        }
+        return match;
+      },
+    );
 
-    text = text.replace(/(\b[\w'"]+)([ \t]+)([Nn][Oo])(?=(?:\s*[.!?](?:\s|$)|\s*$))/g,
-      (_match, prevWord, _spaces, noWord) => `${prevWord}, ${noWord}`);
+    text = text.replace(
+      /(\b[\w'"]+)([ \t]+)([Nn][Oo])(?=(?:\s*[.!?](?:\s|$)|\s*$))/g,
+      (_match, prevWord, _spaces, noWord) => `${prevWord}, ${noWord}`,
+    );
 
     return text;
   }
@@ -609,8 +806,12 @@
           const gap = str.slice(lookback + 1, offset);
           if (/\r|\n/.test(gap)) {
             let beforeHyphen = lookback - 1;
-            while (beforeHyphen >= 0 && /\s/.test(str[beforeHyphen])) beforeHyphen--;
-            if (beforeHyphen >= 0 && LETTER_RE.test(str[beforeHyphen])) return match;
+            while (beforeHyphen >= 0 && /\s/.test(str[beforeHyphen])) {
+              beforeHyphen--;
+            }
+            if (beforeHyphen >= 0 && LETTER_RE.test(str[beforeHyphen])) {
+              return match;
+            }
           }
         }
       }
@@ -622,15 +823,21 @@
     if (!text) return text;
 
     return text
-      .replace(/(^|\n)\s*intro(?:\s*\d+)?\s*(?=\n)/gi, (_, boundary) => boundary + "#INTRO")
-      .replace(/(^|\n)\s*verse(?:\s*\d+)?\s*(?=\n)/gi, (_, boundary) => boundary + "#VERSE")
-      .replace(/(^|\n)\s*pre[- ]?chorus(?:\s*\d+)?\s*(?=\n)/gi, (_, boundary) => boundary + "#PRE-CHORUS")
-      .replace(/(^|\n)\s*chorus(?:\s*\d+)?\s*(?=\n)/gi, (_, boundary) => boundary + "#CHORUS")
-      .replace(/(^|\n)\s*post[- ]?chorus(?:\s*\d+)?\s*(?=\n)/gi, (_, boundary) => boundary + "#HOOK")
-      .replace(/(^|\n)\s*hook(?:\s*\d+)?\s*(?=\n)/gi, (_, boundary) => boundary + "#HOOK")
-      .replace(/(^|\n)\s*bridge(?:\s*\d+)?\s*(?=\n)/gi, (_, boundary) => boundary + "#BRIDGE")
-      .replace(/(^|\n)\s*(ad[- ]?libs?|spoken)\s*(?=\n)/gi, (_, boundary) => boundary + "#HOOK")
-      .replace(/(^|\n)\s*outro(?:\s*\d+)?\s*(?=\n)/gi, (_, boundary) => boundary + "#OUTRO");
+      .replace(/(^|\n)\s*intro(?:\s*\d+)?\s*(?=\n)/gi, (_, boundary) => boundary + '#INTRO')
+      .replace(/(^|\n)\s*verse(?:\s*\d+)?\s*(?=\n)/gi, (_, boundary) => boundary + '#VERSE')
+      .replace(
+        /(^|\n)\s*pre[- ]?chorus(?:\s*\d+)?\s*(?=\n)/gi,
+        (_, boundary) => boundary + '#PRE-CHORUS',
+      )
+      .replace(/(^|\n)\s*chorus(?:\s*\d+)?\s*(?=\n)/gi, (_, boundary) => boundary + '#CHORUS')
+      .replace(
+        /(^|\n)\s*post[- ]?chorus(?:\s*\d+)?\s*(?=\n)/gi,
+        (_, boundary) => boundary + '#HOOK',
+      )
+      .replace(/(^|\n)\s*hook(?:\s*\d+)?\s*(?=\n)/gi, (_, boundary) => boundary + '#HOOK')
+      .replace(/(^|\n)\s*bridge(?:\s*\d+)?\s*(?=\n)/gi, (_, boundary) => boundary + '#BRIDGE')
+      .replace(/(^|\n)\s*(ad[- ]?libs?|spoken)\s*(?=\n)/gi, (_, boundary) => boundary + '#HOOK')
+      .replace(/(^|\n)\s*outro(?:\s*\d+)?\s*(?=\n)/gi, (_, boundary) => boundary + '#OUTRO');
   }
 
   function normalizeInstrumentalSections(text) {
@@ -647,7 +854,10 @@
         continue;
       }
 
-      let normalized = trimmed.replace(/^[\[(]+/, '').replace(/[\])]+$/, '').trim();
+      let normalized = trimmed
+        .replace(/^[\[(]+/, '')
+        .replace(/[\])]+$/, '')
+        .trim();
       normalized = normalized.replace(/^[\-–—:]+\s*/, '').replace(/\s*[\-–—:]+$/, '');
       normalized = normalized.replace(/[.,!?;:]+$/g, '').trim();
 
@@ -668,7 +878,9 @@
     for (const raw of lines) {
       const trimmed = raw.trim();
       if (trimmed.startsWith('#') && trimmed !== '#INSTRUMENTAL') {
-        while (result.length && result[result.length - 1].trim() === '') result.pop();
+        while (result.length && result[result.length - 1].trim() === '') {
+          result.pop();
+        }
         if (result.length) result.push('');
         result.push(trimmed);
       } else {
@@ -688,11 +900,11 @@
     }
     let x = ("\n" + input.trim() + "\n");
     const preservedStandaloneParens = [];
-    const STANDALONE_PAREN_SENTINEL = "__MXM_SP__";
+    const STANDALONE_PAREN_SENTINEL = '__MXM_SP__';
 
     x = x.replace(/(^|\n)([^\S\n]*\([^\n]*\)[^\S\n]*)(?=\n)/g, (match, boundary, candidate) => {
       const trimmed = candidate.trim();
-      if (trimmed.startsWith("(") && trimmed.endsWith(")") && !trimmed.includes("\n")) {
+      if (trimmed.startsWith('(') && trimmed.endsWith(')') && !trimmed.includes('\n')) {
         const placeholder = `${STANDALONE_PAREN_SENTINEL}${preservedStandaloneParens.length}__`;
 
         let cleaned = candidate
@@ -754,7 +966,7 @@
     // --- Conditional Cyrillic “e” conversion ---
     // Only for Latin-script languages
     if (langProfile.preserve.includes('Latin')) {
-      x = x.replace(/[\u0435\u0415]/g, m => (m === '\u0415' ? 'E' : 'e'));
+      x = x.replace(/[\u0435\u0415]/g, (m) => (m === '\u0415' ? 'E' : 'e'));
     }
 
     // --- Preserve full Cyrillic/Greek scripts ---
@@ -764,35 +976,37 @@
 
     // Clean + normalize (dash behavior differs for RU)
     x = x
-      .replace(/[\u2000-\u200b\u202f\u205f\u2060\u00a0]/gu, " ")
-      .replace(/ {2,}/g, " ")
-      .replace(/\n{3,}/g, "\n\n")
+      .replace(/[\u2000-\u200b\u202f\u205f\u2060\u00a0]/gu, ' ')
+      .replace(/ {2,}/g, ' ')
+      .replace(/\n{3,}/g, '\n\n')
       .replace(/[\u2019\u2018\u0060\u00b4]/gu, "'")
-      .replace(/[\u{1F300}-\u{1FAFF}\u{FE0F}\u2600-\u26FF\u2700-\u27BF\u2669-\u266F]/gu, "");
+      .replace(/[\u{1F300}-\u{1FAFF}\u{FE0F}\u2600-\u26FF\u2700-\u27BF\u2669-\u266F]/gu, '');
 
     if (currentLang !== 'RU') {
-      x = x.replace(/[\u2013\u2014]/gu, "-");
+      x = x.replace(/[\u2013\u2014]/gu, '-');
     }
 
     if (currentLang === 'RU') {
       const RU_REPLACEMENTS = {
-        "ща": "сейчас",
-        "ваще": "вообще",
-        "че": "что",
-        "чё": "что",
-        "типо": "типа",
-        "ладноу": "",
-        "окей": "ок",
-        "брр": "",
-        "пау": "",
-        "уоу": "",
-        "эй": "эй",
-        "йо": "йо"
+        ща: 'сейчас',
+        ваще: 'вообще',
+        че: 'что',
+        чё: 'что',
+        типо: 'типа',
+        ладноу: '',
+        окей: 'ок',
+        брр: '',
+        пау: '',
+        уоу: '',
+        эй: 'эй',
+        йо: 'йо',
       };
 
       x = x.replace(/\b[\p{L}’']+\b/gu, (word) => {
         const lower = word.toLowerCase();
-        if (!Object.prototype.hasOwnProperty.call(RU_REPLACEMENTS, lower)) return word;
+        if (!Object.prototype.hasOwnProperty.call(RU_REPLACEMENTS, lower)) {
+          return word;
+        }
 
         const replacement = RU_REPLACEMENTS[lower];
         if (!replacement) return replacement;
@@ -812,15 +1026,19 @@
     // Section tags
     x = x.replace(/\[(.*?)\]/g, (_, raw) => {
       const t = String(raw).toLowerCase().trim();
-      if (/^intro/.test(t)) return "#INTRO";
-      if (/^verse/.test(t)) return "#VERSE";
-      if (/^pre[- ]?chorus/.test(t)) return "#PRE-CHORUS";
-      if (/^chorus/.test(t)) return "#CHORUS";
-      if (/^bridge/.test(t)) return "#BRIDGE";
-      if (/^(hook|refrain|post-chorus|postchorus|drop|break|interlude)/.test(t)) return "#HOOK";
-      if (/^outro/.test(t)) return "#OUTRO";
-      if (/^instrumental(?:\s+(?:break|bridge|outro|interlude|solo))?/.test(t)) return "#INSTRUMENTAL";
-      return "#" + String(raw).toUpperCase().replace(/\d+/g, "").replace(/ +/g, "-");
+      if (/^intro/.test(t)) return '#INTRO';
+      if (/^verse/.test(t)) return '#VERSE';
+      if (/^pre[- ]?chorus/.test(t)) return '#PRE-CHORUS';
+      if (/^chorus/.test(t)) return '#CHORUS';
+      if (/^bridge/.test(t)) return '#BRIDGE';
+      if (/^(hook|refrain|post-chorus|postchorus|drop|break|interlude)/.test(t)) {
+        return '#HOOK';
+      }
+      if (/^outro/.test(t)) return '#OUTRO';
+      if (/^instrumental(?:\s+(?:break|bridge|outro|interlude|solo))?/.test(t)) {
+        return '#INSTRUMENTAL';
+      }
+      return '#' + String(raw).toUpperCase().replace(/\d+/g, '').replace(/ +/g, '-');
     });
 
     x = normalizeStructureTags(x);
@@ -866,13 +1084,13 @@
     x = enforceStructureTagSpacing(x);
 
     // === Normalize common holiday and festive terms (including inside parentheses) ===
-    x = x.replace(/\bchristmas[\s-]*eve\b/gi, "Christmas Eve");
-    x = x.replace(/\bchristmas[\s-]*day\b/gi, "Christmas Day");
-    x = x.replace(/\bchristmas[\s-]*time\b/gi, "Christmastime");
+    x = x.replace(/\bchristmas[\s-]*eve\b/gi, 'Christmas Eve');
+    x = x.replace(/\bchristmas[\s-]*day\b/gi, 'Christmas Day');
+    x = x.replace(/\bchristmas[\s-]*time\b/gi, 'Christmastime');
     x = x.replace(/\bnew[\s-]*year[\s-]*s[\s-]*eve\b/gi, "New Year's Eve");
     x = x.replace(/\bnew[\s-]*year[\s-]*s[\s-]*day\b/gi, "New Year's Day");
-    x = x.replace(/\bnew[\s-]*years?\b/gi, "New Year");
-    x = x.replace(/\bhappy[\s-]*holidays?\b/gi, "Happy Holidays");
+    x = x.replace(/\bnew[\s-]*years?\b/gi, 'New Year');
+    x = x.replace(/\bhappy[\s-]*holidays?\b/gi, 'Happy Holidays');
     x = x.replace(/\bseasons?[\s-]*greetings?\b/gi, "Season's Greetings");
 
     x = x.replace(/([A-Za-z])-(?:[ \t]*)(\r?\n)(\s*)(em\b)/gi, (match, letter, newline, spaces, word) => {
@@ -881,8 +1099,17 @@
       return `${letter}-${newline}${spaces}${token}`;
     });
 
+    x = x.replace(
+      /([A-Za-z])-(?:[ \t]*)(\r?\n)(\s*)(em\b)/gi,
+      (match, letter, newline, spaces, word) => {
+        const token = `${HYPHENATED_EM_TOKEN}${hyphenatedEmTokens.length}${HYPHENATED_EM_TOKEN}`;
+        hyphenatedEmTokens.push(word);
+        return `${letter}-${newline}${spaces}${token}`;
+      },
+    );
+
     // Remove end-line punctuation
-    x = x.replace(/[.,;:\-]+(?=[ \t]*\n)/g, "");
+    x = x.replace(/[.,;:\-]+(?=[ \t]*\n)/g, '');
 
     // Instrumental normalization and tag spacing handled immediately after tag conversion
 
@@ -892,7 +1119,7 @@
       const contractionLines = x.split('\n');
       for (let i = 0; i < contractionLines.length; i++) {
         let line = contractionLines[i];
-        line = line.replace(/\bgunna\b/gi, "gonna");
+        line = line.replace(/\bgunna\b/gi, 'gonna');
         line = line.replace(/\bgon\b(?!['\u2019])/gi, "gon'");
         line = line.replace(/'?c(?:uz|os|oz)\b/gi, (match, offset, str) => {
           const prevChar = offset > 0 ? str[offset - 1] : '';
@@ -900,7 +1127,7 @@
           const nextChar = nextIndex < str.length ? str[nextIndex] : '';
           if (/\w/.test(prevChar) || /\w/.test(nextChar)) return match;
 
-          const hasLeadingApostrophe = match[0] === "'" || match[0] === "\u2019";
+          const hasLeadingApostrophe = match[0] === "'" || match[0] === '\u2019';
           const core = hasLeadingApostrophe ? match.slice(1) : match;
           const firstChar = core[0] ?? '';
           const isAllUpper = core === core.toUpperCase();
@@ -914,7 +1141,7 @@
         });
         line = line.replace(/\bcause\b/gi, (match, offset, str) => {
           const prev = offset > 0 ? str[offset - 1] : '';
-          if (prev === "'" || prev === "\u2019") return match;
+          if (prev === "'" || prev === '\u2019') return match;
           if (match === match.toUpperCase()) return "'CAUSE";
           if (match[0] === match[0].toUpperCase()) return "'Cause";
           return "'cause";
@@ -928,7 +1155,7 @@
         line = line.replace(/\bim'ma\b/gi, "I'ma");
         line = line.replace(/\bem'(?!\w)/gi, (match, offset, str) => {
           const prev = offset > 0 ? str[offset - 1] : '';
-          if (prev === "'" || prev === "\u2019") return match;
+          if (prev === "'" || prev === '\u2019') return match;
           return "'em";
         });
         contractionLines[i] = line;
@@ -940,8 +1167,8 @@
     x = x
       .replace(/(?<!['\w])ti(?:ll|l)(?:')?(?!\w)/gi, (m, offset, str) => {
         const prev = offset > 0 ? str[offset - 1] : '';
-        if (prev === "'" || prev === "\u2019") return m;
-        const base = m.replace(/'/g, "");
+        if (prev === "'" || prev === '\u2019') return m;
+        const base = m.replace(/'/g, '');
         if (base === base.toUpperCase()) return "'TIL";
         if (base[0] === base[0].toUpperCase()) return "'Til";
         return "'til";
@@ -1032,7 +1259,7 @@ const WELL_CLAUSE_STARTERS = new Set([
 
       let idx = 0;
       while (idx < after.length && /\s/.test(after[idx])) idx++;
-      if (idx >= after.length) return lower === "well" ? m : m + ',';
+      if (idx >= after.length) return lower === 'well' ? m : m + ',';
 
       if (after[idx] === ',') return m;
 
@@ -1047,26 +1274,38 @@ const WELL_CLAUSE_STARTERS = new Set([
 
       const next = after[idx];
 
-      if (lower === "well") {
+      if (lower === 'well') {
         const before = str.slice(0, off);
         const trimmedBefore = before.replace(/\s+$/, '');
         const prevChar = trimmedBefore.slice(-1);
         const prevWordMatch = trimmedBefore.match(/([A-Za-z'’]+)[^A-Za-z'’]*$/);
-        const prevWord = prevWordMatch ? prevWordMatch[1].replace(/^['’]+/, '').toLowerCase() : null;
+        const prevWord = prevWordMatch
+          ? prevWordMatch[1].replace(/^['’]+/, '').toLowerCase()
+          : null;
 
         if (prevWord && WELL_PRECEDER_WORDS.has(prevWord)) return m;
-        if (prevChar && /[A-Za-z0-9]/.test(prevChar) && (!prevWord || !WELL_ALLOWED_PRECEDERS.has(prevWord))) return m;
+        if (
+          prevChar &&
+          /[A-Za-z0-9]/.test(prevChar) &&
+          (!prevWord || !WELL_ALLOWED_PRECEDERS.has(prevWord))
+        ) {
+          return m;
+        }
         if (INTERJECTION_STOPPERS.includes(next)) return m;
 
         let clauseIdx = idx;
         while (clauseIdx < after.length && '([{'.includes(after[clauseIdx])) {
           clauseIdx++;
-          while (clauseIdx < after.length && /\s/.test(after[clauseIdx])) clauseIdx++;
+          while (clauseIdx < after.length && /\s/.test(after[clauseIdx])) {
+            clauseIdx++;
+          }
         }
 
         while (clauseIdx < after.length && CLOSING_QUOTES.has(after[clauseIdx])) {
           clauseIdx++;
-          while (clauseIdx < after.length && /\s/.test(after[clauseIdx])) clauseIdx++;
+          while (clauseIdx < after.length && /\s/.test(after[clauseIdx])) {
+            clauseIdx++;
+          }
         }
 
         if (clauseIdx >= after.length) return m;
@@ -1090,7 +1329,9 @@ const WELL_CLAUSE_STARTERS = new Set([
 
         for (const form of forms) {
           const normalized = form.replace(/'/g, '');
-          if (normalized && WELL_CLAUSE_STARTERS.has(normalized)) return m + ',';
+          if (normalized && WELL_CLAUSE_STARTERS.has(normalized)) {
+            return m + ',';
+          }
         }
 
         return m;
@@ -1105,24 +1346,91 @@ const WELL_CLAUSE_STARTERS = new Set([
     // === Dropped-G (smart and safe fix, live CSV cache + sync fallback) ===
     (() => {
       const CSV_URL =
-        "https://docs.google.com/spreadsheets/d/e/2PACX-1vSQY2TH74oBLQWTeI0j7WobaPUe-UC4Vdc2dn7nVjgtT9h9H7AFAmErladiu6SgT2Wacuk4oEMBieKD/pub?output=csv";
-      const LOCAL_KEY = "mxmDroppedGExclusionsCSV.v1";
+        'https://docs.google.com/spreadsheets/d/e/2PACX-1vSQY2TH74oBLQWTeI0j7WobaPUe-UC4Vdc2dn7nVjgtT9h9H7AFAmErladiu6SgT2Wacuk4oEMBieKD/pub?output=csv';
+      const LOCAL_KEY = 'mxmDroppedGExclusionsCSV.v1';
 
       const LOCAL_EXCLUSIONS = new Set([
-        "begin","began","within","cousin","violin","virgin","origin","margin","resin","penguin",
-        "pumpkin","grin","chin","twin","skin","basin","raisn","savin","login","pin","curtain",
-        "fin","din","min","gin","lin","kin","sin","win","bin","thin","tin","akin","leadin","captain","mountain",
-        "fountain","certain","again","gain","spin","twin","main","cain","maintain","retain","detain","vain","regain",
-        "rain","brain","pain","drain","train","grain","cabin","satin","chain","plain","remain","campaign",
-        "fein","contain","domain","explain","sustain","pertain","obtain","entertain","villain","admin","abstain","stain"
+        'begin',
+        'began',
+        'within',
+        'cousin',
+        'violin',
+        'virgin',
+        'origin',
+        'margin',
+        'resin',
+        'penguin',
+        'pumpkin',
+        'grin',
+        'chin',
+        'twin',
+        'skin',
+        'basin',
+        'raisn',
+        'savin',
+        'login',
+        'pin',
+        'curtain',
+        'fin',
+        'din',
+        'min',
+        'gin',
+        'lin',
+        'kin',
+        'sin',
+        'win',
+        'bin',
+        'thin',
+        'tin',
+        'akin',
+        'leadin',
+        'captain',
+        'mountain',
+        'fountain',
+        'certain',
+        'again',
+        'gain',
+        'spin',
+        'twin',
+        'main',
+        'cain',
+        'maintain',
+        'retain',
+        'detain',
+        'vain',
+        'regain',
+        'rain',
+        'brain',
+        'pain',
+        'drain',
+        'train',
+        'grain',
+        'cabin',
+        'satin',
+        'chain',
+        'plain',
+        'remain',
+        'campaign',
+        'fein',
+        'contain',
+        'domain',
+        'explain',
+        'sustain',
+        'pertain',
+        'obtain',
+        'entertain',
+        'villain',
+        'admin',
+        'abstain',
+        'stain',
       ]);
 
       const parseCSV = (text) =>
         new Set(
           text
             .split(/\r?\n/)
-            .map((l) => l.trim().split(",")[0]?.toLowerCase())
-            .filter((w) => w && /^[a-z]+$/.test(w))
+            .map((l) => l.trim().split(',')[0]?.toLowerCase())
+            .filter((w) => w && /^[a-z]+$/.test(w)),
         );
 
       // Try to read cached exclusions first
@@ -1134,7 +1442,7 @@ const WELL_CLAUSE_STARTERS = new Set([
 
       // Fire-and-forget fetch (updates cache asynchronously)
       fetch(CSV_URL)
-        .then((r) => (r.ok ? r.text() : ""))
+        .then((r) => (r.ok ? r.text() : ''))
         .then((t) => {
           if (t) localStorage.setItem(LOCAL_KEY, t);
         })
@@ -1144,7 +1452,9 @@ const WELL_CLAUSE_STARTERS = new Set([
       x = x.replace(/\b([A-Za-z]+in)(?!['’g])\b/g, (match, base) => {
         if (EXCLUSIONS.has(base.toLowerCase())) return match;
         if (match === match.toUpperCase()) return base.toUpperCase() + "'";
-        if (match[0] === match[0].toUpperCase()) return base[0].toUpperCase() + base.slice(1) + "'";
+        if (match[0] === match[0].toUpperCase()) {
+          return base[0].toUpperCase() + base.slice(1) + "'";
+        }
         return base + "'";
       });
     })();
@@ -1195,7 +1505,7 @@ x = x.replace(
     x = applyNoCommaRules(x);
 
     // Normalize "god damn" -> "goddamn" while respecting casing
-    x = x.replace(/\bgod\s+damn\b/gi, match => {
+    x = x.replace(/\bgod\s+damn\b/gi, (match) => {
       if (match === match.toUpperCase()) return 'GODDAMN';
       if (match[0] === 'G') return 'Goddamn';
       return 'goddamn';
@@ -1221,8 +1531,9 @@ x = x.replace(
     });
 
     // Capitalize first letter of each line (ignoring leading whitespace)
-    x = x.replace(/(^|\n)(\s*)(["'“”‘’]?)(\p{Ll})/gu, (_, boundary, space, quote, letter) =>
-      boundary + space + quote + letter.toLocaleUpperCase()
+    x = x.replace(
+      /(^|\n)(\s*)(["'“”‘’]?)(\p{Ll})/gu,
+      (_, boundary, space, quote, letter) => boundary + space + quote + letter.toLocaleUpperCase(),
     );
 
     // === Backing vocals normalization (moved earlier to prevent re-capitalization) ===
@@ -1235,6 +1546,7 @@ x = x.replace(
 
       if (BV_FIRST_WORD_EXCEPTIONS.has(firstWord) || BV_FIRST_WORD_EXCEPTIONS.has(lowerFirst))
         return match;
+      }
 
       if (/^(yeah|yea|yo|la|na|woo|hey|ha|uh|o+h)$/i.test(firstWord)) {
         return `(${trimmed.toLocaleLowerCase()})`;
@@ -1385,8 +1697,8 @@ x = x
     );
 
     // 4️⃣ Remove stray indentation and trailing spaces on each line
-    x = x.replace(/^[ \t]+/gm, "");
-    x = x.replace(/[ \t]+$/gm, "");
+    x = x.replace(/^[ \t]+/gm, '');
+    x = x.replace(/[ \t]+$/gm, '');
 
     x = x.trim();
 
@@ -1401,51 +1713,77 @@ x = x
 
   function bindFocusTracker(doc) {
     if (!doc || focusTrackedDocs.has(doc)) return;
-    doc.addEventListener("focusin", e => {
+    doc.addEventListener('focusin', (e) => {
       const el = e.target;
-      if (el?.isContentEditable || el?.tagName === "TEXTAREA" || el?.getAttribute?.("role") === "textbox")
+      if (
+        el?.isContentEditable ||
+        el?.tagName === 'TEXTAREA' ||
+        el?.getAttribute?.('role') === 'textbox'
+      ) {
         currentEditable = el;
+      }
     });
     focusTrackedDocs.add(doc);
   }
 
   // ---------- Editor I/O ----------
-  function getEditorText(el){return el.isContentEditable?el.innerText:el.value;}
-  function setNativeValue(el,v){
-    const ownerDoc=el?.ownerDocument||document;
-    const ownerWin=ownerDoc?.defaultView||window;
-    const p=Object.getPrototypeOf(el);
-    const d=Object.getOwnPropertyDescriptor(p,'value');
-    const s=d&&d.set;
-    if(s)s.call(el,v);else el.value=v;
-    const EventCtor=ownerWin?.Event||Event;
-    el.dispatchEvent(new EventCtor('input',{bubbles:true}));
-    el.dispatchEvent(new EventCtor('change',{bubbles:true}));
+  function getEditorText(el) {
+    return el.isContentEditable ? el.innerText : el.value;
   }
-  function replaceInContentEditable(el,t){
-    const ownerDoc=el?.ownerDocument||document;
-    const ownerWin=ownerDoc?.defaultView||window;
+  function setNativeValue(el, v) {
+    const ownerDoc = el?.ownerDocument || document;
+    const ownerWin = ownerDoc?.defaultView || window;
+    const p = Object.getPrototypeOf(el);
+    const d = Object.getOwnPropertyDescriptor(p, 'value');
+    const s = d && d.set;
+    if (s) s.call(el, v);
+    else el.value = v;
+    const EventCtor = ownerWin?.Event || Event;
+    el.dispatchEvent(new EventCtor('input', { bubbles: true }));
+    el.dispatchEvent(new EventCtor('change', { bubbles: true }));
+  }
+  function replaceInContentEditable(el, t) {
+    const ownerDoc = el?.ownerDocument || document;
+    const ownerWin = ownerDoc?.defaultView || window;
     el.focus();
-    try{
-      ownerDoc.execCommand('selectAll',false,null);
-      ownerDoc.execCommand('insertText',false,t);
-    }catch{
-      el.innerText=t;
-      const InputCtor=ownerWin?.InputEvent
-        || (typeof InputEvent!=='undefined'?InputEvent:undefined)
-        || ownerWin?.Event
-        || Event;
-      el.dispatchEvent(new InputCtor('input',{bubbles:true}));
+    try {
+      ownerDoc.execCommand('selectAll', false, null);
+      ownerDoc.execCommand('insertText', false, t);
+    } catch {
+      el.innerText = t;
+      const InputCtor =
+        ownerWin?.InputEvent ||
+        (typeof InputEvent !== 'undefined' ? InputEvent : undefined) ||
+        ownerWin?.Event ||
+        Event;
+      el.dispatchEvent(new InputCtor('input', { bubbles: true }));
     }
   }
-  function writeToEditor(el,t){if(el.isContentEditable&&ALWAYS_AGGRESSIVE){replaceInContentEditable(el,t);setTimeout(()=>replaceInContentEditable(el,t),10);return true;}if(el.isContentEditable){replaceInContentEditable(el,t);return true;}if(el.tagName==='TEXTAREA'||el.tagName==='INPUT'){setNativeValue(el,t);return true;}return false;}
+  function writeToEditor(el, t) {
+    if (el.isContentEditable && ALWAYS_AGGRESSIVE) {
+      replaceInContentEditable(el, t);
+      setTimeout(() => replaceInContentEditable(el, t), 10);
+      return true;
+    }
+    if (el.isContentEditable) {
+      replaceInContentEditable(el, t);
+      return true;
+    }
+    if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
+      setNativeValue(el, t);
+      return true;
+    }
+    return false;
+  }
 
   // ---------- UI ----------
   function resolveUiContext() {
     if (!hasWindow) return { doc: null, win: null };
     try {
       const topWin = window.top;
-      if (topWin && topWin.document) return { doc: topWin.document, win: topWin };
+      if (topWin && topWin.document) {
+        return { doc: topWin.document, win: topWin };
+      }
     } catch {
       /* ignore cross-origin access errors */
     }
@@ -1488,22 +1826,27 @@ x = x
     return Math.round(requiredBottom);
   }
 
-  function placeButton(el){
-    if(!el) return;
-    el.style.right=`${BUTTON_RIGHT_OFFSET}px`;
-    latestButtonBottom=computeBottomOffset(el);
-    el.style.bottom=`${latestButtonBottom}px`;
+  function placeButton(el) {
+    if (!el) return;
+    el.style.right = `${BUTTON_RIGHT_OFFSET}px`;
+    latestButtonBottom = computeBottomOffset(el);
+    el.style.bottom = `${latestButtonBottom}px`;
   }
 
-  function bindShortcutListener(doc){
-    if(!doc || shortcutTrackedDocs.has(doc)) return;
-    doc.addEventListener('keydown',e=>{if(e.altKey&&!e.ctrlKey&&!e.metaKey&&e.key.toLowerCase()==='m'){e.preventDefault();runFormat();}});
+  function bindShortcutListener(doc) {
+    if (!doc || shortcutTrackedDocs.has(doc)) return;
+    doc.addEventListener('keydown', (e) => {
+      if (e.altKey && !e.ctrlKey && !e.metaKey && e.key.toLowerCase() === 'm') {
+        e.preventDefault();
+        runFormat();
+      }
+    });
     shortcutTrackedDocs.add(doc);
   }
 
-  function ensureShortcutListeners(){
+  function ensureShortcutListeners() {
     bindShortcutListener(document);
-    if(uiDocument && uiDocument!==document) bindShortcutListener(uiDocument);
+    if (uiDocument && uiDocument !== document) bindShortcutListener(uiDocument);
   }
 
   let floatingButtonContainer=null;
@@ -1662,23 +2005,23 @@ x = x
     container.style.boxShadow='0 6px 18px rgba(0,0,0,.28)';
     placeButton(container);
 
-    const hostWindow=uiWindow||window;
-    if(floatingButtonIntervalId){
+    const hostWindow = uiWindow || window;
+    if (floatingButtonIntervalId) {
       hostWindow.clearInterval(floatingButtonIntervalId);
-      floatingButtonIntervalId=null;
+      floatingButtonIntervalId = null;
     }
-    let repositionCount=0;
-    floatingButtonIntervalId=hostWindow.setInterval(()=>{
+    let repositionCount = 0;
+    floatingButtonIntervalId = hostWindow.setInterval(() => {
       repositionCount++;
       placeButton(container);
       if(repositionCount>=REPOSITION_ATTEMPTS){
         hostWindow.clearInterval(floatingButtonIntervalId);
-        floatingButtonIntervalId=null;
+        floatingButtonIntervalId = null;
       }
-    },REPOSITION_INTERVAL_MS);
+    }, REPOSITION_INTERVAL_MS);
 
-    if(floatingButtonResizeHandler){
-      hostWindow.removeEventListener('resize',floatingButtonResizeHandler);
+    if (floatingButtonResizeHandler) {
+      hostWindow.removeEventListener('resize', floatingButtonResizeHandler);
     }
     floatingButtonResizeHandler=()=>{
       if(repositionTimeout) clearTimeout(repositionTimeout);
@@ -1695,11 +2038,11 @@ x = x
     ensureShortcutListeners();
   }
 
-  function removeFloatingButton(){
-    const hostWindow=uiWindow||window;
-    if(floatingButtonIntervalId){
+  function removeFloatingButton() {
+    const hostWindow = uiWindow || window;
+    if (floatingButtonIntervalId) {
       hostWindow.clearInterval(floatingButtonIntervalId);
-      floatingButtonIntervalId=null;
+      floatingButtonIntervalId = null;
     }
     if(repositionTimeout){
       clearTimeout(repositionTimeout);
@@ -1723,8 +2066,8 @@ x = x
     latestButtonBottom=BUTTON_BASE_BOTTOM;
   }
 
-  function syncFloatingButtonVisibility(){
-    if(extensionOptions.showFloatingButton) createFloatingButton();
+  function syncFloatingButtonVisibility() {
+    if (extensionOptions.showFloatingButton) createFloatingButton();
     else removeFloatingButton();
   }
 
@@ -1789,65 +2132,89 @@ x = x
     else if(extensionOptions.showFloatingButton && !floatingButtonContainer) createFloatingButton();
   }
 
-  function initializeExtensionOptions(){
+  function initializeExtensionOptions() {
     ensureShortcutListeners();
     syncFloatingButtonVisibility();
-    const chromeStorage=typeof chrome!=='undefined'?chrome.storage:undefined;
-    if(!chromeStorage?.sync) return;
+    const chromeStorage = typeof chrome !== 'undefined' ? chrome.storage : undefined;
+    if (!chromeStorage?.sync) return;
 
-    chromeStorage.sync.get(['mxmLang','mxmLower','mxmBV','mxmButton'],data=>{
-      const payload=data||{};
+    chromeStorage.sync.get(['mxmLang', 'mxmLower', 'mxmBV', 'mxmButton'], (data) => {
+      const payload = data || {};
       applyExtensionOptions({
         lang: payload.mxmLang || extensionDefaults.lang,
         autoLowercase: Boolean(payload.mxmLower),
         fixBackingVocals: payload.mxmBV ?? extensionDefaults.fixBackingVocals,
-        showFloatingButton: Boolean(payload.mxmButton)
+        showFloatingButton: Boolean(payload.mxmButton),
       });
     });
 
-    if(chromeStorage.onChanged?.addListener){
-      chromeStorage.onChanged.addListener((changes,area)=>{
-        if(area!=='sync') return;
-        const updates={};
-        if(Object.prototype.hasOwnProperty.call(changes,'mxmLang'))
-          updates.lang=changes.mxmLang.newValue || extensionDefaults.lang;
-        if(Object.prototype.hasOwnProperty.call(changes,'mxmLower'))
-          updates.autoLowercase=Boolean(changes.mxmLower.newValue);
-        if(Object.prototype.hasOwnProperty.call(changes,'mxmBV'))
-          updates.fixBackingVocals=changes.mxmBV.newValue ?? extensionDefaults.fixBackingVocals;
-        if(Object.prototype.hasOwnProperty.call(changes,'mxmButton'))
-          updates.showFloatingButton=Boolean(changes.mxmButton.newValue);
-        if(Object.keys(updates).length) applyExtensionOptions(updates);
+    if (chromeStorage.onChanged?.addListener) {
+      chromeStorage.onChanged.addListener((changes, area) => {
+        if (area !== 'sync') return;
+        const updates = {};
+        if (Object.prototype.hasOwnProperty.call(changes, 'mxmLang')) {
+          updates.lang = changes.mxmLang.newValue || extensionDefaults.lang;
+        }
+        if (Object.prototype.hasOwnProperty.call(changes, 'mxmLower')) {
+          updates.autoLowercase = Boolean(changes.mxmLower.newValue);
+        }
+        if (Object.prototype.hasOwnProperty.call(changes, 'mxmBV')) {
+          updates.fixBackingVocals = changes.mxmBV.newValue ?? extensionDefaults.fixBackingVocals;
+        }
+        if (Object.prototype.hasOwnProperty.call(changes, 'mxmButton')) {
+          updates.showFloatingButton = Boolean(changes.mxmButton.newValue);
+        }
+        if (Object.keys(updates).length) applyExtensionOptions(updates);
       });
     }
   }
 
   initializeExtensionOptions();
-  function toast(msg){
-    if(!uiDocument) return;
-    const t=uiDocument.createElement('div');
-    const toastBottom=Math.max(latestButtonBottom+48,BUTTON_BASE_BOTTOM+48);
-    Object.assign(t.style,{background:'rgba(17,17,17,.95)',color:'#eaeaea',border:'1px solid #333',borderRadius:'10px',padding:'8px 10px',fontFamily:'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',fontSize:'12px',position:'fixed',right:`${BUTTON_RIGHT_OFFSET}px`,bottom:`${toastBottom}px`,zIndex:2147483647,boxShadow:'0 8px 22px rgba(0,0,0,.35)'});
-    t.setAttribute('role','status');
-    t.setAttribute('aria-live','polite');
-    t.textContent=msg;
+  function toast(msg) {
+    if (!uiDocument) return;
+    const t = uiDocument.createElement('div');
+    const toastBottom = Math.max(latestButtonBottom + 48, BUTTON_BASE_BOTTOM + 48);
+    Object.assign(t.style, {
+      background: 'rgba(17,17,17,.95)',
+      color: '#eaeaea',
+      border: '1px solid #333',
+      borderRadius: '10px',
+      padding: '8px 10px',
+      fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+      fontSize: '12px',
+      position: 'fixed',
+      right: `${BUTTON_RIGHT_OFFSET}px`,
+      bottom: `${toastBottom}px`,
+      zIndex: 2147483647,
+      boxShadow: '0 8px 22px rgba(0,0,0,.35)',
+    });
+    t.setAttribute('role', 'status');
+    t.setAttribute('aria-live', 'polite');
+    t.textContent = msg;
     uiDocument.documentElement.appendChild(t);
-    (uiWindow||window).setTimeout(()=>t.remove(),1800);
+    (uiWindow || window).setTimeout(() => t.remove(), 1800);
   }
 
   // ---------- Runner ----------
-  function runFormat(passedOptions){
-    if(passedOptions && typeof passedOptions==='object'){
-      const updates={};
-      if(Object.prototype.hasOwnProperty.call(passedOptions,'lang') && typeof passedOptions.lang==='string')
-        updates.lang=passedOptions.lang;
-      if(Object.prototype.hasOwnProperty.call(passedOptions,'autoLowercase'))
-        updates.autoLowercase=Boolean(passedOptions.autoLowercase);
-      if(Object.prototype.hasOwnProperty.call(passedOptions,'fixBackingVocals'))
-        updates.fixBackingVocals=Boolean(passedOptions.fixBackingVocals);
-      if(Object.prototype.hasOwnProperty.call(passedOptions,'showFloatingButton'))
-        updates.showFloatingButton=Boolean(passedOptions.showFloatingButton);
-      if(Object.keys(updates).length) applyExtensionOptions(updates);
+  function runFormat(passedOptions) {
+    if (passedOptions && typeof passedOptions === 'object') {
+      const updates = {};
+      if (
+        Object.prototype.hasOwnProperty.call(passedOptions, 'lang') &&
+        typeof passedOptions.lang === 'string'
+      ) {
+        updates.lang = passedOptions.lang;
+      }
+      if (Object.prototype.hasOwnProperty.call(passedOptions, 'autoLowercase')) {
+        updates.autoLowercase = Boolean(passedOptions.autoLowercase);
+      }
+      if (Object.prototype.hasOwnProperty.call(passedOptions, 'fixBackingVocals')) {
+        updates.fixBackingVocals = Boolean(passedOptions.fixBackingVocals);
+      }
+      if (Object.prototype.hasOwnProperty.call(passedOptions, 'showFloatingButton')) {
+        updates.showFloatingButton = Boolean(passedOptions.showFloatingButton);
+      }
+      if (Object.keys(updates).length) applyExtensionOptions(updates);
     }
 
     const searchDoc=uiDocument||document;
@@ -1863,13 +2230,16 @@ x = x
   }
 
   // Listen for popup-triggered Format Lyrics
-  window.runFormat = window.runFormat || function(options) {
-    const event = new CustomEvent('mxmFormatRequest', { detail: options || null });
-    document.dispatchEvent(event);
-  };
+  window.runFormat =
+    window.runFormat ||
+    function (options) {
+      const event = new CustomEvent('mxmFormatRequest', {
+        detail: options || null,
+      });
+      document.dispatchEvent(event);
+    };
 
   document.addEventListener('mxmFormatRequest', (evt) => {
     if (typeof runFormat === 'function') runFormat(evt?.detail);
   });
-
 })(typeof globalThis !== 'undefined' ? globalThis : this);

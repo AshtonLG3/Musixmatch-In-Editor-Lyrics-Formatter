@@ -16,7 +16,7 @@ function saveSettings() {
     mxmLang: langSel.value,
     mxmLower: lowerChk.checked,
     mxmBV: bvChk.checked,
-    mxmButton: btnChk.checked
+    mxmButton: btnChk.checked,
   });
 }
 
@@ -28,19 +28,19 @@ formatBtn.onclick = () => {
     lang: langSel.value,
     autoLowercase: lowerChk.checked,
     fixBackingVocals: bvChk.checked,
-    showFloatingButton: btnChk.checked
+    showFloatingButton: btnChk.checked,
   };
 
-  chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     const [tab] = tabs || [];
     if (!tab?.id) return;
     chrome.scripting.executeScript({
-      target: {tabId: tab.id},
+      target: { tabId: tab.id },
       func: (opts) => {
         if (typeof runFormat === 'function') runFormat(opts);
         else alert('Formatter not loaded yet on this page.');
       },
-      args: [options]
+      args: [options],
     });
   });
 };
