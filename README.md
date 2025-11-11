@@ -50,7 +50,7 @@
 - Open any lyric sheet in Musixmatch Studio.
 - Click inside the editable lyrics area once.
 - Either press **Alt&nbsp;+&nbsp;M** *or* click the floating **Format MxM** button in the bottom-right corner.
-- A toast confirmation (e.g. `Formatted ✓ (v1.1.6)`) appears once the text has been cleaned.
+- A toast confirmation (e.g. `Formatted ✓ (v1.1.72)`) appears once the text has been cleaned.
 
 If nothing happens, make sure the lyrics textarea still has focus. The formatter will display an alert if it cannot find an active editor field.
 

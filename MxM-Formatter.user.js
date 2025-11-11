@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.71
+// @version      1.1.72
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.71';
+  const SCRIPT_VERSION = '1.1.72';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -1081,6 +1081,9 @@
 
     x = normalizeStructureTags(x);
 
+    // Normalize any hook variants into #HOOK
+    x = x.replace(/(^|\n)\s*[\[(]?(hook|HOOK)[\])]?(\s*\d+)?\s*(?=\n|$)/g, (_, b) => `${b}#HOOK`);
+
     if (currentLang === 'RU') {
       // === Russian Structure Tag Normalization ===
       const RU_STRUCTURE_RE =
@@ -1128,36 +1131,10 @@
     x = x.replace(/\bhappy[\s-]*holidays?\b/gi, 'Happy Holidays');
     x = x.replace(/\bseasons?[\s-]*greetings?\b/gi, "Season's Greetings");
 
-    // === Capitalize proper names or title phrases inside parentheses ===
-    // e.g., (jesus christ) → (Jesus Christ), (cape town) → (Cape Town)
-    x = x.replace(/\(([a-z][^)]{1,40})\)/g, (match, inner) => {
-      // common lowercase exceptions (articles, prepositions, particles)
-      const exceptions = new Set([
-        'of',
-        'the',
-        'in',
-        'and',
-        'at',
-        'on',
-        'for',
-        'van',
-        'von',
-        'de',
-        'der',
-      ]);
-
-      // split and capitalize words
-      const words = inner
-        .trim()
-        .split(/\s+/)
-        .map((word, i) => {
-          const lower = word.toLowerCase();
-          if (exceptions.has(lower) && i !== 0) return lower;
-          return lower.charAt(0).toUpperCase() + lower.slice(1);
-        })
-        .join(' ');
-
-      return `(${words})`;
+    x = x.replace(/([A-Za-z])-(?:[ \t]*)(\r?\n)(\s*)(em\b)/gi, (match, letter, newline, spaces, word) => {
+      const token = `${HYPHENATED_EM_TOKEN}${hyphenatedEmTokens.length}${HYPHENATED_EM_TOKEN}`;
+      hyphenatedEmTokens.push(word);
+      return `${letter}-${newline}${spaces}${token}`;
     });
 
     x = x.replace(
@@ -1271,330 +1248,47 @@
       x = x.replace(tokenRe, (_, idx) => hyphenatedEmTokens[Number(idx)] ?? 'em');
     }
 
-    // Interjections
-    const CLOSING_QUOTES = new Set(["'", '"', '’', '”']);
-    const INTERJECTION_STOPPERS = ',!?.-;:)]}';
+   // Interjections
+const CLOSING_QUOTES = new Set(["'", '"', "’", "”"]);
+const INTERJECTION_STOPPERS = ",!?.-;:)]}";
 
-    const WELL_ALLOWED_PRECEDERS = new Set([
-      'oh',
-      'ah',
-      'yeah',
-      'yea',
-      'yah',
-      'uh',
-      'um',
-      'huh',
-      'hmm',
-      'mm',
-      'aw',
-      'aww',
-      'awww',
-      'gee',
-      'gosh',
-      'hey',
-      'and',
-      'but',
-      'so',
-      'yet',
-      'or',
-      'anyway',
-      'anyways',
-      'well',
-    ]);
+const WELL_ALLOWED_PRECEDERS = new Set([
+  "oh","ah","yeah","yea","yah","uh","um","huh","hmm","mm",
+  "aw","aww","awww","gee","gosh","hey","and","but","so","yet",
+  "or","anyway","anyways","well"
+]);
 
-    const WELL_PRECEDER_WORDS = new Set([
-      'a',
-      'an',
-      'the',
-      'this',
-      'that',
-      'these',
-      'those',
-      'my',
-      'your',
-      'his',
-      'her',
-      'their',
-      'our',
-      'its',
-      'some',
-      'any',
-      'such',
-      'each',
-      'every',
-      'too',
-      'very',
-      'so',
-      'as',
-      'quite',
-      'pretty',
-      'rather',
-      'really',
-      'real',
-      'feel',
-      'feels',
-      'felt',
-      'feeling',
-      'do',
-      'does',
-      'did',
-      'doing',
-      'done',
-      'to',
-      'am',
-      'is',
-      'are',
-      'was',
-      'were',
-      'be',
-      'been',
-      'being',
-      'stay',
-      'stays',
-      'stayed',
-      'staying',
-      'keep',
-      'keeps',
-      'kept',
-      'keeping',
-      'remain',
-      'remains',
-      'remained',
-      'remaining',
-      'seem',
-      'seems',
-      'seemed',
-      'seeming',
-      'sound',
-      'sounds',
-      'sounded',
-      'sounding',
-      'look',
-      'looks',
-      'looked',
-      'looking',
-      'become',
-      'becomes',
-      'became',
-      'becoming',
-      'grow',
-      'grows',
-      'grew',
-      'growing',
-      'live',
-      'lives',
-      'lived',
-      'living',
-      'work',
-      'works',
-      'worked',
-      'working',
-      'play',
-      'plays',
-      'played',
-      'playing',
-    ]);
+const WELL_PRECEDER_WORDS = new Set([
+  "a","an","the","this","that","these","those","my","your","his","her","their","our",
+  "its","some","any","such","each","every","too","very","so","as","quite","pretty",
+  "rather","really","real","feel","feels","felt","feeling","do","does","did","doing",
+  "done","to","am","is","are","was","were","be","been","being","stay","stays","stayed",
+  "staying","keep","keeps","kept","keeping","remain","remains","remained","remaining",
+  "seem","seems","seemed","seeming","sound","sounds","sounded","sounding","look",
+  "looks","looked","looking","become","becomes","became","becoming","grow","grows",
+  "grew","growing","live","lives","lived","living","work","works","worked","working",
+  "play","plays","played","playing"
+]);
 
-    const WELL_CLAUSE_STARTERS = new Set([
-      'i',
-      'im',
-      'id',
-      'ill',
-      'ive',
-      'you',
-      'youre',
-      'youd',
-      'youll',
-      'youve',
-      'ya',
-      'yall',
-      'yous',
-      'youse',
-      'he',
-      'hes',
-      'hed',
-      'hell',
-      'she',
-      'shes',
-      'shed',
-      'shell',
-      'we',
-      'were',
-      'wed',
-      'well',
-      'weve',
-      'they',
-      'theyre',
-      'theyd',
-      'theyll',
-      'theyve',
-      'it',
-      'its',
-      'itd',
-      'itll',
-      'this',
-      'that',
-      'these',
-      'those',
-      'there',
-      'theres',
-      'therell',
-      'thered',
-      'thereve',
-      'therere',
-      'who',
-      'whos',
-      'what',
-      'whats',
-      'where',
-      'wheres',
-      'when',
-      'whens',
-      'why',
-      'whys',
-      'how',
-      'hows',
-      'the',
-      'a',
-      'an',
-      'another',
-      'all',
-      'someone',
-      'somebody',
-      'anyone',
-      'anybody',
-      'everyone',
-      'everybody',
-      'nobody',
-      'nothing',
-      'something',
-      'anything',
-      'everything',
-      'so',
-      'then',
-      'now',
-      'anyway',
-      'anyways',
-      'anyhow',
-      'anyhoo',
-      'guess',
-      'maybe',
-      'perhaps',
-      'alright',
-      'alrighty',
-      'allright',
-      'okay',
-      'ok',
-      'okey',
-      'uh',
-      'oh',
-      'well',
-      'right',
-      'listen',
-      'look',
-      'hey',
-      'hi',
-      'hello',
-      'yo',
-      'dude',
-      'man',
-      'girl',
-      'boy',
-      'baby',
-      'honey',
-      'buddy',
-      'sir',
-      'maam',
-      'ladies',
-      'folks',
-      'guys',
-      'people',
-      'kid',
-      'kids',
-      'partner',
-      'friend',
-      'friends',
-      'gimme',
-      'lemme',
-      'dear',
-      'cause',
-      'because',
-      'cuz',
-      'cos',
-      'coz',
-      'if',
-      'when',
-      'whenever',
-      'while',
-      'since',
-      'once',
-      'after',
-      'before',
-      'for',
-      'and',
-      'but',
-      'or',
-      'yet',
-      'though',
-      'let',
-      'lets',
-      'gonna',
-      'please',
-      'cmon',
-      'come',
-      'should',
-      'shoulda',
-      'shouldve',
-      'shouldnt',
-      'could',
-      'coulda',
-      'couldve',
-      'couldnt',
-      'would',
-      'woulda',
-      'wouldve',
-      'wouldnt',
-      'might',
-      'mighta',
-      'mightve',
-      'mightnt',
-      'may',
-      'must',
-      'mustve',
-      'mustnt',
-      'shall',
-      'shant',
-      'can',
-      'cant',
-      'cannot',
-      'won',
-      'wont',
-      'will',
-      'did',
-      'didnt',
-      'do',
-      'dont',
-      'does',
-      'doesnt',
-      'done',
-      'doing',
-      'ain',
-      'aint',
-      'is',
-      'isnt',
-      'are',
-      'arent',
-      'was',
-      'wasnt',
-      'were',
-      'werent',
-      'have',
-      'havent',
-      'has',
-      'hasnt',
-      'had',
-      'hadnt',
-    ]);
+const WELL_CLAUSE_STARTERS = new Set([
+  "i","im","id","ill","ive","you","youre","youd","youll","youve","ya","yall","yous",
+  "youse","he","hes","hed","hell","she","shes","shed","shell","we","were","wed","well",
+  "weve","they","theyre","theyd","theyll","theyve","it","its","itd","itll","this","that",
+  "these","those","there","theres","therell","thered","thereve","therere","who","whos",
+  "what","whats","where","wheres","when","whens","why","whys","how","hows","the","a","an",
+  "another","all","someone","somebody","anyone","anybody","everyone","everybody","nobody",
+  "nothing","something","anything","everything","so","then","now","anyway","anyways","anyhow",
+  "anyhoo","guess","maybe","perhaps","alright","alrighty","allright","okay","ok","okey","uh",
+  "oh","well","right","listen","look","hey","hi","hello","yo","dude","man","girl","boy","baby",
+  "honey","buddy","sir","maam","ladies","folks","guys","people","kid","kids","partner","friend",
+  "friends","gimme","lemme","dear","cause","because","cuz","cos","coz","if","when","whenever",
+  "while","since","once","after","before","for","and","but","or","yet","though","let","lets",
+  "gonna","please","cmon","come","should","shoulda","shouldve","shouldnt","could","coulda",
+  "couldve","couldnt","would","woulda","wouldve","wouldnt","might","mighta","mightve","mightnt",
+  "may","must","mustve","mustnt","shall","shant","can","cant","cannot","won","wont","will",
+  "did","didnt","do","dont","does","doesnt","done","doing","ain","aint","is","isnt","are",
+  "arent","was","wasnt","were","werent","have","havent","has","hasnt","had","hadnt"
+]);
 
     x = x.replace(/\b(oh|ah|yeah|uh)h+\b(?=[\s,!.?\)]|$)/gi, (match, base) => base);
     x = x.replace(/\b(oh|ah|yeah|whoa|ooh|uh|well)\b(?!,)/gi, (m, word, off, str) => {
@@ -1803,6 +1497,46 @@
       });
     })();
 
+      // === Normalize syllable repetitions (na, la, etc.) ===
+x = x.replace(
+  /(^|\n|[?!]\s*)((?:na|la))(?:[-\s]+\2){1,}\b|(^|\n|[?!]\s*)((?:na|la){4,})/gi,
+  (full, boundaryA, syllableA, boundaryB, fused) => {
+    const boundary = boundaryA || boundaryB || '';
+    const syllable = (syllableA || fused?.slice(0, 2) || '').toLowerCase();
+    if (!syllable) return full;
+
+    // Count total syllables
+    const matches = (full.match(new RegExp(`${syllable}`, 'gi')) || []).length;
+    const total = Math.max(2, matches);
+
+    // Group syllables in sets of 4, separated by commas every 4 repeats
+    const parts = [];
+    for (let i = 0; i < total; i += 4) {
+      const group = Array.from(
+        { length: Math.min(4, total - i) },
+        () => syllable
+      ).join('-');
+      parts.push(group);
+    }
+
+    // ✅ Specific fix: handle fused 'lalalalala' (5 or more la's)
+    if (/^la+$/.test(fused || '') && total > 4) {
+      const groups = [];
+      for (let i = 0; i < total; i += 4) {
+        const chunk = Math.min(4, total - i);
+        groups.push(Array.from({ length: chunk }, () => syllable).join('-'));
+      }
+      return boundary + groups.join(', ');
+    }
+
+    let formatted = parts.join(', ');
+    if (boundary.endsWith('\n') || /[?!]\s*$/.test(boundary))
+      formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1);
+
+    return boundary + formatted;
+  }
+);
+
     // Numbers & timing logic
     x = normalizeOClock(x);
     x = applyNumberRules(x);
@@ -1840,111 +1574,41 @@
       (_, boundary, space, quote, letter) => boundary + space + quote + letter.toLocaleUpperCase(),
     );
 
-    // BV lowercase (except I, I'm, I'ma) — refined proper-noun aware
-    x = x.replace(/(\p{L})\(/gu, '$1 (');
-
-    x = x.replace(/\(([^)]+)\)/g, (match, inner) => {
+    // === Backing vocals normalization (moved earlier to prevent re-capitalization) ===
+    x = x.replace(/(?<!^|\n)\(([^)]+)\)/g, (match, inner) => {
       const trimmed = inner.trim();
       if (!trimmed) return match;
 
-      const leadingSpace = inner.match(/^\s+/)?.[0] ?? '';
-      const trailingSpace = inner.match(/\s+$/)?.[0] ?? '';
+      const firstWord = trimmed.split(/\s+/)[0] || '';
+      const lowerFirst = firstWord.toLocaleLowerCase();
 
-      const firstTokenMatch = trimmed.match(/^\S+/);
-      if (!firstTokenMatch) return match;
-      const firstToken = firstTokenMatch[0];
-
-      const leadingQuotesMatch = firstToken.match(/^["'“”‘’]+/);
-      const leadingQuotes = leadingQuotesMatch ? leadingQuotesMatch[0] : '';
-      const hasTrailingComma = firstToken.endsWith(',');
-      const coreFirstWord = firstToken.slice(
-        leadingQuotes.length,
-        hasTrailingComma ? -1 : undefined,
-      );
-      if (!coreFirstWord) return match;
-
-      const firstLower = coreFirstWord.toLocaleLowerCase();
-
-      // Preserve I, I'm, I'ma
-      if (BV_FIRST_WORD_EXCEPTIONS.has(coreFirstWord) || BV_FIRST_WORD_EXCEPTIONS.has(firstLower)) {
+      if (BV_FIRST_WORD_EXCEPTIONS.has(firstWord) || BV_FIRST_WORD_EXCEPTIONS.has(lowerFirst))
         return match;
       }
 
-      // Detect if ALL words are proper-cased ("Jesus Christ my Lord" stays intact)
-      const words = trimmed.split(/\s+/);
-      const allProper = words.length > 1 && words.every((w) => /^[A-Z][a-z]+/.test(w));
+      if (/^(yeah|yea|yo|la|na|woo|hey|ha|uh|o+h)$/i.test(firstWord)) {
+        return `(${trimmed.toLocaleLowerCase()})`;
+      }
 
-      // NEW: detect if it's *partially* proper but not starting with one (e.g., "Thank you, Jesus Christ my Lord")
-      const startsProper = /^[A-Z][a-z]+$/.test(coreFirstWord);
-      if (allProper && startsProper) return match;
-
-      // Otherwise, lowercase the first word
-      const loweredFirst = leadingQuotes + firstLower + (hasTrailingComma ? ',' : '');
-      const remainder = trimmed.slice(firstToken.length);
-      return `(${leadingSpace}${loweredFirst}${remainder}${trailingSpace})`;
+      return `(${lowerFirst}${trimmed.slice(firstWord.length)})`;
     });
 
-    // Capitalize first letter when line starts with "("
-    x = x.replace(
-      /(^|\n)(\(\s*)(["'“”‘’]?)(\p{Ll})/gu,
-      (_, boundary, parenWithSpace, quote, letter) =>
-        boundary + parenWithSpace + quote + letter.toLocaleUpperCase(),
+
+    // Maintain capitalization for lines starting with "("
+    x = x.replace(/(^|\n)(\(\s*)(["'“”‘’]?)(\p{Ll})/gu,
+      (_, boundary, parenWithSpace, quote, letter) => boundary + parenWithSpace + quote + letter.toLocaleUpperCase()
     );
 
-    // Capitalize words following question or exclamation marks (after parentheses normalization)
+    // Restore normal sentence capitalization
     x = capitalizeAfterSentenceEnders(x);
 
-    // Smart comma relocation: only move if there's text after ")" (idempotent), otherwise remove
+    // Comma relocation fix retained
     x = x.replace(/,[ \t]*\(([^)]*?)\)(?=[ \t]*\S)/g, (match, inner, offset, str) => {
-      // [FIXED]
       const afterIdx = offset + match.length;
       if (str[afterIdx] === ',') return match;
       return ` (${inner}),`;
     });
-    x = x.replace(/,[ \t]*\(([^)]*?)\)[ \t]*$/gm, ' ($1)'); // [FIXED] if line ends after ")", remove comma
-
-    // === Normalize syllable repetitions (na, la, etc.) ===
-    x = x.replace(
-      /(^|\n|[?!]\s*)((?:na|la))(?:\s+\2){1,}\b|(^|\n|[?!]\s*)(nanananana|nanananana|lalalala|lalalalala)/gi,
-      (full, boundaryA, syllableA, boundaryB, fused) => {
-        const boundary = boundaryA || boundaryB || '';
-        const syllable = (syllableA || fused.slice(0, 2)).toLowerCase();
-        let total;
-
-        if (fused) total = Math.floor(fused.length / 2);
-        else {
-          const count = full.trim().split(/\s+/).length - 1;
-          total = count + 1;
-        }
-
-        const parts = [];
-        for (let i = 0; i < total; i += 4) {
-          const group = Array.from({ length: Math.min(4, total - i) }, () => syllable).join('-');
-          parts.push(group);
-        }
-
-        let formatted = parts.join(', ');
-        if (boundary.endsWith('\n') || /[?!]\s*$/.test(boundary)) {
-          formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1);
-        }
-        return boundary + formatted;
-      },
-    );
-
-    // === Normalize repeated full words ("very very" -> "very, very") ===
-    x = x.replace(
-      /(^|\n|[?!]\s*)(?!na|la|da|ba|ma|pa)([a-z]{2,})(?:\s+\2){1,}\b/gi,
-      (full, boundary, word) => {
-        const lower = word.toLowerCase();
-        if (['to', 'do', 'go'].includes(lower)) return full; // avoid command-type repeats
-        const tokens = full.slice(boundary.length).trim().split(/\s+/);
-        let formatted = tokens.map(() => lower).join(', ');
-        if (boundary.endsWith('\n') || /[?!]\s*$/.test(boundary)) {
-          formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1);
-        }
-        return boundary + formatted;
-      },
-    );
+    x = x.replace(/,[ \t]*\(([^)]*?)\)[ \t]*$/gm, ' ($1)');
 
     // ---------- Final Sanitation (Strict Parenthetical Safe) ----------
 
@@ -2048,13 +1712,19 @@
     x = x.replace(/(#\w+\n)\n+/g, '$1');
 
     // === Ensure blank line before structure tags for readability ===
-    x = x.replace(/([^\n#])\n(?=#(INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))/g, '$1\n\n');
+    x = x.replace(/([^)#\n])\n(?=#(INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))/g, '$1\n\n');
 
     // === Prevent #HOOK duplication after non-verbal insertion ===
     x = x.replace(/(#(INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))(\n\1)+/g, '$1');
 
-    // === Only single blank line between tags ===
-    x = x.replace(/\n{3,}/g, '\n\n');
+    // === Final cleanup ===
+    x = x.replace(/ +\n/g, '\n'); // trim spaces before line breaks
+    x = x.replace(/\n{3,}/g, '\n\n'); // collapse 3+ newlines into 2
+
+    // === Strengthened structure tag deduplication (prevents #HOOK double lines) ===
+    x = x.replace(/(#(INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO)\s*\n\s*)+#\2/gi, '#$2');
+    x = x.replace(/(#HOOK\s*\n\s*)+#HOOK/gi, '#HOOK');
+    x = x.replace(/(#CHORUS\s*\n\s*)+#CHORUS/gi, '#CHORUS');
 
     // === Final-Pass: Capitalize first letter when line starts with "(" ===
     x = x.replace(
