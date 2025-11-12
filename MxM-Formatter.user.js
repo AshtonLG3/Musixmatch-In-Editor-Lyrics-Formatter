@@ -763,7 +763,45 @@
             return match;
         }
       });
-    }
+
+		  // === CSV-based Language Replacement (RU only) ===
+  (() => {
+    const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR14xVitQzz_k_b85FueTy3G8TMVSRvXg5f1b4E0_ddbqi86ZfYjW7nTUSk_zDzPg/pub?output=csv";
+    const LOCAL_KEY = "mxmLangReplacementsCSV.v1";
+
+    const parseCSV = (text) => {
+      const map = new Map();
+      text.split(/\r?\n/).forEach(line => {
+        const [left, right] = line.split(",").map(s => s?.trim());
+        if (left && right) map.set(left.toLowerCase(), right);
+      });
+      return map;
+    };
+
+    let REPLACEMENTS = new Map();
+    try {
+      const cached = localStorage.getItem(LOCAL_KEY);
+      if (cached) REPLACEMENTS = parseCSV(cached);
+    } catch {}
+
+    fetch(CSV_URL)
+      .then(r => r.ok ? r.text() : "")
+      .then(t => { if (t) localStorage.setItem(LOCAL_KEY, t); })
+      .catch(() => {});
+
+    x = x.replace(/\b[\p{L}'’-]+\b/gu, w => {
+      const repl = REPLACEMENTS.get(w.toLowerCase());
+      if (!repl) return w;
+      if (w === w.toUpperCase()) return repl.toUpperCase();
+      if (w[0] === w[0].toUpperCase()) return repl[0].toUpperCase() + repl.slice(1);
+      return repl;
+    });
+  })();
+
+		  // === Enforce long em dash “—” for Russian ===
+  x = x.replace(/(?<=\S)\s*[-–]\s*(?=\S)/g, ' — ');
+
+} // ← this ends the currentLang === 'RU' section
 
     // --- Conditional Cyrillic “e” conversion ---
     // Only for Latin-script languages
@@ -1213,9 +1251,11 @@ x = x.replace(
 );
 
     // Numbers & timing logic
-    x = normalizeOClock(x);
-    x = applyNumberRules(x);
-    x = applyNoCommaRules(x);
+if (currentLang !== 'RU') {
+  x = normalizeOClock(x);
+  x = applyNumberRules(x);
+}
+x = applyNoCommaRules(x);
 
     // Normalize "god damn" -> "goddamn" while respecting casing
     x = x.replace(/\bgod\s+damn\b/gi, match => {
@@ -1275,6 +1315,16 @@ x = x.replace(
     // Restore normal sentence capitalization
     x = capitalizeAfterSentenceEnders(x);
 
+	  // === RU: Smart capitalization after parentheses ===
+if (currentLang === "RU") {
+  x = x.replace(/\)\s+([А-ЯЁA-Z])([а-яёa-z]+)/g, (m, first, rest, offset, str) => {
+    const before = str.slice(Math.max(0, offset - 3), offset);
+    const punctNearby = /[.?!]/.test(before);
+    if (punctNearby) return `) ${first}${rest}`; // keep capitalized
+    return `) ${first.toLowerCase()}${rest}`;
+  });
+}
+
     // Comma relocation fix retained
     x = x.replace(/,[ \t]*\(([^)]*?)\)(?=[ \t]*\S)/g, (match, inner, offset, str) => {
       const afterIdx = offset + match.length;
@@ -1283,6 +1333,15 @@ x = x.replace(
     });
     x = x.replace(/,[ \t]*\(([^)]*?)\)[ \t]*$/gm, ' ($1)');
 
+	  // === RU: Smart capitalization after parentheses per Khan ===
+if (currentLang === "RU") {
+  x = x.replace(/\)\s+([А-ЯЁA-Z])([а-яёa-z]+)/g, (m, first, rest, offset, str) => {
+    const before = str.slice(Math.max(0, offset - 3), offset);
+    const punctNearby = /[.?!]/.test(before);
+    if (punctNearby) return `) ${first}${rest}`; // keep capitalized
+    return `) ${first.toLowerCase()}${rest}`;
+  });
+}
 
     // ---------- Final Sanitation (Strict Parenthetical Safe) ----------
 
