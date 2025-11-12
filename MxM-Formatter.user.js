@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.72-internal.3
+// @version      1.1.72-internal.4
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.72-internal.3';
+  const SCRIPT_VERSION = '1.1.72-internal.4';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -896,7 +896,7 @@
     });
 
     // Remove end-line punctuation
-    x = x.replace(/[.,;:\-]+(?=[ \t]*\n)/g, "");
+    x = x.replace(/[,.:;\-](?="?[ \t]*\n|$)/g, '');
 
     // Instrumental normalization and tag spacing handled immediately after tag conversion
 
@@ -906,9 +906,15 @@
       const contractionLines = x.split('\n');
       for (let i = 0; i < contractionLines.length; i++) {
         let line = contractionLines[i];
+        const cmonProtections = [];
+        // Protect valid "c'mon" / "C'mon" from being mistaken for "'cause 'mon"
+        line = line.replace(/\b([cC])'mon\b/g, (match) => {
+          cmonProtections.push(match);
+          return `§CMON${cmonProtections.length - 1}§`;
+        });
         line = line.replace(/\bgunna\b/gi, "gonna");
         line = line.replace(/\bgon\b(?!['\u2019])/gi, "gon'");
-        line = line.replace(/'?c(?:uz|os|oz)\b/gi, (match, offset, str) => {
+        line = line.replace(/'?c(?:uz|os|oz|us)\b/gi, (match, offset, str) => {
           const prevChar = offset > 0 ? str[offset - 1] : '';
           const nextIndex = offset + match.length;
           const nextChar = nextIndex < str.length ? str[nextIndex] : '';
@@ -933,6 +939,8 @@
           if (match[0] === match[0].toUpperCase()) return "'Cause";
           return "'cause";
         });
+        // Restore protected "c'mon" / "C'mon"
+        line = line.replace(/§CMON(\d+)§/g, (_, idx) => cmonProtections[Number(idx)] ?? "c'mon");
         line = line.replace(/\b'til\b/gi, "'til");
         line = line.replace(/\bimma\b/gi, "I'ma");
 		line = line.replace(/\bi'll\b/gi, "I'll");
@@ -1328,6 +1336,21 @@ x = x.replace(/([A-Za-z])(\r?\n)"(?=[A-Za-z])/g, '$1\n"');
     // Remove overly aggressive BV adjacency merging
     x = x.replace(/((?:\)|\byeah\b)[,!?]*)\s*\n(?=\([^)]+\)\s*[a-z])/gi, '$1\n');
       x = x.replace(/([.!?])([ \t]*["'“”‘’])[ \t]*\n(?=[^\n])/g, '$1$2\n');
+
+    // --- PATCH START: Normalize stretched interjections even inside standalone parentheses ---
+    x = x.replace(/\(([^)]+)\)/g, (match, inner) => {
+      const norm = inner.replace(/\b(o+h+|a+h+|ye+a+h+|uh+h+|oo+h+)\b/gi, (m) => {
+        const lower = m.toLowerCase();
+        if (lower.startsWith('oh')) return 'Ooh';
+        if (lower.startsWith('ah')) return 'Ah';
+        if (lower.startsWith('yeah') || lower.startsWith('yea')) return 'Yeah';
+        if (lower.startsWith('uh')) return 'Uh';
+        if (lower.startsWith('oo')) return 'Ooh';
+        return m;
+      });
+      return `(${norm})`;
+    });
+    // --- PATCH END ---
 
     if (preservedStandaloneParens.length > 0) {
       const restoreRe = new RegExp(`${STANDALONE_PAREN_SENTINEL}(\\d+)__`, 'g');
