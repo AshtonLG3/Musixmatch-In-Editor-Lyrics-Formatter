@@ -1,7 +1,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.72-internal.4';
+  const SCRIPT_VERSION = '1.1.72-internal.5';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -1341,6 +1341,46 @@
       });
     })();
 
+    // === Normalize syllable repetitions (na, la, etc.) ===
+    x = x.replace(
+      /((?:^|\n|[?!\.\s]*)?)((?:na|la))(?:[-\s]+\2){1,}\b|((?:^|\n|[?!\.\s]*)?)((?:na|la){4,})\b/gi,
+      (full, boundaryA, syllableA, boundaryB, fused) => {
+        const boundary = boundaryA || boundaryB || '';
+        const syllable = (syllableA || fused?.slice(0, 2) || '').toLowerCase();
+        if (!syllable) return full;
+
+        // Count total syllables
+        const matches = (full.match(new RegExp(`${syllable}`, 'gi')) || []).length;
+        const total = Math.max(2, matches);
+
+        // Group syllables in sets of 4, separated by commas every 4 repeats
+        const parts = [];
+        for (let i = 0; i < total; i += 4) {
+          const group = Array.from(
+            { length: Math.min(4, total - i) },
+            () => syllable
+          ).join('-');
+          parts.push(group);
+        }
+
+        // ✅ Handle fused 'lalalalala' (5+ la's)
+        if (/^la+$/.test(fused || '') && total > 4) {
+          const groups = [];
+          for (let i = 0; i < total; i += 4) {
+            const chunk = Math.min(4, total - i);
+            groups.push(Array.from({ length: chunk }, () => syllable).join('-'));
+          }
+          return boundary + groups.join(', ');
+        }
+
+        let formatted = parts.join(', ');
+        if (/[?!\.\n]\s*$/.test(boundary))
+          formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1);
+
+        return boundary + formatted;
+      }
+    );
+
     // Numbers & timing logic
     x = normalizeOClock(x);
     x = applyNumberRules(x);
@@ -1459,18 +1499,14 @@
     // Remove overly aggressive BV adjacency merging
     x = x.replace(/((?:\)|\byeah\b)[,!?]*)\s*\n(?=\([^)]+\)\s*[a-z])/gi, '$1\n');
 
-    // --- PATCH START: Normalize stretched interjections even inside standalone parentheses ---
+    // --- FIXED PATCH: preserve parentheses content and only add commas between repeats ---
     x = x.replace(/\(([^)]+)\)/g, (match, inner) => {
-      const norm = inner.replace(/\b(o+h+|a+h+|ye+a+h+|uh+h+|oo+h+)\b/gi, (m) => {
-        const lower = m.toLowerCase();
-        if (lower.startsWith('oh')) return 'Ooh';
-        if (lower.startsWith('ah')) return 'Ah';
-        if (lower.startsWith('yeah') || lower.startsWith('yea')) return 'Yeah';
-        if (lower.startsWith('uh')) return 'Uh';
-        if (lower.startsWith('oo')) return 'Ooh';
-        return m;
-      });
-      return `(${norm})`;
+      // Add commas between repeated interjections like "oh oh oh"
+      const withCommas = inner.replace(
+        /\b(oh|ooh|yeah|la|na|uh|ah)\b(\s+\1\b)+/gi,
+        (m) => m.replace(/\s+/g, ', ')
+      );
+      return `(${withCommas})`;
     });
     // --- PATCH END ---
 
