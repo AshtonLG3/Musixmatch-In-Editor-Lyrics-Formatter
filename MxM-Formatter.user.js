@@ -895,8 +895,8 @@
       return `${letter}-${newline}${spaces}${token}`;
     });
 
-    // Remove end-line punctuation
-    x = x.replace(/[,.:;\-](?="?[ \t]*\n|$)/g, '');
+    // Remove end-line punctuation (allowing optional quote before newline or end)
+x = x.replace(/[,.:;\-](?="?[ \t]*\n|$)/g, '');
 
     // Instrumental normalization and tag spacing handled immediately after tag conversion
 
@@ -915,24 +915,25 @@
         line = line.replace(/\bgunna\b/gi, "gonna");
         line = line.replace(/\bgon\b(?!['\u2019])/gi, "gon'");
         line = line.replace(/'?c(?:uz|os|oz|us)\b/gi, (match, offset, str) => {
-          const prevChar = offset > 0 ? str[offset - 1] : '';
-          const nextIndex = offset + match.length;
-          const nextChar = nextIndex < str.length ? str[nextIndex] : '';
-          if (/\w/.test(prevChar) || /\w/.test(nextChar)) return match;
+	  const prevChar = offset > 0 ? str[offset - 1] : '';
+	  const nextIndex = offset + match.length;
+	  const nextChar = nextIndex < str.length ? str[nextIndex] : '';
+	  if (/\w/.test(prevChar) || /\w/.test(nextChar)) return match;
+	
+	  const hasLeadingApostrophe = match[0] === "'" || match[0] === "\u2019";
+	  const core = hasLeadingApostrophe ? match.slice(1) : match;
+	  const firstChar = core[0] ?? '';
+	  const isAllUpper = core === core.toUpperCase();
+	  const isTitleCase = firstChar !== '' && firstChar === firstChar.toUpperCase();
+	  const isLineStart = offset === 0;
+	
+	  if (isAllUpper) return "'CAUSE";
+	  if (isLineStart) return "'Cause";
+	  if (isTitleCase) return "'Cause";
+	  return "'cause";
+	});
 
-          const hasLeadingApostrophe = match[0] === "'" || match[0] === "\u2019";
-          const core = hasLeadingApostrophe ? match.slice(1) : match;
-          const firstChar = core[0] ?? '';
-          const isAllUpper = core === core.toUpperCase();
-          const isTitleCase = firstChar !== '' && firstChar === firstChar.toUpperCase();
-          const isLineStart = offset === 0;
-
-          if (isAllUpper) return "'CAUSE";
-          if (isLineStart) return "'Cause";
-          if (isTitleCase) return "'Cause";
-          return "'cause";
-        });
-        line = line.replace(/\bcause\b/gi, (match, offset, str) => {
+		  line = line.replace(/\bcause\b/gi, (match, offset, str) => {
           const prev = offset > 0 ? str[offset - 1] : '';
           if (prev === "'" || prev === "\u2019") return match;
           if (match === match.toUpperCase()) return "'CAUSE";
@@ -1172,44 +1173,44 @@ const WELL_CLAUSE_STARTERS = new Set([
     })();
 
       // === Normalize syllable repetitions (na, la, etc.) ===
-      x = x.replace(
-        /((?:^|\n|[?!\.\s]*)?)((?:na|la))(?:[-\s]+\2){1,}\b|((?:^|\n|[?!\.\s]*)?)((?:na|la){4,})\b/gi,
-        (full, boundaryA, syllableA, boundaryB, fused) => {
-          const boundary = boundaryA || boundaryB || '';
-          const syllable = (syllableA || fused?.slice(0, 2) || '').toLowerCase();
-          if (!syllable) return full;
+x = x.replace(
+  /((?:^|\n|[?!.\s]*)?)((?:na|la))(?:[-\s]+\2){1,}\b|((?:^|\n|[?!.\s]*)?)((?:na|la){4,})\b/gi,
+  (full, boundaryA, syllableA, boundaryB, fused) => {
+    const boundary = boundaryA || boundaryB || '';
+    const syllable = (syllableA || fused?.slice(0, 2) || '').toLowerCase();
+    if (!syllable) return full;
 
-          // Count total syllables
-          const matches = (full.match(new RegExp(`${syllable}`, 'gi')) || []).length;
-          const total = Math.max(2, matches);
+    // Count total syllables
+    const matches = (full.match(new RegExp(`${syllable}`, 'gi')) || []).length;
+    const total = Math.max(2, matches);
 
-          // Group syllables in sets of 4, separated by commas every 4 repeats
-          const parts = [];
-          for (let i = 0; i < total; i += 4) {
-            const group = Array.from(
-              { length: Math.min(4, total - i) },
-              () => syllable
-            ).join('-');
-            parts.push(group);
-          }
+    // Group syllables in sets of 4, separated by commas every 4 repeats
+    const parts = [];
+    for (let i = 0; i < total; i += 4) {
+      const group = Array.from(
+        { length: Math.min(4, total - i) },
+        () => syllable
+      ).join('-');
+      parts.push(group);
+    }
 
-          // ✅ Handle fused 'lalalalala' (5+ la's)
-          if (/^la+$/.test(fused || '') && total > 4) {
-            const groups = [];
-            for (let i = 0; i < total; i += 4) {
-              const chunk = Math.min(4, total - i);
-              groups.push(Array.from({ length: chunk }, () => syllable).join('-'));
-            }
-            return boundary + groups.join(', ');
-          }
+    // ✅ Handle fused 'lalalalala' (5+ la's)
+    if (/^la+$/.test(fused || '') && total > 4) {
+      const groups = [];
+      for (let i = 0; i < total; i += 4) {
+        const chunk = Math.min(4, total - i);
+        groups.push(Array.from({ length: chunk }, () => syllable).join('-'));
+      }
+      return boundary + groups.join(', ');
+    }
 
-          let formatted = parts.join(', ');
-          if (/[?!\.\n]\s*$/.test(boundary))
-            formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1);
+    let formatted = parts.join(', ');
+    if (/[?!.\n]\s*$/.test(boundary))
+      formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1);
 
-          return boundary + formatted;
-        }
-      );
+    return boundary + formatted;
+  }
+);
 
     // Numbers & timing logic
     x = normalizeOClock(x);
