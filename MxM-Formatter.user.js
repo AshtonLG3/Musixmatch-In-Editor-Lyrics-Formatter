@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.72-internal.5
+// @version      1.1.72-internal.6
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.72-internal.5';
+  const SCRIPT_VERSION = '1.1.72-internal.6';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -593,8 +593,8 @@
         }
       }
 
-      if (k < chars.length && chars[k] >= 'a' && chars[k] <= 'z') {
-        chars[k] = chars[k].toUpperCase();
+      if (k < chars.length && /\p{Ll}/u.test(chars[k])) {
+        chars[k] = chars[k].toLocaleUpperCase();
       }
     }
     return chars.join('');
@@ -1306,6 +1306,21 @@ x = applyNoCommaRules(x);
       return `(${lowerFirst}${trimmed.slice(firstWord.length)})`;
     });
 
+    if (currentLang === "RU") {
+      x = x.replace(/([!?])\s*\(([а-яё])/giu, (match, punct, letter) =>
+        punct + " (" + letter.toLocaleUpperCase()
+      );
+    }
+
+    if (currentLang === "RU") {
+      x = x.replace(/([^\n])(\r?\n)(?=\S)/g, (m, lastChar, nl) => {
+        if (/[а-яА-ЯёЁ)!?.,]/.test(lastChar)) {
+          return lastChar + nl;
+        }
+        return m;
+      });
+    }
+
 
     // Maintain capitalization for lines starting with "("
     x = x.replace(/(^|\n)(\(\s*)(["'“”‘’]?)(\p{Ll})/gu,
@@ -1378,6 +1393,13 @@ if (currentLang === "RU") {
       .replace(/\( +/g, "(").replace(/ +\)/g, ")")
       .replace(/,{2,}/g, ",")                        // collapse duplicate commas
       .replace(/,([ \t]*\))/g, "$1");                // remove commas immediately before a closing parenthesis
+
+    if (currentLang === "RU") {
+      // RU: Disable English-centric spacing tweaks that assume Latin letters
+      x = x.replace(/[ \t]+([!?.,;:])/g, '$1');
+      x = x.replace(/([A-Za-z])\(/g, '$1(');
+      x = x.replace(/\)([A-Za-z])/g, ')$1');
+    }
 
  // --- PATCH START: Prevent quote-line merging ---
 
