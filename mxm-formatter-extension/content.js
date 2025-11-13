@@ -1,7 +1,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.72-internal.5';
+  const SCRIPT_VERSION = '1.1.72-internal.7';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -508,19 +508,21 @@
     if (!text) return text;
     const chars = Array.from(text);
     const isSpace = c => c === ' ' || c === '\t' || c === '\n';
+    const isSkippable = c => SENTENCE_ENDER_FOLLOWING_QUOTES.has(c) || c === '(' || c === ')';
     for (let i = 0; i < chars.length; i++) {
       const ch = chars[i];
       if (ch !== '?' && ch !== '!') continue;
-      let j = i + 1;
-      while (j < chars.length && isSpace(chars[j])) j++;
-      let k = j;
-      while (k < chars.length && chars[k] === '(') {
-        k++;
-        while (k < chars.length && isSpace(chars[k])) k++;
+      let k = i + 1;
+      while (k < chars.length) {
+        if (isSpace(chars[k]) || isSkippable(chars[k])) {
+          k++;
+        } else {
+          break;
+        }
       }
-      while (k < chars.length && SENTENCE_ENDER_FOLLOWING_QUOTES.has(chars[k])) k++;
-      if (k < chars.length && chars[k] >= 'a' && chars[k] <= 'z') {
-        chars[k] = chars[k].toUpperCase();
+
+      if (k < chars.length && /\p{Ll}/u.test(chars[k])) {
+        chars[k] = chars[k].toLocaleUpperCase();
       }
     }
     return chars.join('');
@@ -1423,7 +1425,7 @@
     );
 
     // === Backing vocals normalization ===
-    if (fixBackingVocals) {
+    if (fixBackingVocals && currentLang !== 'RU') {
       // Lowercase backing vocals only when they appear inline (not at line start)
       x = x.replace(/(?<!^|\n)\(([^)]+)\)/g, (match, inner) => {
         const trimmed = inner.trim();

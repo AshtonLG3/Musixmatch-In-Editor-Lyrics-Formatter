@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.72-internal.6
+// @version      1.1.72-internal.7
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.72-internal.6';
+  const SCRIPT_VERSION = '1.1.72-internal.7';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -579,16 +579,15 @@
     if (!text) return text;
     const chars = Array.from(text);
     const isSpace = c => c === ' ' || c === '\t' || c === '\n';
-	const isSkippable = c => SENTENCE_ENDER_FOLLOWING_QUOTES.has(c) || c === '(' || c === ')';
+    const isSkippable = c => SENTENCE_ENDER_FOLLOWING_QUOTES.has(c) || c === '(' || c === ')';
     for (let i = 0; i < chars.length; i++) {
       const ch = chars[i];
       if (ch !== '?' && ch !== '!') continue;
       let k = i + 1;
       while (k < chars.length) {
         if (isSpace(chars[k]) || isSkippable(chars[k])) {
-
-        k++;
-          } else {
+          k++;
+        } else {
           break;
         }
       }
@@ -764,44 +763,47 @@
         }
       });
 
-		  // === CSV-based Language Replacement (RU only) ===
-  (() => {
-    const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR14xVitQzz_k_b85FueTy3G8TMVSRvXg5f1b4E0_ddbqi86ZfYjW7nTUSk_zDzPg/pub?output=csv";
-    const LOCAL_KEY = "mxmLangReplacementsCSV.v1";
+      // === Enforce long em dash “—” for Russian ===
+      x = x.replace(/(?<=\S)\s*[-–]\s*(?=\S)/g, ' — ');
+    }
 
-    const parseCSV = (text) => {
-      const map = new Map();
-      text.split(/\r?\n/).forEach(line => {
-        const [left, right] = line.split(",").map(s => s?.trim());
-        if (left && right) map.set(left.toLowerCase(), right);
-      });
-      return map;
-    };
+    // End of currentLang === 'RU' block
 
-    let REPLACEMENTS = new Map();
-    try {
-      const cached = localStorage.getItem(LOCAL_KEY);
-      if (cached) REPLACEMENTS = parseCSV(cached);
-    } catch {}
+    if (currentLang !== 'RU') {
+      // === CSV-based Language Replacement (disabled for RU to preserve Cyrillic integrity) ===
+      (() => {
+        const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR14xVitQzz_k_b85FueTy3G8TMVSRvXg5f1b4E0_ddbqi86ZfYjW7nTUSk_zDzPg/pub?output=csv";
+        const LOCAL_KEY = "mxmLangReplacementsCSV.v1";
 
-    fetch(CSV_URL)
-      .then(r => r.ok ? r.text() : "")
-      .then(t => { if (t) localStorage.setItem(LOCAL_KEY, t); })
-      .catch(() => {});
+        const parseCSV = (text) => {
+          const map = new Map();
+          text.split(/\r?\n/).forEach(line => {
+            const [left, right] = line.split(",").map(s => s?.trim());
+            if (left && right) map.set(left.toLowerCase(), right);
+          });
+          return map;
+        };
 
-    x = x.replace(/\b[\p{L}'’-]+\b/gu, w => {
-      const repl = REPLACEMENTS.get(w.toLowerCase());
-      if (!repl) return w;
-      if (w === w.toUpperCase()) return repl.toUpperCase();
-      if (w[0] === w[0].toUpperCase()) return repl[0].toUpperCase() + repl.slice(1);
-      return repl;
-    });
-  })();
+        let REPLACEMENTS = new Map();
+        try {
+          const cached = localStorage.getItem(LOCAL_KEY);
+          if (cached) REPLACEMENTS = parseCSV(cached);
+        } catch {}
 
-		  // === Enforce long em dash “—” for Russian ===
-  x = x.replace(/(?<=\S)\s*[-–]\s*(?=\S)/g, ' — ');
+        fetch(CSV_URL)
+          .then(r => r.ok ? r.text() : "")
+          .then(t => { if (t) localStorage.setItem(LOCAL_KEY, t); })
+          .catch(() => {});
 
-} // ← this ends the currentLang === 'RU' section
+        x = x.replace(/\b[\p{L}'’-]+\b/gu, w => {
+          const repl = REPLACEMENTS.get(w.toLowerCase());
+          if (!repl) return w;
+          if (w === w.toUpperCase()) return repl.toUpperCase();
+          if (w[0] === w[0].toUpperCase()) return repl[0].toUpperCase() + repl.slice(1);
+          return repl;
+        });
+      })();
+    }
 
     // --- Conditional Cyrillic “e” conversion ---
     // Only for Latin-script languages
@@ -1289,22 +1291,24 @@ x = applyNoCommaRules(x);
     );
 
     // === Backing vocals normalization (moved earlier to prevent re-capitalization) ===
-    x = x.replace(/(?<!^|\n)\(([^)]+)\)/g, (match, inner) => {
-      const trimmed = inner.trim();
-      if (!trimmed) return match;
+    if (currentLang !== 'RU') {
+      x = x.replace(/(?<!^|\n)\(([^)]+)\)/g, (match, inner) => {
+        const trimmed = inner.trim();
+        if (!trimmed) return match;
 
-      const firstWord = trimmed.split(/\s+/)[0] || '';
-      const lowerFirst = firstWord.toLocaleLowerCase();
+        const firstWord = trimmed.split(/\s+/)[0] || '';
+        const lowerFirst = firstWord.toLocaleLowerCase();
 
-      if (BV_FIRST_WORD_EXCEPTIONS.has(firstWord) || BV_FIRST_WORD_EXCEPTIONS.has(lowerFirst))
-        return match;
+        if (BV_FIRST_WORD_EXCEPTIONS.has(firstWord) || BV_FIRST_WORD_EXCEPTIONS.has(lowerFirst))
+          return match;
 
-      if (/^(yeah|yea|yo|la|na|woo|hey|ha|uh|o+h)$/i.test(firstWord)) {
-        return `(${trimmed.toLocaleLowerCase()})`;
-      }
+        if (/^(yeah|yea|yo|la|na|woo|hey|ha|uh|o+h)$/i.test(firstWord)) {
+          return `(${trimmed.toLocaleLowerCase()})`;
+        }
 
-      return `(${lowerFirst}${trimmed.slice(firstWord.length)})`;
-    });
+        return `(${lowerFirst}${trimmed.slice(firstWord.length)})`;
+      });
+    }
 
     if (currentLang === "RU") {
       x = x.replace(/([!?])\s*\(([а-яё])/giu, (match, punct, letter) =>

@@ -4,6 +4,8 @@
 - Limit parenthetical title-casing to lines that begin with "(" so inline parentheses remain untouched.
 - Rework backing vocal normalization with dictionary-driven proper noun handling gated by the BV toggle.
 - Bump the userscript, extension, and package metadata to reflect the 1.1.72 release.
+- Skip CSV-driven language replacements and BV lowercasing when formatting Russian lyrics so Cyrillic text stays intact.
+- Use Unicode-aware capitalization after exclamation and question marks to keep Cyrillic letters from being skipped.
 
 ## v1.1.70
 - Correct Christmas spellings, title-case proper nouns in backing vocal parentheses, and lowercase interjection syllables.
