@@ -1358,6 +1358,12 @@ if (currentLang === "RU") {
     });
     x = x.replace(/,[ \t]*\(([^)]*?)\)[ \t]*$/gm, ' ($1)');
 
+	  // --- Hard protect newline after any line ending with ")" or ")?", ")!", ").", ")," ---
+x = x.replace(
+  /(\))[ \t]*\r?\n(?=\S)/g,   // line ending with ")" followed by a non-empty next line
+  (m, paren) => paren + "\n"  // restore a clean newline with no space swallowing
+);
+
     // ---------- Final Sanitation (Strict Parenthetical Safe) ----------
 
     // ❌ Do not add, remove, or alter newlines anywhere
