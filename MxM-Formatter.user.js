@@ -1165,7 +1165,7 @@ const WELL_CLAUSE_STARTERS = new Set([
 
       // === Normalize syllable repetitions (na, la, etc.) ===
 x = x.replace(
-  /(^|\n|[?!]\s*)((?:na|la))(?:[-\s]+\2){1,}\b|(^|\n|[?!]\s*)((?:na|la){4,})/gi,
+  /((?:^|\n|[?!.\s]*)?)((?:na|la))(?:[-\s]+\2){1,}\b|((?:^|\n|[?!.\s]*)?)((?:na|la){4,})\b/gi,
   (full, boundaryA, syllableA, boundaryB, fused) => {
     const boundary = boundaryA || boundaryB || '';
     const syllable = (syllableA || fused?.slice(0, 2) || '').toLowerCase();
@@ -1185,7 +1185,7 @@ x = x.replace(
       parts.push(group);
     }
 
-    // ✅ Specific fix: handle fused 'lalalalala' (5 or more la's)
+    // ✅ Handle fused 'lalalalala' (5+ la's)
     if (/^la+$/.test(fused || '') && total > 4) {
       const groups = [];
       for (let i = 0; i < total; i += 4) {
@@ -1196,7 +1196,7 @@ x = x.replace(
     }
 
     let formatted = parts.join(', ');
-    if (boundary.endsWith('\n') || /[?!]\s*$/.test(boundary))
+    if (/[?!.\n]\s*$/.test(boundary))
       formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1);
 
     return boundary + formatted;
