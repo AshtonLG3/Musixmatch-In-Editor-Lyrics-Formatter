@@ -1610,7 +1610,7 @@ x = x
 
       pop=uiDocument.createElement('div');
       pop.id='mxmFmtPopover';
-      Object.assign(pop.style,{position:'absolute',bottom:'42px',right:'0',background:'#1e1e1e',border:'1px solid #333',borderRadius:'10px',padding:'8px 12px',fontSize:'13px',color:'#eee',boxShadow:'0 4px 16px rgba(0,0,0,0.4)',zIndex:2147483647});
+      Object.assign(pop.style,{position:'absolute',bottom:'42px',right:'0',background:'#1e1e1e',border:'1px solid #333',borderRadius:'10px',padding:'8px 12px',fontSize:'13px',color:'#eee',boxShadow:'0 4px 16px rgba(0,0,0,0.4)',zIndex:2147483647,boxSizing:'border-box',overflow:'hidden'});
 
       pop.innerHTML=`
     <div style="margin-bottom:6px;">
@@ -1658,6 +1658,149 @@ x = x
       };
 
       container.appendChild(pop);
+
+      const containerRect=container.getBoundingClientRect();
+      const panelRect=pop.getBoundingClientRect();
+      const MIN_WIDTH=220;
+      const MIN_HEIGHT=140;
+      const MIN_SIZE=160;
+      const initialWidth=Math.max(Math.round(panelRect.width),MIN_WIDTH);
+      const initialHeight=Math.max(Math.round(panelRect.height),MIN_HEIGHT);
+      pop.style.minWidth=`${MIN_WIDTH}px`;
+      pop.style.minHeight=`${MIN_HEIGHT}px`;
+      pop.style.width=`${initialWidth}px`;
+      pop.style.height=`${initialHeight}px`;
+      const initialLeft=Math.min(Math.round(containerRect.width-initialWidth),0);
+      const initialTop=Math.min(Math.round(-initialHeight-42),-42);
+      pop.style.right='';
+      pop.style.bottom='';
+      pop.style.left=`${initialLeft}px`;
+      pop.style.top=`${initialTop}px`;
+
+      const doc=uiDocument||document;
+      const panel=pop;
+      let isResizing=false;
+      let startX=0;
+      let startY=0;
+      let startWidth=initialWidth;
+      let startHeight=initialHeight;
+      let startLeft=initialLeft;
+      let startTop=initialTop;
+      let currentDir='';
+
+      function resizeMouseMove(e){
+        if(!isResizing) return;
+
+        let dx=e.clientX-startX;
+        let dy=e.clientY-startY;
+
+        let newWidth=startWidth;
+        let newHeight=startHeight;
+        let newLeft=startLeft;
+        let newTop=startTop;
+
+        if(currentDir.includes('e')){
+          newWidth=startWidth+dx;
+        }else if(currentDir.includes('w')){
+          newWidth=startWidth-dx;
+          newLeft=startLeft+dx;
+        }
+
+        if(currentDir.includes('s')){
+          newHeight=startHeight+dy;
+        }else if(currentDir.includes('n')){
+          newHeight=startHeight-dy;
+          newTop=startTop+dy;
+        }
+
+        newWidth=Math.max(newWidth,MIN_SIZE);
+        newHeight=Math.max(newHeight,MIN_SIZE);
+
+        panel.style.width=newWidth+'px';
+        panel.style.height=newHeight+'px';
+        panel.style.left=newLeft+'px';
+        panel.style.top=newTop+'px';
+      }
+
+      function stopResize(){
+        isResizing=false;
+        doc.removeEventListener('mousemove',resizeMouseMove);
+        doc.removeEventListener('mouseup',stopResize);
+      }
+
+      function createResizer(direction){
+        const resizer=uiDocument.createElement('div');
+        resizer.dataset.dir=direction;
+        resizer.style.position='absolute';
+        resizer.style.userSelect='none';
+        resizer.style.touchAction='none';
+        resizer.style.zIndex='2147483648';
+        resizer.style.background='transparent';
+        if(direction==='n'){
+          resizer.style.cursor='ns-resize';
+          resizer.style.top='-4px';
+          resizer.style.left='0';
+          resizer.style.right='0';
+          resizer.style.height='8px';
+        }else if(direction==='s'){
+          resizer.style.cursor='ns-resize';
+          resizer.style.bottom='-4px';
+          resizer.style.left='0';
+          resizer.style.right='0';
+          resizer.style.height='8px';
+        }else if(direction==='e'){
+          resizer.style.cursor='ew-resize';
+          resizer.style.top='0';
+          resizer.style.bottom='0';
+          resizer.style.right='-4px';
+          resizer.style.width='8px';
+        }else if(direction==='w'){
+          resizer.style.cursor='ew-resize';
+          resizer.style.top='0';
+          resizer.style.bottom='0';
+          resizer.style.left='-4px';
+          resizer.style.width='8px';
+        }else{
+          resizer.style.width='12px';
+          resizer.style.height='12px';
+          if(direction==='ne'){
+            resizer.style.cursor='nesw-resize';
+            resizer.style.top='-6px';
+            resizer.style.right='-6px';
+          }else if(direction==='nw'){
+            resizer.style.cursor='nwse-resize';
+            resizer.style.top='-6px';
+            resizer.style.left='-6px';
+          }else if(direction==='se'){
+            resizer.style.cursor='nwse-resize';
+            resizer.style.bottom='-6px';
+            resizer.style.right='-6px';
+          }else if(direction==='sw'){
+            resizer.style.cursor='nesw-resize';
+            resizer.style.bottom='-6px';
+            resizer.style.left='-6px';
+          }
+        }
+        panel.appendChild(resizer);
+        resizer.addEventListener('mousedown',function(e){
+          e.preventDefault();
+          isResizing=true;
+          currentDir=direction;
+
+          startX=e.clientX;
+          startY=e.clientY;
+          startWidth=panel.offsetWidth;
+          startHeight=panel.offsetHeight;
+          startLeft=panel.offsetLeft;
+          startTop=panel.offsetTop;
+
+          doc.addEventListener('mousemove',resizeMouseMove);
+          doc.addEventListener('mouseup',stopResize);
+        });
+      }
+
+      ['n','e','s','w','ne','nw','se','sw'].forEach(createResizer);
+
       gearBtn.setAttribute('aria-expanded','true');
 
       const closer=evt=>{
