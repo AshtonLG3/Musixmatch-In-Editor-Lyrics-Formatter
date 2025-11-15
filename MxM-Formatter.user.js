@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.72-internal.7
+// @version      1.1.73
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.72-internal.7';
+  const SCRIPT_VERSION = '1.1.73';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -579,21 +579,22 @@
     if (!text) return text;
     const chars = Array.from(text);
     const isSpace = c => c === ' ' || c === '\t' || c === '\n';
-    const isSkippable = c => SENTENCE_ENDER_FOLLOWING_QUOTES.has(c) || c === '(' || c === ')';
+	const isSkippable = c => SENTENCE_ENDER_FOLLOWING_QUOTES.has(c) || c === '(' || c === ')';
     for (let i = 0; i < chars.length; i++) {
       const ch = chars[i];
       if (ch !== '?' && ch !== '!') continue;
       let k = i + 1;
       while (k < chars.length) {
         if (isSpace(chars[k]) || isSkippable(chars[k])) {
-          k++;
-        } else {
+
+        k++;
+          } else {
           break;
         }
       }
 
-      if (k < chars.length && /\p{Ll}/u.test(chars[k])) {
-        chars[k] = chars[k].toLocaleUpperCase();
+      if (k < chars.length && chars[k] >= 'a' && chars[k] <= 'z') {
+        chars[k] = chars[k].toUpperCase();
       }
     }
     return chars.join('');
@@ -762,47 +763,6 @@
             return match;
         }
       });
-
-      // === Enforce long em dash “—” for Russian ===
-      x = x.replace(/(?<=\S)\s*[-–]\s*(?=\S)/g, ' — ');
-    }
-
-    // End of currentLang === 'RU' block
-
-    if (currentLang !== 'RU') {
-      // === CSV-based Language Replacement (disabled for RU to preserve Cyrillic integrity) ===
-      (() => {
-        const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR14xVitQzz_k_b85FueTy3G8TMVSRvXg5f1b4E0_ddbqi86ZfYjW7nTUSk_zDzPg/pub?output=csv";
-        const LOCAL_KEY = "mxmLangReplacementsCSV.v1";
-
-        const parseCSV = (text) => {
-          const map = new Map();
-          text.split(/\r?\n/).forEach(line => {
-            const [left, right] = line.split(",").map(s => s?.trim());
-            if (left && right) map.set(left.toLowerCase(), right);
-          });
-          return map;
-        };
-
-        let REPLACEMENTS = new Map();
-        try {
-          const cached = localStorage.getItem(LOCAL_KEY);
-          if (cached) REPLACEMENTS = parseCSV(cached);
-        } catch {}
-
-        fetch(CSV_URL)
-          .then(r => r.ok ? r.text() : "")
-          .then(t => { if (t) localStorage.setItem(LOCAL_KEY, t); })
-          .catch(() => {});
-
-        x = x.replace(/\b[\p{L}'’-]+\b/gu, w => {
-          const repl = REPLACEMENTS.get(w.toLowerCase());
-          if (!repl) return w;
-          if (w === w.toUpperCase()) return repl.toUpperCase();
-          if (w[0] === w[0].toUpperCase()) return repl[0].toUpperCase() + repl.slice(1);
-          return repl;
-        });
-      })();
     }
 
     // --- Conditional Cyrillic “e” conversion ---
@@ -935,8 +895,8 @@
       return `${letter}-${newline}${spaces}${token}`;
     });
 
-    // Remove end-line punctuation (allowing optional quote before newline or end)
-x = x.replace(/[,.:;\-](?="?[ \t]*\n|$)/g, '');
+    // Remove end-line punctuation
+    x = x.replace(/[.,;:\-]+(?=[ \t]*\n)/g, "");
 
     // Instrumental normalization and tag spacing handled immediately after tag conversion
 
@@ -946,42 +906,33 @@ x = x.replace(/[,.:;\-](?="?[ \t]*\n|$)/g, '');
       const contractionLines = x.split('\n');
       for (let i = 0; i < contractionLines.length; i++) {
         let line = contractionLines[i];
-        const cmonProtections = [];
-        // Protect valid "c'mon" / "C'mon" from being mistaken for "'cause 'mon"
-        line = line.replace(/\b([cC])'mon\b/g, (match) => {
-          cmonProtections.push(match);
-          return `§CMON${cmonProtections.length - 1}§`;
-        });
         line = line.replace(/\bgunna\b/gi, "gonna");
         line = line.replace(/\bgon\b(?!['\u2019])/gi, "gon'");
-        line = line.replace(/'?c(?:uz|os|oz|us)\b/gi, (match, offset, str) => {
-	  const prevChar = offset > 0 ? str[offset - 1] : '';
-	  const nextIndex = offset + match.length;
-	  const nextChar = nextIndex < str.length ? str[nextIndex] : '';
-	  if (/\w/.test(prevChar) || /\w/.test(nextChar)) return match;
-	
-	  const hasLeadingApostrophe = match[0] === "'" || match[0] === "\u2019";
-	  const core = hasLeadingApostrophe ? match.slice(1) : match;
-	  const firstChar = core[0] ?? '';
-	  const isAllUpper = core === core.toUpperCase();
-	  const isTitleCase = firstChar !== '' && firstChar === firstChar.toUpperCase();
-	  const isLineStart = offset === 0;
-	
-	  if (isAllUpper) return "'CAUSE";
-	  if (isLineStart) return "'Cause";
-	  if (isTitleCase) return "'Cause";
-	  return "'cause";
-	});
+        line = line.replace(/'?c(?:uz|os|oz)\b/gi, (match, offset, str) => {
+          const prevChar = offset > 0 ? str[offset - 1] : '';
+          const nextIndex = offset + match.length;
+          const nextChar = nextIndex < str.length ? str[nextIndex] : '';
+          if (/\w/.test(prevChar) || /\w/.test(nextChar)) return match;
 
-		  line = line.replace(/\bcause\b/gi, (match, offset, str) => {
+          const hasLeadingApostrophe = match[0] === "'" || match[0] === "\u2019";
+          const core = hasLeadingApostrophe ? match.slice(1) : match;
+          const firstChar = core[0] ?? '';
+          const isAllUpper = core === core.toUpperCase();
+          const isTitleCase = firstChar !== '' && firstChar === firstChar.toUpperCase();
+          const isLineStart = offset === 0;
+
+          if (isAllUpper) return "'CAUSE";
+          if (isLineStart) return "'Cause";
+          if (isTitleCase) return "'Cause";
+          return "'cause";
+        });
+        line = line.replace(/\bcause\b/gi, (match, offset, str) => {
           const prev = offset > 0 ? str[offset - 1] : '';
           if (prev === "'" || prev === "\u2019") return match;
           if (match === match.toUpperCase()) return "'CAUSE";
           if (match[0] === match[0].toUpperCase()) return "'Cause";
           return "'cause";
         });
-        // Restore protected "c'mon" / "C'mon"
-        line = line.replace(/§CMON(\d+)§/g, (_, idx) => cmonProtections[Number(idx)] ?? "c'mon");
         line = line.replace(/\b'til\b/gi, "'til");
         line = line.replace(/\bimma\b/gi, "I'ma");
 		line = line.replace(/\bi'll\b/gi, "I'll");
@@ -1176,7 +1127,7 @@ const WELL_CLAUSE_STARTERS = new Set([
         "pumpkin","grin","chin","twin","skin","basin","raisn","savin","login","pin","curtain",
         "fin","din","min","gin","lin","kin","sin","win","bin","thin","tin","akin","leadin","captain","mountain",
         "fountain","certain","again","gain","spin","twin","main","cain","maintain","retain","detain","vain","regain",
-        "rain","brain","pain","drain","train","grain","cabin","satin","chain","plain","remain","campaign",
+        "rain","brain","pain","drain","train","grain","cabin","coffin","satin","chain","plain","remain","campaign",
         "fein","contain","domain","explain","sustain","pertain","obtain","entertain","villain","admin","abstain","stain"
       ]);
 
@@ -1251,13 +1202,11 @@ x = x.replace(
     return boundary + formatted;
   }
 );
-
+	  
     // Numbers & timing logic
-if (currentLang !== 'RU') {
-  x = normalizeOClock(x);
-  x = applyNumberRules(x);
-}
-x = applyNoCommaRules(x);
+    x = normalizeOClock(x);
+    x = applyNumberRules(x);
+    x = applyNoCommaRules(x);
 
     // Normalize "god damn" -> "goddamn" while respecting casing
     x = x.replace(/\bgod\s+damn\b/gi, match => {
@@ -1291,39 +1240,22 @@ x = applyNoCommaRules(x);
     );
 
     // === Backing vocals normalization (moved earlier to prevent re-capitalization) ===
-    if (currentLang !== 'RU') {
-      x = x.replace(/(?<!^|\n)\(([^)]+)\)/g, (match, inner) => {
-        const trimmed = inner.trim();
-        if (!trimmed) return match;
+    x = x.replace(/(?<!^|\n)\(([^)]+)\)/g, (match, inner) => {
+      const trimmed = inner.trim();
+      if (!trimmed) return match;
 
-        const firstWord = trimmed.split(/\s+/)[0] || '';
-        const lowerFirst = firstWord.toLocaleLowerCase();
+      const firstWord = trimmed.split(/\s+/)[0] || '';
+      const lowerFirst = firstWord.toLocaleLowerCase();
 
-        if (BV_FIRST_WORD_EXCEPTIONS.has(firstWord) || BV_FIRST_WORD_EXCEPTIONS.has(lowerFirst))
-          return match;
+      if (BV_FIRST_WORD_EXCEPTIONS.has(firstWord) || BV_FIRST_WORD_EXCEPTIONS.has(lowerFirst))
+        return match;
 
-        if (/^(yeah|yea|yo|la|na|woo|hey|ha|uh|o+h)$/i.test(firstWord)) {
-          return `(${trimmed.toLocaleLowerCase()})`;
-        }
+      if (/^(yeah|yea|yo|la|na|woo|hey|ha|uh|o+h)$/i.test(firstWord)) {
+        return `(${trimmed.toLocaleLowerCase()})`;
+      }
 
-        return `(${lowerFirst}${trimmed.slice(firstWord.length)})`;
-      });
-    }
-
-    if (currentLang === "RU") {
-      x = x.replace(/([!?])\s*\(([а-яё])/giu, (match, punct, letter) =>
-        punct + " (" + letter.toLocaleUpperCase()
-      );
-    }
-
-    if (currentLang === "RU") {
-      x = x.replace(/([^\n])(\r?\n)(?=\S)/g, (m, lastChar, nl) => {
-        if (/[а-яА-ЯёЁ)!?.,]/.test(lastChar)) {
-          return lastChar + nl;
-        }
-        return m;
-      });
-    }
+      return `(${lowerFirst}${trimmed.slice(firstWord.length)})`;
+    });
 
 
     // Maintain capitalization for lines starting with "("
@@ -1334,26 +1266,6 @@ x = applyNoCommaRules(x);
     // Restore normal sentence capitalization
     x = capitalizeAfterSentenceEnders(x);
 
-	  // === RU: Smart capitalization after parentheses ===
-if (currentLang === "RU") {
-  x = x.replace(/\)[ \t]+([А-ЯЁA-Z])([а-яёa-z]+)/g, (m, first, rest, offset, str) => {
-    const before = str.slice(Math.max(0, offset - 3), offset);
-    const punctNearby = /[.?!]/.test(before);
-    if (punctNearby) return `) ${first}${rest}`; // keep capitalized
-    return `) ${first.toLowerCase()}${rest}`;
-  });
-}
-	  
-	  // === RU: Smart capitalization after parentheses per Khan ===
-if (currentLang === "RU") {
-  x = x.replace(/\)\s+([А-ЯЁA-Z])([а-яёa-z]+)/g, (m, first, rest, offset, str) => {
-    const before = str.slice(Math.max(0, offset - 3), offset);
-    const punctNearby = /[.?!]/.test(before);
-    if (punctNearby) return `) ${first}${rest}`; // keep capitalized
-    return `) ${first.toLowerCase()}${rest}`;
-  });
-}
-	  
     // Comma relocation fix retained
     x = x.replace(/,[ \t]*\(([^)]*?)\)(?=[ \t]*\S)/g, (match, inner, offset, str) => {
       const afterIdx = offset + match.length;
@@ -1362,11 +1274,6 @@ if (currentLang === "RU") {
     });
     x = x.replace(/,[ \t]*\(([^)]*?)\)[ \t]*$/gm, ' ($1)');
 
-	  // --- Hard protect newline after any line ending with ")" or ")?", ")!", ").", ")," ---
-x = x.replace(
-  /(\))[ \t]*\r?\n(?=\S)/g,   // line ending with ")" followed by a non-empty next line
-  (m, paren) => paren + "\n"  // restore a clean newline with no space swallowing
-);
 
     // ---------- Final Sanitation (Strict Parenthetical Safe) ----------
 
@@ -1404,13 +1311,6 @@ x = x.replace(
       .replace(/,{2,}/g, ",")                        // collapse duplicate commas
       .replace(/,([ \t]*\))/g, "$1");                // remove commas immediately before a closing parenthesis
 
-    if (currentLang === "RU") {
-      // RU: Disable English-centric spacing tweaks that assume Latin letters
-      x = x.replace(/[ \t]+([!?.,;:])/g, '$1');
-      x = x.replace(/([A-Za-z])\(/g, '$1(');
-      x = x.replace(/\)([A-Za-z])/g, ')$1');
-    }
-
  // --- PATCH START: Prevent quote-line merging ---
 
 // Optional: if a quote starts the next line right after text, force proper spacing
@@ -1428,17 +1328,6 @@ x = x.replace(/([A-Za-z])(\r?\n)"(?=[A-Za-z])/g, '$1\n"');
     // Remove overly aggressive BV adjacency merging
     x = x.replace(/((?:\)|\byeah\b)[,!?]*)\s*\n(?=\([^)]+\)\s*[a-z])/gi, '$1\n');
       x = x.replace(/([.!?])([ \t]*["'“”‘’])[ \t]*\n(?=[^\n])/g, '$1$2\n');
-
-    // --- FIXED PATCH: preserve parentheses content and only add commas between repeats ---
-    x = x.replace(/\(([^)]+)\)/g, (match, inner) => {
-      // Add commas between repeated interjections like "oh oh oh"
-      const withCommas = inner.replace(
-        /\b(oh|ooh|yeah|la|na|uh|ah)\b(\s+\1\b)+/gi,
-        (m) => m.replace(/\s+/g, ', ')
-      );
-      return `(${withCommas})`;
-    });
-    // --- PATCH END ---
 
     if (preservedStandaloneParens.length > 0) {
       const restoreRe = new RegExp(`${STANDALONE_PAREN_SENTINEL}(\\d+)__`, 'g');
@@ -1721,7 +1610,7 @@ x = x
 
       pop=uiDocument.createElement('div');
       pop.id='mxmFmtPopover';
-      Object.assign(pop.style,{position:'absolute',bottom:'42px',right:'0',background:'#1e1e1e',border:'1px solid #333',borderRadius:'10px',padding:'8px 12px',fontSize:'13px',color:'#eee',boxShadow:'0 4px 16px rgba(0,0,0,0.4)',zIndex:2147483647});
+      Object.assign(pop.style,{position:'absolute',bottom:'42px',right:'0',background:'#1e1e1e',border:'1px solid #333',borderRadius:'10px',padding:'8px 12px',fontSize:'13px',color:'#eee',boxShadow:'0 4px 16px rgba(0,0,0,0.4)',zIndex:2147483647,boxSizing:'border-box',overflow:'hidden'});
 
       pop.innerHTML=`
     <div style="margin-bottom:6px;">
@@ -1769,6 +1658,149 @@ x = x
       };
 
       container.appendChild(pop);
+
+      const containerRect=container.getBoundingClientRect();
+      const panelRect=pop.getBoundingClientRect();
+      const MIN_WIDTH=220;
+      const MIN_HEIGHT=140;
+      const MIN_SIZE=160;
+      const initialWidth=Math.max(Math.round(panelRect.width),MIN_WIDTH);
+      const initialHeight=Math.max(Math.round(panelRect.height),MIN_HEIGHT);
+      pop.style.minWidth=`${MIN_WIDTH}px`;
+      pop.style.minHeight=`${MIN_HEIGHT}px`;
+      pop.style.width=`${initialWidth}px`;
+      pop.style.height=`${initialHeight}px`;
+      const initialLeft=Math.min(Math.round(containerRect.width-initialWidth),0);
+      const initialTop=Math.min(Math.round(-initialHeight-42),-42);
+      pop.style.right='';
+      pop.style.bottom='';
+      pop.style.left=`${initialLeft}px`;
+      pop.style.top=`${initialTop}px`;
+
+      const doc=uiDocument||document;
+      const panel=pop;
+      let isResizing=false;
+      let startX=0;
+      let startY=0;
+      let startWidth=initialWidth;
+      let startHeight=initialHeight;
+      let startLeft=initialLeft;
+      let startTop=initialTop;
+      let currentDir='';
+
+      function resizeMouseMove(e){
+        if(!isResizing) return;
+
+        let dx=e.clientX-startX;
+        let dy=e.clientY-startY;
+
+        let newWidth=startWidth;
+        let newHeight=startHeight;
+        let newLeft=startLeft;
+        let newTop=startTop;
+
+        if(currentDir.includes('e')){
+          newWidth=startWidth+dx;
+        }else if(currentDir.includes('w')){
+          newWidth=startWidth-dx;
+          newLeft=startLeft+dx;
+        }
+
+        if(currentDir.includes('s')){
+          newHeight=startHeight+dy;
+        }else if(currentDir.includes('n')){
+          newHeight=startHeight-dy;
+          newTop=startTop+dy;
+        }
+
+        newWidth=Math.max(newWidth,MIN_SIZE);
+        newHeight=Math.max(newHeight,MIN_SIZE);
+
+        panel.style.width=newWidth+'px';
+        panel.style.height=newHeight+'px';
+        panel.style.left=newLeft+'px';
+        panel.style.top=newTop+'px';
+      }
+
+      function stopResize(){
+        isResizing=false;
+        doc.removeEventListener('mousemove',resizeMouseMove);
+        doc.removeEventListener('mouseup',stopResize);
+      }
+
+      function createResizer(direction){
+        const resizer=uiDocument.createElement('div');
+        resizer.dataset.dir=direction;
+        resizer.style.position='absolute';
+        resizer.style.userSelect='none';
+        resizer.style.touchAction='none';
+        resizer.style.zIndex='2147483648';
+        resizer.style.background='transparent';
+        if(direction==='n'){
+          resizer.style.cursor='ns-resize';
+          resizer.style.top='-4px';
+          resizer.style.left='0';
+          resizer.style.right='0';
+          resizer.style.height='8px';
+        }else if(direction==='s'){
+          resizer.style.cursor='ns-resize';
+          resizer.style.bottom='-4px';
+          resizer.style.left='0';
+          resizer.style.right='0';
+          resizer.style.height='8px';
+        }else if(direction==='e'){
+          resizer.style.cursor='ew-resize';
+          resizer.style.top='0';
+          resizer.style.bottom='0';
+          resizer.style.right='-4px';
+          resizer.style.width='8px';
+        }else if(direction==='w'){
+          resizer.style.cursor='ew-resize';
+          resizer.style.top='0';
+          resizer.style.bottom='0';
+          resizer.style.left='-4px';
+          resizer.style.width='8px';
+        }else{
+          resizer.style.width='12px';
+          resizer.style.height='12px';
+          if(direction==='ne'){
+            resizer.style.cursor='nesw-resize';
+            resizer.style.top='-6px';
+            resizer.style.right='-6px';
+          }else if(direction==='nw'){
+            resizer.style.cursor='nwse-resize';
+            resizer.style.top='-6px';
+            resizer.style.left='-6px';
+          }else if(direction==='se'){
+            resizer.style.cursor='nwse-resize';
+            resizer.style.bottom='-6px';
+            resizer.style.right='-6px';
+          }else if(direction==='sw'){
+            resizer.style.cursor='nesw-resize';
+            resizer.style.bottom='-6px';
+            resizer.style.left='-6px';
+          }
+        }
+        panel.appendChild(resizer);
+        resizer.addEventListener('mousedown',function(e){
+          e.preventDefault();
+          isResizing=true;
+          currentDir=direction;
+
+          startX=e.clientX;
+          startY=e.clientY;
+          startWidth=panel.offsetWidth;
+          startHeight=panel.offsetHeight;
+          startLeft=panel.offsetLeft;
+          startTop=panel.offsetTop;
+
+          doc.addEventListener('mousemove',resizeMouseMove);
+          doc.addEventListener('mouseup',stopResize);
+        });
+      }
+
+      ['n','e','s','w','ne','nw','se','sw'].forEach(createResizer);
+
       gearBtn.setAttribute('aria-expanded','true');
 
       const closer=evt=>{
