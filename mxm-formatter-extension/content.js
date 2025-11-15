@@ -1,7 +1,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.72-internal.7';
+  const SCRIPT_VERSION = '1.1.73-internal.8';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -500,6 +500,144 @@
       (_match, prevWord, _spaces, noWord) => `${prevWord}, ${noWord}`);
 
     return text;
+  }
+
+  // ---------- Static Proper Noun Support (no CSV) ----------
+  // Small, hand-picked list you can extend as needed.
+  // Everything should be stored in lowercase here; the canonical
+  // form is what will be written into the lyrics.
+  const STATIC_PROPER_PHRASES = [
+    // Acronyms / initialisms
+    ['usa', 'USA'],
+    ['uk', 'UK'],
+    ['u.s.a.', 'USA'],
+
+    // Countries / regions you hit often
+    ['south africa', 'South Africa'],
+    ['zimbabwe', 'Zimbabwe'],
+    ['zambia', 'Zambia'],
+    ['mozambique', 'Mozambique'],
+    ['nigeria', 'Nigeria'],
+    ['kenya', 'Kenya'],
+    ['tanzania', 'Tanzania'],
+    ['rwanda', 'Rwanda'],
+    ['uganda', 'Uganda'],
+    ['angola', 'Angola'],
+    ['drc', 'DRC'],
+    ['democratic republic of the congo', 'Democratic Republic of the Congo'],
+
+    // US / regions
+    ['california', 'California'],
+    ['new york', 'New York'],
+
+    // Cities you see all the time
+    ['los angeles', 'Los Angeles'],
+    ['new york city', 'New York City'],
+    ['johannesburg', 'Johannesburg'],
+    ['harare', 'Harare'],
+    ['lusaka', 'Lusaka'],
+    ['cape town', 'Cape Town'],
+    ['durban', 'Durban'],
+    ['pretoria', 'Pretoria'],
+    ['lagos', 'Lagos'],
+    ['nairobi', 'Nairobi'],
+
+    // Fashion / luxury brands
+    ['gucci', 'Gucci'],
+    ['prada', 'Prada'],
+    ['balenciaga', 'Balenciaga'],
+    ['nike', 'Nike'],
+    ['adidas', 'Adidas'],
+    ['puma', 'Puma'],
+
+    // Tech / platforms / music services
+    ['apple', 'Apple'],
+    ['spotify', 'Spotify'],
+    ['deezer', 'Deezer'],
+    ['tidal', 'TIDAL'],
+    ['amazon', 'Amazon'],
+    ['netflix', 'Netflix'],
+    ['youtube', 'YouTube'],
+    ['tiktok', 'TikTok'],
+    ['instagram', 'Instagram'],
+    ['facebook', 'Facebook'],
+    ['twitter', 'Twitter'],
+    ['x', 'X'],
+    ['telegram', 'Telegram'],
+    ['whatsapp', 'WhatsApp'],
+    ['musixmatch', 'Musixmatch']
+  ];
+
+  const STATIC_PROPER_MAP = new Map(
+    STATIC_PROPER_PHRASES.map(([key, canonical]) => [
+      key.toLowerCase(), canonical
+    ])
+  );
+
+  function applyStaticProperNouns(text, langCode) {
+    if (!text || !STATIC_PROPER_PHRASES.length) return text;
+
+    // Only run this for EN for now, to avoid messing RU/ES/etc.
+    if (langCode && langCode.toUpperCase() !== 'EN') return text;
+
+    // Build regex for all phrases, longest first to protect multi-word matches.
+    const escapedPatterns = STATIC_PROPER_PHRASES
+      .map(([key]) => key.toLowerCase())
+      .sort((a, b) => b.length - a.length)
+      .map(key =>
+        key
+          .replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&') // escape regex chars
+          .replace(/\s+/g, '\\s+')                 // allow flexible spacing
+      );
+
+    if (!escapedPatterns.length) return text;
+
+    const pattern = `\\b(${escapedPatterns.join('|')})(s|es|'s|’s)?\\b`;
+    const re = new RegExp(pattern, 'gi');
+
+    return text.replace(re, (match, base, suffix = '', offset, full) => {
+      const normalizedKey = base.toLowerCase().replace(/\s+/g, ' ');
+      const canonical = STATIC_PROPER_MAP.get(normalizedKey);
+      if (!canonical) return match;
+
+      // 🧠 Protect "shout" lines: if the whole line has no lowercase letters,
+      // we leave the user's capitalization alone (except acronyms like USA).
+      let lineStart = full.lastIndexOf('\n', offset);
+      let lineEnd = full.indexOf('\n', offset);
+      if (lineStart === -1) lineStart = 0; else lineStart += 1;
+      if (lineEnd === -1) lineEnd = full.length;
+      const line = full.slice(lineStart, lineEnd);
+
+      const hasLower = /[a-z]/.test(line);
+      const hasUpper = /[A-Z]/.test(line);
+
+      // If line is "shouty" (all caps / no lowercase) and this isn't an acronym,
+      // keep original match to avoid fighting stylistic choices.
+      const canonicalIsAcronym = /^[A-Z0-9]+$/.test(canonical);
+      if (!hasLower && hasUpper && !canonicalIsAcronym) {
+        return match;
+      }
+
+      let result = canonical;
+
+      // Acronyms stay uppercase and shouldn't gain plural "ES"
+      if (canonicalIsAcronym) {
+        if (/^(s|es)$/i.test(suffix)) suffix = '';
+        else if (/^'s$/i.test(suffix)) suffix = "'s";
+        else suffix = suffix || '';
+        return result + suffix;
+      }
+
+      // Non-acronyms: allow possessive & simple plurals
+      if (/^'s$/i.test(suffix)) {
+        result += "'s";
+      } else if (/^(s|es)$/i.test(suffix)) {
+        // e.g., "Nikes" → "Nike's" is usually wrong, so keep simple plural.
+        result += suffix.toLowerCase();
+      }
+
+      return result;
+    });
   }
 
   const SENTENCE_ENDER_FOLLOWING_QUOTES = new Set(["'", '"', '‘', '’', '“', '”']);
@@ -1441,6 +1579,9 @@
         return `(${lowerFirst}${trimmed.slice(firstWord.length)})`;
       });
     }
+
+    // === Static proper-noun capitalization (brands, places, etc.) ===
+    x = applyStaticProperNouns(x, currentLang);
 
     // Capitalize first letter when line starts with "("
     x = x.replace(/(^|\n)\(\s*(\p{Ll})/gu, (_, a, b) => a + "(" + b.toLocaleUpperCase());

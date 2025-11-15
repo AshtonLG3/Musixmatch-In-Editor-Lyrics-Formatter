@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.1.73
+- Restore canonical capitalization for a curated set of brands, locations, and acronyms using a static helper.
+- Run the proper-noun normalization after backing-vocal lowercasing so parentheses stay fixed.
+- Bump the userscript, extension, and package metadata to reflect the 1.1.73 release.
+
 ## v1.1.72
 - Limit parenthetical title-casing to lines that begin with "(" so inline parentheses remain untouched.
 - Rework backing vocal normalization with dictionary-driven proper noun handling gated by the BV toggle.
