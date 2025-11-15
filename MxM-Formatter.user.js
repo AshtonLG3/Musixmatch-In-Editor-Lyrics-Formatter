@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.73-internal.8
+// @version      1.1.73-internal.9
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.73-internal.8';
+  const SCRIPT_VERSION = '1.1.73-internal.9';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -831,6 +831,218 @@
     return result.join('\n');
   }
 
+  // ---------- Smart Proper Noun / Brand Recognizer (heuristic, no big dictionary) ----------
+
+  // Tiny high-value brand/platform map for cases where input is fully lowercase.
+  // This is NOT meant to be exhaustive, just the heavy hitters.
+  const ALWAYS_PROPER_CANONICAL = {
+    gucci: "Gucci",
+    chanel: "Chanel",
+    prada: "Prada",
+    louis: "Louis",               // so "Louis Vuitton" won't be stuck as lowercase
+    "louis vuitton": "Louis Vuitton",
+    nike: "Nike",
+    adidas: "Adidas",
+    puma: "Puma",
+
+    google: "Google",
+    amazon: "Amazon",
+    apple: "Apple",
+    microsoft: "Microsoft",
+
+    spotify: "Spotify",
+    deezer: "Deezer",
+    tidal: "TIDAL",
+    boomplay: "Boomplay",
+    audiomack: "Audiomack",
+    soundcloud: "SoundCloud",
+
+    tiktok: "TikTok",
+    "tik tok": "TikTok",
+    youtube: "YouTube",
+    instagram: "Instagram",
+    facebook: "Facebook",
+    twitter: "Twitter",
+    x: "X",
+    reddit: "Reddit",
+    whatsapp: "WhatsApp",
+    telegram: "Telegram",
+    snapchat: "Snapchat",
+
+    github: "GitHub",
+    chatgpt: "ChatGPT"
+  };
+
+  // Very small set of "boring" words we never auto-promote just because of capitalization.
+  const COMMON_WORDS = new Set([
+    "the","a","an","and","or","but","if","then","else","for","from","to","in","on","at",
+    "with","without","of","by","as","is","am","are","was","were","be","been","being",
+    "this","that","these","those","here","there","now","when","where","why","how",
+    "i","you","he","she","it","we","they","me","him","her","us","them",
+    "yeah","yea","yup","nah","no","oh","ooh","ah","uh","um","huh","hey"
+  ]);
+
+  function isAllUpper(word) {
+    return word === word.toUpperCase() && /[A-Z]/.test(word);
+  }
+
+  function hasInternalCapital(word) {
+    if (!/[A-Z]/.test(word)) return false;
+    // any capital that is not the first char
+    return /[A-Z]/.test(word.slice(1));
+  }
+
+  function isCapitalized(word) {
+    if (word.length === 0) return false;
+    const first = word[0];
+    const rest = word.slice(1);
+    return first === first.toUpperCase() && first !== first.toLowerCase()
+      && rest === rest.toLowerCase();
+  }
+
+  function titleCaseSimple(str) {
+    return str
+      .split(/\s+/)
+      .map(w => w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w)
+      .join(" ");
+  }
+
+  // Build a map of lowercased tokens -> "canonical" casing we want to enforce.
+  function buildSmartProperMap(text) {
+    const tokenRe = /\b[0-9A-Za-z][0-9A-Za-z.'$]*\b/g;
+    const stats = new Map();
+
+    let m;
+    while ((m = tokenRe.exec(text)) !== null) {
+      const raw = m[0];
+      const lower = raw.toLowerCase();
+      if (!stats.has(lower)) {
+        stats.set(lower, {
+          count: 0,
+          forms: new Set(),
+          seenCapitalized: false,
+          seenAllUpper: false,
+          seenInternalUpper: false
+        });
+      }
+      const s = stats.get(lower);
+      s.count++;
+      s.forms.add(raw);
+      if (isCapitalized(raw)) s.seenCapitalized = true;
+      if (isAllUpper(raw)) s.seenAllUpper = true;
+      if (hasInternalCapital(raw)) s.seenInternalUpper = true;
+    }
+
+    // Look for contexts like "feat X", "ft. X", "produced by X", etc.
+    // Any tokens immediately after these cues are strong proper-noun candidates.
+    const cueRe = /\b(feat\.?|featuring|ft\.?|prod\.?|produced|remix|remixed|mixed|mix|version|vs\.?)\b\s+([0-9A-Za-z][0-9A-Za-z.'$]*(?:\s+[0-9A-Za-z][0-9A-Za-z.'$]*){0,3})/gi;
+    while ((m = cueRe.exec(text)) !== null) {
+      const tail = m[2];
+      const parts = tail.split(/\s+/);
+      for (const part of parts) {
+        const lower = part.toLowerCase();
+        const s = stats.get(lower);
+        if (!s) continue;
+        // Treat as if we saw a capitalized form, unless it's obviously a common word.
+        if (!COMMON_WORDS.has(lower)) {
+          s.seenCapitalized = true;
+        }
+      }
+    }
+
+    const map = new Map();
+
+    for (const [lower, s] of stats.entries()) {
+      // 1) Always-proper brand/platform/tech map (works even if source is fully lowercase)
+      if (Object.prototype.hasOwnProperty.call(ALWAYS_PROPER_CANONICAL, lower)) {
+        map.set(lower, ALWAYS_PROPER_CANONICAL[lower]);
+        continue;
+      }
+
+      // 2) Strong mixed-case patterns (GitHub, YouTube, PlayStation)
+      if (s.seenInternalUpper) {
+        // Use the longest mixed-case form we saw
+        let best = null;
+        for (const f of s.forms) {
+          if (!hasInternalCapital(f)) continue;
+          if (!best || f.length > best.length) best = f;
+        }
+        if (!best) {
+          // fallback: first form
+          best = s.forms.values().next().value;
+        }
+        map.set(lower, best);
+        continue;
+      }
+
+      // 3) Acronyms / all-caps tokens like USA, BBC, NASA
+      if (s.seenAllUpper && lower.length >= 2 && lower.length <= 6 && !COMMON_WORDS.has(lower)) {
+        // Use an all-caps canonical
+        let best = null;
+        for (const f of s.forms) {
+          if (isAllUpper(f)) { best = f; break; }
+        }
+        if (!best) best = lower.toUpperCase();
+        map.set(lower, best);
+        continue;
+      }
+
+      // 4) "Looks like a name": rare, capitalized somewhere, not a super common word
+      if (s.seenCapitalized && !COMMON_WORDS.has(lower) && s.count <= 4) {
+        // pick the most "namey" form (capitalized if present)
+        let capitalForm = null;
+        for (const f of s.forms) {
+          if (isCapitalized(f)) {
+            capitalForm = f;
+            break;
+          }
+        }
+        const canonical = capitalForm || titleCaseSimple(lower);
+        map.set(lower, canonical);
+        continue;
+      }
+
+      // Otherwise, we don't touch it.
+    }
+
+    // Also support multi-word ALWAYS_PROPER entries like "louis vuitton"
+    // by building a secondary phrase map.
+    const phraseMap = new Map();
+    for (const [key, canonical] of Object.entries(ALWAYS_PROPER_CANONICAL)) {
+      if (key.includes(" ")) {
+        phraseMap.set(key, canonical);
+      }
+    }
+
+    return { wordMap: map, phraseMap };
+  }
+
+  function applySmartProperNouns(text) {
+    if (!text) return text;
+
+    const { wordMap, phraseMap } = buildSmartProperMap(text);
+
+    // First, handle multi-word patterns from ALWAYS_PROPER_CANONICAL ("louis vuitton" → "Louis Vuitton").
+    if (phraseMap.size > 0) {
+      for (const [key, canonical] of phraseMap.entries()) {
+        const pattern = key.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&").replace(/\s+/g, "\\s+");
+        const re = new RegExp(`\\b${pattern}\\b`, "gi");
+        text = text.replace(re, canonical);
+      }
+    }
+
+    // Then apply single-word canonicalizations.
+    const tokenRe = /\b[0-9A-Za-z][0-9A-Za-z.'$]*\b/g;
+    text = text.replace(tokenRe, (raw) => {
+      const lower = raw.toLowerCase();
+      const canonical = wordMap.get(lower);
+      if (!canonical) return raw;
+      return canonical;
+    });
+
+    return text;
+  }
+
   // ---------- Formatter ----------
   function formatLyrics(input, _options = {}) {
     if (!input) return "";
@@ -1525,6 +1737,9 @@ x = x
 
     // === Prevent #HOOK duplication after non-verbal insertion ===
     x = x.replace(/(#(INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))(\n\1)+/g, '$1');
+
+    // === Smart proper noun / brand pass (Gucci, GitHub, TikTok, etc.) ===
+    x = applySmartProperNouns(x);
 
     // === Final cleanup ===
     x = x.replace(/ +\n/g, '\n'); // trim spaces before line breaks
