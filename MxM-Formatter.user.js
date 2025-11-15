@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.73-internal.9
+// @version      1.1.73-internal.10
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.73-internal.9';
+  const SCRIPT_VERSION = '1.1.73-internal.10';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -573,141 +573,200 @@
     return text;
   }
 
-  // ---------- Static Proper Noun Support (no CSV) ----------
+  // ---------- Global Proper Noun Support (no CSV) ----------
   // Small, hand-picked list you can extend as needed.
   // Everything should be stored in lowercase here; the canonical
   // form is what will be written into the lyrics.
-  const STATIC_PROPER_PHRASES = [
-    // Acronyms / initialisms
-    ['usa', 'USA'],
-    ['uk', 'UK'],
-    ['u.s.a.', 'USA'],
+  // === GLOBAL PROPER NOUN CANONICAL MAP ===
+  const GLOBAL_PROPER_CANONICAL = {
+    // Countries
+    "usa": "USA",
+    "uk": "UK",
+    "france": "France",
+    "china": "China",
+    "japan": "Japan",
+    "brazil": "Brazil",
+    "spain": "Spain",
+    "mexico": "Mexico",
+    "germany": "Germany",
+    "italy": "Italy",
+    "canada": "Canada",
+    "australia": "Australia",
 
-    // Countries / regions you hit often
-    ['south africa', 'South Africa'],
-    ['zimbabwe', 'Zimbabwe'],
-    ['zambia', 'Zambia'],
-    ['mozambique', 'Mozambique'],
-    ['nigeria', 'Nigeria'],
-    ['kenya', 'Kenya'],
-    ['tanzania', 'Tanzania'],
-    ['rwanda', 'Rwanda'],
-    ['uganda', 'Uganda'],
-    ['angola', 'Angola'],
-    ['drc', 'DRC'],
-    ['democratic republic of the congo', 'Democratic Republic of the Congo'],
+    // US Cities
+    "ny": "NY",
+    "nyc": "NYC",
+    "la": "LA",
+    "atl": "ATL",
+    "atlanta": "Atlanta",
+    "miami": "Miami",
+    "chicago": "Chicago",
+    "houston": "Houston",
+    "dallas": "Dallas",
+    "memphis": "Memphis",
+    "detroit": "Detroit",
+    "oakland": "Oakland",
+    "baltimore": "Baltimore",
+    "compton": "Compton",
+    "queens": "Queens",
+    "harlem": "Harlem",
+    "bronx": "Bronx",
+    "brooklyn": "Brooklyn",
+    "philly": "Philly",
+    "boston": "Boston",
 
-    // US / regions
-    ['california', 'California'],
-    ['new york', 'New York'],
+    // International Cities
+    "london": "London",
+    "paris": "Paris",
+    "tokyo": "Tokyo",
+    "osaka": "Osaka",
+    "kyoto": "Kyoto",
+    "seoul": "Seoul",
+    "lagos": "Lagos",
+    "accra": "Accra",
+    "nairobi": "Nairobi",
+    "kampala": "Kampala",
+    "kigali": "Kigali",
+    "johannesburg": "Johannesburg",
+    "durban": "Durban",
+    "sydney": "Sydney",
+    "melbourne": "Melbourne",
+    "toronto": "Toronto",
+    "vancouver": "Vancouver",
+    "amsterdam": "Amsterdam",
+    "berlin": "Berlin",
+    "munich": "Munich",
+    "dubai": "Dubai",
+    "kingston": "Kingston",
+    "rio": "Rio",
 
-    // Cities you see all the time
-    ['los angeles', 'Los Angeles'],
-    ['new york city', 'New York City'],
-    ['johannesburg', 'Johannesburg'],
-    ['harare', 'Harare'],
-    ['lusaka', 'Lusaka'],
-    ['cape town', 'Cape Town'],
-    ['durban', 'Durban'],
-    ['pretoria', 'Pretoria'],
-    ['lagos', 'Lagos'],
-    ['nairobi', 'Nairobi'],
+    // Places & Hoods
+    "hollywood": "Hollywood",
+    "beverly": "Beverly",
+    "uptown": "Uptown",
+    "downtown": "Downtown",
+    "chinatown": "Chinatown",
+    "soweto": "Soweto",
+    "kibera": "Kibera",
 
-    // Fashion / luxury brands
-    ['gucci', 'Gucci'],
-    ['prada', 'Prada'],
-    ['balenciaga', 'Balenciaga'],
-    ['nike', 'Nike'],
-    ['adidas', 'Adidas'],
-    ['puma', 'Puma'],
+    // Luxury Fashion
+    "gucci": "Gucci",
+    "chanel": "Chanel",
+    "prada": "Prada",
+    "balenciaga": "Balenciaga",
+    "dior": "Dior",
+    "fendi": "Fendi",
+    "versace": "Versace",
+    "givenchy": "Givenchy",
+    "hermes": "Hermès",
+    "cartier": "Cartier",
+    "burberry": "Burberry",
+    "moncler": "Moncler",
+    "off-white": "Off-White",
+    "bape": "Bape",
+    "supreme": "Supreme",
 
-    // Tech / platforms / music services
-    ['apple', 'Apple'],
-    ['spotify', 'Spotify'],
-    ['deezer', 'Deezer'],
-    ['tidal', 'TIDAL'],
-    ['amazon', 'Amazon'],
-    ['netflix', 'Netflix'],
-    ['youtube', 'YouTube'],
-    ['tiktok', 'TikTok'],
-    ['instagram', 'Instagram'],
-    ['facebook', 'Facebook'],
-    ['twitter', 'Twitter'],
-    ['x', 'X'],
-    ['telegram', 'Telegram'],
-    ['whatsapp', 'WhatsApp'],
-    ['musixmatch', 'Musixmatch']
-  ];
+    // Footwear / Streetwear
+    "nike": "Nike",
+    "adidas": "Adidas",
+    "puma": "Puma",
+    "vans": "Vans",
+    "converse": "Converse",
+    "timberland": "Timberland",
+    "timbs": "Timbs",
 
-  const STATIC_PROPER_MAP = new Map(
-    STATIC_PROPER_PHRASES.map(([key, canonical]) => [
-      key.toLowerCase(), canonical
-    ])
-  );
+    // Tech & Platforms
+    "apple": "Apple",
+    "itunes": "iTunes",
+    "spotify": "Spotify",
+    "deezer": "Deezer",
+    "tidal": "TIDAL",
+    "youtube": "YouTube",
+    "tiktok": "TikTok",
+    "instagram": "Instagram",
+    "facebook": "Facebook",
+    "twitter": "Twitter",
+    "snapchat": "Snapchat",
+    "reddit": "Reddit",
+    "whatsapp": "WhatsApp",
+    "telegram": "Telegram",
+    "gmail": "Gmail",
+    "google": "Google",
+    "amazon": "Amazon",
+    "windows": "Windows",
+    "xbox": "Xbox",
+    "playstation": "PlayStation",
+    "nintendo": "Nintendo",
+    "github": "GitHub",
+    "chatgpt": "ChatGPT",
 
-  function applyStaticProperNouns(text, langCode) {
-    if (!text || !STATIC_PROPER_PHRASES.length) return text;
+    // Cars
+    "toyota": "Toyota",
+    "benz": "Benz",
+    "bmw": "BMW",
+    "tesla": "Tesla",
+    "audi": "Audi",
+    "honda": "Honda",
+    "nissan": "Nissan",
+    "subaru": "Subaru",
+    "jeep": "Jeep",
+    "lamborghini": "Lamborghini",
+    "ferrari": "Ferrari",
+    "porsche": "Porsche",
+    "maserati": "Maserati",
+    "rover": "Rover",
 
-    // Only run this for EN for now, to avoid messing RU/ES/etc.
-    if (langCode && langCode.toUpperCase() !== 'EN') return text;
+    // Alcohol
+    "hennessy": "Hennessy",
+    "henny": "Henny",
+    "moet": "Moët",
+    "patron": "Patrón",
+    "bacardi": "Bacardi",
+    "ciroc": "CÎROC",
+    "bud": "Bud",
+    "light": "Light",
 
-    // Build regex for all phrases, longest first to protect multi-word matches.
-    const escapedPatterns = STATIC_PROPER_PHRASES
-      .map(([key]) => key.toLowerCase())
-      .sort((a, b) => b.length - a.length)
-      .map(key =>
-        key
-          .replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&') // escape regex chars
-          .replace(/\s+/g, '\\s+')                 // allow flexible spacing
-      );
+    // Weapons (always capitalize)
+    "glock": "Glock",
+    "uzi": "Uzi",
+    "draco": "Draco",
+    "ak": "AK",
+    "ar": "AR"
+  };
 
-    if (!escapedPatterns.length) return text;
+  const GLOBAL_PROPER_PHRASES = {
+    "los angeles": "Los Angeles",
+    "new york": "New York",
+    "new york city": "New York City",
+    "long beach": "Long Beach",
+    "beverly hills": "Beverly Hills",
+    "south africa": "South Africa",
+    "range rover": "Range Rover",
+    "grey goose": "Grey Goose",
+    "don julio": "Don Julio",
+    "bud light": "Bud Light",
+    "cape town": "Cape Town",
+    "louis vuitton": "Louis Vuitton"
+  };
 
-    const pattern = `\\b(${escapedPatterns.join('|')})(s|es|'s|’s)?\\b`;
-    const re = new RegExp(pattern, 'gi');
+  function applyGlobalProperNouns(text) {
+    if (!text) return text;
 
-    return text.replace(re, (match, base, suffix = '', offset, full) => {
-      const normalizedKey = base.toLowerCase().replace(/\s+/g, ' ');
-      const canonical = STATIC_PROPER_MAP.get(normalizedKey);
-      if (!canonical) return match;
+    // Apply phrase-level matches first
+    for (const [key, canonical] of Object.entries(GLOBAL_PROPER_PHRASES)) {
+      const pattern = key.replace(/\s+/g, "\\s+");
+      const re = new RegExp(`\\b${pattern}\\b`, "gi");
+      text = text.replace(re, canonical);
+    }
 
-      // 🧠 Protect "shout" lines: if the whole line has no lowercase letters,
-      // we leave the user's capitalization alone (except acronyms like USA).
-      let lineStart = full.lastIndexOf('\n', offset);
-      let lineEnd = full.indexOf('\n', offset);
-      if (lineStart === -1) lineStart = 0; else lineStart += 1;
-      if (lineEnd === -1) lineEnd = full.length;
-      const line = full.slice(lineStart, lineEnd);
-
-      const hasLower = /[a-z]/.test(line);
-      const hasUpper = /[A-Z]/.test(line);
-
-      // If line is "shouty" (all caps / no lowercase) and this isn't an acronym,
-      // keep original match to avoid fighting stylistic choices.
-      const canonicalIsAcronym = /^[A-Z0-9]+$/.test(canonical);
-      if (!hasLower && hasUpper && !canonicalIsAcronym) {
-        return match;
+    // Then apply single-word proper nouns
+    const tokenRe = /\\b[0-9A-Za-z][0-9A-Za-z.'$-]*\\b/g;
+    return text.replace(tokenRe, (raw) => {
+      const lower = raw.toLowerCase();
+      if (GLOBAL_PROPER_CANONICAL[lower]) {
+        return GLOBAL_PROPER_CANONICAL[lower];
       }
-
-      let result = canonical;
-
-      // Acronyms stay uppercase and shouldn't gain plural "ES"
-      if (canonicalIsAcronym) {
-        if (/^(s|es)$/i.test(suffix)) suffix = '';
-        else if (/^'s$/i.test(suffix)) suffix = "'s";
-        else suffix = suffix || '';
-        return result + suffix;
-      }
-
-      // Non-acronyms: allow possessive & simple plurals
-      if (/^'s$/i.test(suffix)) {
-        result += "'s";
-      } else if (/^(s|es)$/i.test(suffix)) {
-        // e.g., "Nikes" → "Nike's" is usually wrong, so keep simple plural.
-        result += suffix.toLowerCase();
-      }
-
-      return result;
+      return raw;
     });
   }
 
@@ -1608,8 +1667,8 @@ x = x.replace(
     });
 
 
-    // === Static proper-noun capitalization (brands, places, etc.) ===
-    x = applyStaticProperNouns(x, currentLang);
+    // === Apply global proper-noun engine ===
+    x = applyGlobalProperNouns(x);
 
 
     // Maintain capitalization for lines starting with "("
