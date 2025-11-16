@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1.73-internal.13
+- Prevent the punctuation-spacing cleanup from inserting spaces before closing quotes when commas precede them.
+- Bump the userscript, extension, and package metadata to the 1.1.73-internal.13 build.
+
 ## v1.1.73-internal.12
 - Re-run the formatter automatically when Musixmatch Studio swaps SPA routes by listening for URL mutations and re-applying the
   initialization logic.

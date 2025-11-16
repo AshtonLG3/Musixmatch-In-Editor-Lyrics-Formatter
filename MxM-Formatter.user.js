@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.73-internal.12
+// @version      1.1.73-internal.13
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -17,7 +17,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.73-internal.12';
+  const SCRIPT_VERSION = '1.1.73-internal.13';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -1714,7 +1714,6 @@ x = x.replace(
 
     x = x
       .replace(/([,;!?])(\S)/g, (match, punct, next, offset, str) => {
-        if (/["?!]/.test(next)) return punct + next;
         const following = str[offset + match.length] || '';
         if (
           next === "'" &&
@@ -1722,6 +1721,9 @@ x = x.replace(
           following.toLocaleLowerCase() !== following.toLocaleUpperCase()
         ) {
           return punct + ' ' + next;
+        }
+        if (next === '"' || next === "'" || next === '”' || next === '’') {
+          return punct + next;
         }
         const isLetter = next.toLocaleLowerCase() !== next.toLocaleUpperCase();
         if (isLetter || /\d/.test(next)) return punct + ' ' + next;
