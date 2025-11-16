@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.73-internal.14
+// @version      1.1.73-internal.15
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -17,7 +17,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.73-internal.14';
+  const SCRIPT_VERSION = '1.1.73-internal.15';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -749,40 +749,217 @@
     "ar": "AR"
   };
 
-  const GLOBAL_PROPER_PHRASES = {
+  /* ============================================================
+     === GOOGLE SHEET PROPER NOUN CANONICAL MAP (STRUCTURAL-FUZZY) ===
+     Column A (lowercase raw) → Column B (canonical form)
+     ============================================================ */
+
+  const GLOBAL_PROPER_FROM_SHEET = {
+    "usa": "USA",
+    "uk": "UK",
+    "france": "France",
+    "china": "China",
+    "japan": "Japan",
+    "brazil": "Brazil",
+    "spain": "Spain",
+    "mexico": "Mexico",
+    "germany": "Germany",
+    "italy": "Italy",
+    "canada": "Canada",
+    "australia": "Australia",
+    "south africa": "South Africa",
+    "ny": "NY",
+    "nyc": "NYC",
+    "la": "LA",
+    "atl": "ATL",
+    "atlanta": "Atlanta",
+    "miami": "Miami",
+    "chicago": "Chicago",
+    "houston": "Houston",
+    "dallas": "Dallas",
+    "memphis": "Memphis",
+    "detroit": "Detroit",
+    "oakland": "Oakland",
+    "baltimore": "Baltimore",
+    "compton": "Compton",
+    "queens": "Queens",
+    "harlem": "Harlem",
+    "bronx": "Bronx",
+    "brooklyn": "Brooklyn",
+    "philly": "Philly",
+    "boston": "Boston",
     "los angeles": "Los Angeles",
     "new york": "New York",
     "new york city": "New York City",
     "long beach": "Long Beach",
+    "london": "London",
+    "paris": "Paris",
+    "tokyo": "Tokyo",
+    "osaka": "Osaka",
+    "kyoto": "Kyoto",
+    "seoul": "Seoul",
+    "lagos": "Lagos",
+    "accra": "Accra",
+    "nairobi": "Nairobi",
+    "kampala": "Kampala",
+    "kigali": "Kigali",
+    "johannesburg": "Johannesburg",
+    "durban": "Durban",
+    "sydney": "Sydney",
+    "melbourne": "Melbourne",
+    "toronto": "Toronto",
+    "vancouver": "Vancouver",
+    "amsterdam": "Amsterdam",
+    "berlin": "Berlin",
+    "munich": "Munich",
+    "dubai": "Dubai",
+    "kingston": "Kingston",
+    "rio": "Rio",
+    "cape town": "Cape Town",
+    "hollywood": "Hollywood",
+    "beverly": "Beverly",
+    "uptown": "Uptown",
+    "downtown": "Downtown",
+    "chinatown": "Chinatown",
+    "soweto": "Soweto",
+    "kibera": "Kibera",
     "beverly hills": "Beverly Hills",
-    "south africa": "South Africa",
+    "gucci": "Gucci",
+    "chanel": "Chanel",
+    "prada": "Prada",
+    "balenciaga": "Balenciaga",
+    "dior": "Dior",
+    "fendi": "Fendi",
+    "versace": "Versace",
+    "givenchy": "Givenchy",
+    "hermes": "Hermès",
+    "cartier": "Cartier",
+    "burberry": "Burberry",
+    "moncler": "Moncler",
+    "off-white": "Off-White",
+    "bape": "Bape",
+    "supreme": "Supreme",
+    "louis vuitton": "Louis Vuitton",
+    "nike": "Nike",
+    "adidas": "Adidas",
+    "puma": "Puma",
+    "vans": "Vans",
+    "converse": "Converse",
+    "timberland": "Timberland",
+    "timbs": "Timbs",
+    "apple": "Apple",
+    "itunes": "iTunes",
+    "spotify": "Spotify",
+    "deezer": "Deezer",
+    "tidal": "TIDAL",
+    "youtube": "YouTube",
+    "tiktok": "TikTok",
+    "instagram": "Instagram",
+    "facebook": "Facebook",
+    "twitter": "Twitter",
+    "snapchat": "Snapchat",
+    "reddit": "Reddit",
+    "whatsapp": "WhatsApp",
+    "telegram": "Telegram",
+    "gmail": "Gmail",
+    "google": "Google",
+    "amazon": "Amazon",
+    "windows": "Windows",
+    "xbox": "Xbox",
+    "playstation": "PlayStation",
+    "nintendo": "Nintendo",
+    "github": "GitHub",
+    "chatgpt": "ChatGPT",
+    "toyota": "Toyota",
+    "benz": "Benz",
+    "bmw": "BMW",
+    "tesla": "Tesla",
+    "audi": "Audi",
+    "honda": "Honda",
+    "nissan": "Nissan",
+    "subaru": "Subaru",
+    "jeep": "Jeep",
+    "lamborghini": "Lamborghini",
+    "ferrari": "Ferrari",
+    "porsche": "Porsche",
+    "maserati": "Maserati",
+    "rover": "Rover",
     "range rover": "Range Rover",
+    "hennessy": "Hennessy",
+    "henny": "Henny",
+    "moet": "Moët",
+    "patron": "Patrón",
+    "bacardi": "Bacardi",
+    "ciroc": "CÎROC",
+    "bud": "Bud",
+    "light": "Light",
     "grey goose": "Grey Goose",
     "don julio": "Don Julio",
     "bud light": "Bud Light",
-    "cape town": "Cape Town",
-    "louis vuitton": "Louis Vuitton"
+    "glock": "Glock",
+    "uzi": "Uzi",
+    "draco": "Draco",
+    "ak": "AK",
+    "ar": "AR",
+    "xmas": "Christmas",
+    "christmas eve": "Christmas Eve",
+    "christmas day": "Christmas Day",
+    "nye": "New Year's Eve",
+    "new years eve": "New Year's Eve",
+    "new years day": "New Year's Day",
+    "halloween": "Halloween",
+    "thanksgiving": "Thanksgiving",
+    "valentine's day": "Valentine's Day",
+    "easter": "Easter"
   };
+
+  /* === STRUCTURAL-FUZZY NORMALIZER === */
+  function normalizeSheetKey(str) {
+    return str
+      .toLowerCase()
+      .replace(/[.'’]/g, "")
+      .replace(/[-_]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  /* === BUILD FUZZY LOOKUP === */
+  const GLOBAL_SHEET_FUZZY = {};
+  for (const [rawKey, canonical] of Object.entries(GLOBAL_PROPER_FROM_SHEET)) {
+    GLOBAL_SHEET_FUZZY[normalizeSheetKey(rawKey)] = canonical;
+  }
 
   function applyGlobalProperNouns(text) {
     if (!text) return text;
 
-    // Apply phrase-level matches first
-    for (const [key, canonical] of Object.entries(GLOBAL_PROPER_PHRASES)) {
-      const pattern = key.replace(/\s+/g, "\\s+");
-      const re = new RegExp(`\\b${pattern}\\b`, "gi");
-      text = text.replace(re, canonical);
+    // ---- 1. Phrase-first replacement from sheet ----
+    for (const [rawKey, canonical] of Object.entries(GLOBAL_PROPER_FROM_SHEET)) {
+      if (rawKey.includes(" ")) {
+        const pattern = rawKey.replace(/\s+/g, "\\s+");
+        const re = new RegExp(`\\b${pattern}\\b`, "gi");
+        text = text.replace(re, canonical);
+      }
     }
 
-    // Then apply single-word proper nouns
+    // ---- 2. Token-level fuzzy replacements ----
     const tokenRe = /\\b[0-9A-Za-z][0-9A-Za-z.'$-]*\\b/g;
-    return text.replace(tokenRe, (raw) => {
+
+    text = text.replace(tokenRe, raw => {
+      const nRaw = normalizeSheetKey(raw);
+
+      if (GLOBAL_SHEET_FUZZY[nRaw]) {
+        return GLOBAL_SHEET_FUZZY[nRaw];
+      }
+
       const lower = raw.toLowerCase();
       if (GLOBAL_PROPER_CANONICAL[lower]) {
         return GLOBAL_PROPER_CANONICAL[lower];
       }
+
       return raw;
     });
+
+    return text;
   }
 
   const SENTENCE_ENDER_FOLLOWING_QUOTES = new Set(["'", '"', '‘', '’', '“', '”']);
