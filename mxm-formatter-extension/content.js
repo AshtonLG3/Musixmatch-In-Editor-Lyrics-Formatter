@@ -1,7 +1,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.73-internal.13';
+  const SCRIPT_VERSION = '1.1.73-internal.14';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -1893,7 +1893,6 @@
 
     x = x
       .replace(/([,;!?])(\S)/g, (match, punct, next, offset, str) => {
-        if (/["?!]/.test(next)) return punct + next;
         const following = str[offset + match.length] || '';
         if (
           next === "'" &&
@@ -1902,6 +1901,7 @@
         ) {
           return punct + ' ' + next;
         }
+        if (next === '"' || next === "'" || next === '”' || next === '’') return punct + next;
         const isLetter = next.toLocaleLowerCase() !== next.toLocaleUpperCase();
         if (isLetter || /\d/.test(next)) return punct + ' ' + next;
         return punct + next;

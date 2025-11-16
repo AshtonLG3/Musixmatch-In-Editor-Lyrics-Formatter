@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.73-internal.13
+// @version      1.1.73-internal.14
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -17,7 +17,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.73-internal.13';
+  const SCRIPT_VERSION = '1.1.73-internal.14';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -1722,9 +1722,7 @@ x = x.replace(
         ) {
           return punct + ' ' + next;
         }
-        if (next === '"' || next === "'" || next === '”' || next === '’') {
-          return punct + next;
-        }
+        if (next === '"' || next === "'" || next === '”' || next === '’') return punct + next;
         const isLetter = next.toLocaleLowerCase() !== next.toLocaleUpperCase();
         if (isLetter || /\d/.test(next)) return punct + ' ' + next;
         return punct + next;
@@ -1755,7 +1753,7 @@ x = x.replace(/([A-Za-z])(\r?\n)"(?=[A-Za-z])/g, '$1\n"');
     x = x.replace(/"([^"]*?),\s*"\s+(?=\S)/g, '"$1," ');
 
     // 3️⃣ Normalize comma + quote spacing to prevent drift after replacements
-    x = x.replace(/,\s*"/g, ', "');
+    x = x.replace(/,\s*"(\S)/g, ', "$1');
     x = x.replace(/([!?])[ \t]+(["'“”‘’])/g, "$1$2"); // remove space between punctuation and any quote mark
 
     // Prevent any amalgamation of lines ending with ")" or BV phrases
@@ -1783,7 +1781,7 @@ x = x.replace(/([A-Za-z])(\r?\n)"(?=[A-Za-z])/g, '$1\n"');
 
 // 1️⃣ Collapse redundant commas but keep line integrity
 x = x.replace(/,{2,}/g, ',');            // collapse double commas
-x = x.replace(/[ \t]*,[ \t]*/g, ', ');  // normalize comma spacing without touching newlines
+x = x.replace(/[ \t]*,(?=[^"\s])/g, ', ');  // normalize comma spacing without touching newlines
 x = x.replace(/,[ \t]+,[ \t]*/g, ', '); // safety fix for broken comma pairs
 
 // 2️⃣ Fix quote spacing inside parentheses — no other structure touched

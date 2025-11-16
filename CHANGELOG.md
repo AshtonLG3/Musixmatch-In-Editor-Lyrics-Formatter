@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.1.73-internal.14
+- Preserve apostrophe spacing fixes while tightening the punctuation callback so closing quotes (", ', ”, ’) stay attached to
+  their punctuation without triggering the apostrophe letter guard.
+- Limit the comma/quote normalizer to touch only the next non-space character so embedded whitespace inside quotes remains
+  intact.
+- Bump the userscript, extension, and package metadata to the 1.1.73-internal.14 build.
+
 ## v1.1.73-internal.13
 - Prevent the punctuation-spacing cleanup from inserting spaces before closing quotes when commas precede them.
 - Bump the userscript, extension, and package metadata to the 1.1.73-internal.13 build.
