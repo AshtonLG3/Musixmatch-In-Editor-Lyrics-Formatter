@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.73-internal.15
+// @version      1.1.73-internal.17
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -17,7 +17,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.73-internal.15';
+  const SCRIPT_VERSION = '1.1.73-internal.17';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -588,250 +588,64 @@
     return text;
   }
 
-  // ---------- Global Proper Noun Support (no CSV) ----------
-  // Small, hand-picked list you can extend as needed.
-  // Everything should be stored in lowercase here; the canonical
-  // form is what will be written into the lyrics.
-  // === GLOBAL PROPER NOUN CANONICAL MAP ===
-  const GLOBAL_PROPER_CANONICAL = {
-    // Countries
-    "usa": "USA",
-    "uk": "UK",
-    "france": "France",
-    "china": "China",
-    "japan": "Japan",
-    "brazil": "Brazil",
-    "spain": "Spain",
-    "mexico": "Mexico",
-    "germany": "Germany",
-    "italy": "Italy",
-    "canada": "Canada",
-    "australia": "Australia",
-
-    // US Cities
-    "ny": "NY",
-    "nyc": "NYC",
-    "la": "LA",
-    "atl": "ATL",
-    "atlanta": "Atlanta",
-    "miami": "Miami",
-    "chicago": "Chicago",
-    "houston": "Houston",
-    "dallas": "Dallas",
-    "memphis": "Memphis",
-    "detroit": "Detroit",
-    "oakland": "Oakland",
-    "baltimore": "Baltimore",
-    "compton": "Compton",
-    "queens": "Queens",
-    "harlem": "Harlem",
-    "bronx": "Bronx",
-    "brooklyn": "Brooklyn",
-    "philly": "Philly",
-    "boston": "Boston",
-
-    // International Cities
-    "london": "London",
-    "paris": "Paris",
-    "tokyo": "Tokyo",
-    "osaka": "Osaka",
-    "kyoto": "Kyoto",
-    "seoul": "Seoul",
-    "lagos": "Lagos",
-    "accra": "Accra",
-    "nairobi": "Nairobi",
-    "kampala": "Kampala",
-    "kigali": "Kigali",
-    "johannesburg": "Johannesburg",
-    "durban": "Durban",
-    "sydney": "Sydney",
-    "melbourne": "Melbourne",
-    "toronto": "Toronto",
-    "vancouver": "Vancouver",
-    "amsterdam": "Amsterdam",
-    "berlin": "Berlin",
-    "munich": "Munich",
-    "dubai": "Dubai",
-    "kingston": "Kingston",
-    "rio": "Rio",
-
-    // Places & Hoods
-    "hollywood": "Hollywood",
-    "beverly": "Beverly",
-    "uptown": "Uptown",
-    "downtown": "Downtown",
-    "chinatown": "Chinatown",
-    "soweto": "Soweto",
-    "kibera": "Kibera",
-
-    // Luxury Fashion
-    "gucci": "Gucci",
-    "chanel": "Chanel",
-    "prada": "Prada",
-    "balenciaga": "Balenciaga",
-    "dior": "Dior",
-    "fendi": "Fendi",
-    "versace": "Versace",
-    "givenchy": "Givenchy",
-    "hermes": "Hermès",
-    "cartier": "Cartier",
-    "burberry": "Burberry",
-    "moncler": "Moncler",
-    "off-white": "Off-White",
-    "bape": "Bape",
-    "supreme": "Supreme",
-
-    // Footwear / Streetwear
-    "nike": "Nike",
-    "adidas": "Adidas",
-    "puma": "Puma",
-    "vans": "Vans",
-    "converse": "Converse",
-    "timberland": "Timberland",
-    "timbs": "Timbs",
-
-    // Tech & Platforms
-    "apple": "Apple",
-    "itunes": "iTunes",
-    "spotify": "Spotify",
-    "deezer": "Deezer",
-    "tidal": "TIDAL",
-    "youtube": "YouTube",
-    "tiktok": "TikTok",
-    "instagram": "Instagram",
-    "facebook": "Facebook",
-    "twitter": "Twitter",
-    "snapchat": "Snapchat",
-    "reddit": "Reddit",
-    "whatsapp": "WhatsApp",
-    "telegram": "Telegram",
-    "gmail": "Gmail",
-    "google": "Google",
-    "amazon": "Amazon",
-    "windows": "Windows",
-    "xbox": "Xbox",
-    "playstation": "PlayStation",
-    "nintendo": "Nintendo",
-    "github": "GitHub",
-    "chatgpt": "ChatGPT",
-
-    // Cars
-    "toyota": "Toyota",
-    "benz": "Benz",
-    "bmw": "BMW",
-    "tesla": "Tesla",
-    "audi": "Audi",
-    "honda": "Honda",
-    "nissan": "Nissan",
-    "subaru": "Subaru",
-    "jeep": "Jeep",
-    "lamborghini": "Lamborghini",
-    "ferrari": "Ferrari",
-    "porsche": "Porsche",
-    "maserati": "Maserati",
-    "rover": "Rover",
-
-    // Alcohol
-    "hennessy": "Hennessy",
-    "henny": "Henny",
-    "moet": "Moët",
-    "patron": "Patrón",
-    "bacardi": "Bacardi",
-    "ciroc": "CÎROC",
-    "bud": "Bud",
-    "light": "Light",
-
-    // Weapons (always capitalize)
-    "glock": "Glock",
-    "uzi": "Uzi",
-    "draco": "Draco",
-    "ak": "AK",
-    "ar": "AR"
-  };
-
   /* ============================================================
-     === GOOGLE SHEET PROPER NOUN CANONICAL MAP (STRUCTURAL-FUZZY) ===
-     Column A (lowercase raw) → Column B (canonical form)
+     === BASE64 CSV PROPER-NOUN ENGINE (Option B) ===
+     === Single source of truth for capitalization ===
      ============================================================ */
 
-  const SHEET_B64 = 'YWNjcmEsQWNjcmEKYWRpZGFzLEFkaWRhcwphayxBSwphbWF6b24sQW1hem9uCmFtc3RlcmRhbSxBbXN0ZXJkYW0KYXBwbGUsQXBwbGUKYXIsQVIKYXRsLEFUTAphdGxhbnRhLEF0bGFudGEKYXVkaSxBdWRpCmF1c3RyYWxpYSxBdXN0cmFsaWEKYmFjYXJkaSxCYWNhcmRpCmJhbGVuY2lhZ2EsQmFsZW5jaWFnYQpiYWx0aW1vcmUsQmFsdGltb3JlCmJhcGUsQmFwZQpiZW56LEJlbnoKYmVybGluLEJlcmxpbgpiZXZlcmx5LEJldmVybHkKYmV2ZXJseSBoaWxscyxCZXZlcmx5IEhpbGxzCmJtdyxCTVcKYm9zdG9uLEJvc3RvbgpicmF6aWwsQnJhemlsCmJyb254LEJyb254CmJyb29rbHluLEJyb29rbHluCmJ1ZCxCdWQKYnVkIGxpZ2h0LEJ1ZCBMaWdodApidXJiZXJyeSxCdXJiZXJyeQpjYW5hZGEsQ2FuYWRhCmNhcGUgdG93bixDYXBlIFRvd24KY2FydGllcixDYXJ0aWVyCmNoYW5lbCxDaGFuZWwKY2hhdGdwdCxDaGF0R1BUCmNoaWNhZ28sQ2hpY2FnbwpjaGluYSxDaGluYQpjaGluYXRvd24sQ2hpbmF0b3duCmNocmlzdG1hcyBkYXksQ2hyaXN0bWFzIERheQpjaHJpc3RtYXMgZXZlLENocmlzdG1hcyBFdmUKY2lyb2MsQ8OOUk9DCmNvbXB0b24sQ29tcHRvbgpjb252ZXJzZSxDb252ZXJzZQpkYWxsYXMsRGFsbGFzCmRlZXplcixEZWV6ZXIKZGV0cm9pdCxEZXRyb2l0CmRpb3IsRGlvcgpkb24ganVsaW8sRG9uIEp1bGlvCmRvd250b3duLERvd250b3duCmRyYWNvLERyYWNvCmR1YmFpLER1YmFpCmR1cmJhbixEdXJiYW4KZWFzdGVyLEVhc3RlcgpmYWNlYm9vayxGYWNlYm9vawpmZW5kaSxGZW5kaQpmZXJyYXJpLEZlcnJhcmkKZnJhbmNlLEZyYW5jZQpnZXJtYW55LEdlcm1hbnkKZ2l0aHViLEdpdEh1YgpnaXZlbmNoeSxHaXZlbmNoeQpnbG9jayxHbG9jawpnbWFpbCxHbWFpbApnb29nbGUsR29vZ2xlCmdyZXkgZ29vc2UsR3JleSBHb29zZQpndWNjaSxHdWNjaQpoYWxsb3dlZW4sSGFsbG93ZWVuCmhhcmxlbSxIYXJsZW0KaGVubmVzc3ksSGVubmVzc3kKaGVubnksSGVubnkKaGVybWVzLEhlcm3DqHMKaG9sbHl3b29kLEhvbGx5d29vZApob25kYSxIb25kYQpob3VzdG9uLEhvdXN0b24KaW5zdGFncmFtLEluc3RhZ3JhbQppdGFseSxJdGFseQppdHVuZXMsaVR1bmVzCmphcGFuLEphcGFuCmplZXAsSmVlcApqb2hhbm5lc2J1cmcsSm9oYW5uZXNidXJnCmthbXBhbGEsS2FtcGFsYQpraWJlcmEsS2liZXJhCmtpZ2FsaSxLaWdhbGkKa2luZ3N0b24sS2luZ3N0b24Ka3lvdG8sS3lvdG8KbGEsTEEKbGFnb3MsTGFnb3MKbGFtYm9yZ2hpbmksTGFtYm9yZ2hpbmkKbGlnaHQsTGlnaHQKbG9uZG9uLExvbmRvbgpsb25nIGJlYWNoLExvbmcgQmVhY2gKbG9zIGFuZ2VsZXMsTG9zIEFuZ2VsZXMKbG91aXMgdnVpdHRvbixMb3VpcyBWdWl0dG9uCm1hc2VyYXRpLE1hc2VyYXRpCm1lbGJvdXJuZSxNZWxib3VybmUKbWVtcGhpcyxNZW1waGlzCm1leGljbyxNZXhpY28KbWlhbWksTWlhbWkKbW9ldCxNb8OrdAptb25jbGVyLE1vbmNsZXIKbXVuaWNoLE11bmljaApuYWlyb2JpLE5haXJvYmkKbmV3IHllYXJzIGRheSxOZXcgWWVhcidzIERheQpuZXcgeWVhcnMgZXZlLE5ldyBZZWFyJ3MgRXZlCm5ldyB5b3JrLE5ldyBZb3JrCm5ldyB5b3JrIGNpdHksTmV3IFlvcmsgQ2l0eQpuaWtlLE5pa2UKbmludGVuZG8sTmludGVuZG8Kbmlzc2FuLE5pc3NhbgpueSxOWQpueWMsTllDCm55ZSxOZXcgWWVhcidzIEV2ZQpvYWtsYW5kLE9ha2xhbmQKb2ZmLXdoaXRlLE9mZi1XaGl0ZQpvc2FrYSxPc2FrYQpwYXJpcyxQYXJpcwpwYXRyb24sUGF0csOzbgpwaGlsbHksUGhpbGx5CnBsYXlzdGF0aW9uLFBsYXlTdGF0aW9uCnBvcnNjaGUsUG9yc2NoZQpwcmFkYSxQcmFkYQpwdW1hLFB1bWEKcXVlZW5zLFF1ZWVucwpyYW5nZSByb3ZlcixSYW5nZSBSb3ZlcgpyZWRkaXQsUmVkZGl0CnJpbyxSaW8Kcm92ZXIsUm92ZXIKc2VvdWwsU2VvdWwKc25hcGNoYXQsU25hcGNoYXQKc291dGggYWZyaWNhLFNvdXRoIEFmcmljYQpzb3dldG8sU293ZXRvCnNwYWluLFNwYWluCnNwb3RpZnksU3BvdGlmeQpzdWJhcnUsU3ViYXJ1CnN1cHJlbWUsU3VwcmVtZQpzeWRuZXksU3lkbmV5CnRlbGVncmFtLFRlbGVncmFtCnRlc2xhLFRlc2xhCnRoYW5rc2dpdmluZyxUaGFua3NnaXZpbmcKdGlkYWwsVElEQUwKdGlrdG9rLFRpa1Rvawp0aW1iZXJsYW5kLFRpbWJlcmxhbmQKdGltYnMsVGltYnMKdG9reW8sVG9reW8KdG9yb250byxUb3JvbnRvCnRveW90YSxUb3lvdGEKdHdpdHRlcixUd2l0dGVyCnVrLFVLCnVwdG93bixVcHRvd24KdXNhLFVTQQp1emksVXppCnZhbGVudGluZSdzIGRheSxWYWxlbnRpbmUncyBEYXkKdmFuY291dmVyLFZhbmNvdXZlcgp2YW5zLFZhbnMKdmVyc2FjZSxWZXJzYWNlCndoYXRzYXBwLFdoYXRzQXBwCndpbmRvd3MsV2luZG93cwp4Ym94LFhib3gKeG1hcyxDaHJpc3RtYXMKeW91dHViZSxZb3VUdWJl';
+  // Replace this with your generated Base64 string
+  const SHEET_B64 = 'YWNjcmEsQWNjcmEKYWRpZGFzLEFkaWRhcwphayxBSwphbWF6b24sQW1hem9uCmFtc3RlcmRhbSxBbXN0ZXJkYW0KYXBwbGUsQXBwbGUKYXIsQVIKYXRsLEFUTAphdGxhbnRhLEF0bGFudGEKYXVkaSxBdWRpCmF1c3RyYWxpYSxBdXN0cmFsaWEKYmFjYXJkaSxCYWNhcmRpCmJhbGVuY2lhZ2EsQmFsZW5jaWFnYQpiYWx0aW1vcmUsQmFsdGltb3JlCmJhcGUsQmFwZQpiZW56LEJlbnoKYmVybGluLEJlcmxpbgpiZXZlcmx5LEJldmVybHkKYmV2ZXJseSBoaWxscyxCZXZlcmx5IEhpbGxzCmJtdyxCTVcKYm9zdG9uLEJvc3RvbgpicmF6aWwsQnJhemlsCmJyb254LEJyb254CmJyb29rbHluLEJyb29rbHluCmJ1ZCxCdWQKYnVkIGxpZ2h0LEJ1ZCBMaWdodApidXJiZXJyeSxCdXJiZXJyeQpjYW5hZGEsQ2FuYWRhCmNhcGUgdG93bixDYXBlIFRvd24KY2FydGllcixDYXJ0aWVyCmNoYW5lbCxDaGFuZWwKY2hhdGdwdCxDaGF0R1BUCmNoaWNhZ28sQ2hpY2FnbwpjaGluYSxDaGluYQpjaGluYXRvd24sQ2hpbmF0b3duCmNocmlzdG1hcyBkYXksQ2hyaXN0bWFzIERheQpjaHJpc3RtYXMgZXZlLENocmlzdG1hcyBFdmUKY2lyb2MsQ8OOUk9DCmNvbXB0b24sQ29tcHRvbgpjb252ZXJzZSxDb252ZXJzZQpkYWxsYXMsRGFsbGFzCmRlZXplcixEZWV6ZXIKZGV0cm9pdCxEZXRyb2l0CmRpb3IsRGlvcgpkb24ganVsaW8sRG9uIEp1bGlvCmRvd250b3duLERvd250b3duCmRyYWNvLERyYWNvCmR1YmFpLER1YmFpCmR1cmJhbixEdXJiYW4KZWFzdGVyLEVhc3RlcgpmYWNlYm9vayxGYWNlYm9vawpmZW5kaSxGZW5kaQpmZXJyYXJpLEZlcnJhcmkKZnJhbmNlLEZyYW5jZQpnZXJtYW55LEdlcm1hbnkKZ2l0aHViLEdpdEh1YgpnaXZlbmNoeSxHaXZlbmNoeQpnbG9jayxHbG9jawpnbWFpbCxHbWFpbApnb29nbGUsR29vZ2xlCmdyZXkgZ29vc2UsR3JleSBHb29zZQpndWNjaSxHdWNjaQpoYWxsb3dlZW4sSGFsbG93ZWVuCmhhcmxlbSxIYXJsZW0KaGVubmVzc3ksSGVubmVzc3kKaGVubnksSGVubnkKaGVybWVzLEhlcm3DqHMKaG9sbHl3b29kLEhvbGx5d29vZApob25kYSxIb25kYQpob3VzdG9uLEhvdXN0b24KaW5zdGFncmFtLEluc3RhZ3JhbQppdGFseSxJdGFseQppdHVuZXMsaVR1bmVzCmphcGFuLEphcGFuCmplZXAsSmVlcApqb2hhbm5lc2J1cmcsSm9oYW5uZXNidXJnCmthbXBhbGEsS2FtcGFsYQpraWJlcmEsS2liZXJhCmtpZ2FsaSxLaWdhbGkKa2luZ3N0b24sS2luZ3N0b24Ka3lvdG8sS3lvdG8KbGEsTEEKbGFnb3MsTGFnb3MKbGFtYm9yZ2hpbmksTGFtYm9yZ2hpbmkKbGlnaHQsTGlnaHQKbG9uZG9uLExvbmRvbgpsb25nIGJlYWNoLExvbmcgQmVhY2gKbG9zIGFuZ2VsZXMsTG9zIEFuZ2VsZXMKbG91aXMgdnVpdHRvbixMb3VpcyBWdWl0dG9uCm1hc2VyYXRpLE1hc2VyYXRpCm1lbGJvdXJuZSxNZWxib3VybmUKbWVtcGhpcixNZW1waGlzCm1leGljbyxNZXhpY28KbWlhbWksTWlhbWkKbW9ldCxNb8OrdAptb25jbGVyLE1vbmNsZXIKbXVuaWNoLE11bmljaApuYWlyb2JpLE5haXJvYmkKbmV3IHllYXJzIGRheSxOZXcgWWVhcidzIERheQpuZXcgeWVhcnMgZXZlLE5ldyBZZWFyJ3MgRXZlCm5ldyB5b3JrLE5ldyBZb3JrCm5ldyB5b3JrIGNpdHksTmV3IFlvcmsgQ2l0eQpuaWtlLE5pa2UKbmludGVuZG8sTmludGVuZG8Kbmlzc2FuLE5pc3NhbgpueSxOWQpueWMsTllDCm55ZSxOZXcgWWVhcidzIEV2ZQpvYWtsYW5kLE9ha2xhbmQKb2ZmLXdoaXRlLE9mZi1XaGl0ZQpvc2FrYSxPc2FrYQpwYXJpcyxQYXJpcwpwYXRyb24sUGF0csOzbgpwaGlsbHksUGhpbGx5CnBsYXlzdGF0aW9uLFBsYXlTdGF0aW9uCnBvcnNjaGUsUG9yc2NoZQpwcmFkYSxQcmFkYQpwdW1hLFB1bWEKcXVlZW5zLFF1ZWVucwpyYW5nZSByb3ZlcixSYW5nZSBSb3ZlcgpyZWRkaXQsUmVkZGl0CnJpbyxSaW8Kcm92ZXIsUm92ZXIKc2VvdWwsU2VvdWwKc25hcGNoYXQsU25hcGNoYXQKc291dGggYWZyaWNhLFNvdXRoIEFmcmljYQpzb3dldG8sU293ZXRvCnNwYWluLFNwYWluCnNwb3RpZnksU3BvdGlmeQpzdWJhcnUsU3ViYXJ1CnN1cHJlbWUsU3VwcmVtZQpzeWRuZXksU3lkbmV5CnRlbGVncmFtLFRlbGVncmFtCnRlc2xhLFRlc2xhCnRoYW5rc2dpdmluZyxUaGFua3NnaXZpbmcKdGlkYWwsVElEQUwKdGlrdG9rLFRpa1Rvawp0aW1iZXJsYW5kLFRpbWJlcmxhbmQKdGltYnMsVGltYnMKdG9reW8sVG9reW8KdG9yb250byxUb3JvbnRvCnRveW90YSxUb3lvdGEKdHdpdHRlcixUd2l0dGVyCnVrLFVLCnVwdG93bixVcHRvd24KdXNhLFVTQQp1emksVXppCnZhbGVudGluZSdzIGRheSxWYWxlbnRpbmUncyBEYXkKdmFuY291dmVyLFZhbmNvdXZlcgp2YW5zLFZhbnMKdmVyc2FjZSxWZXJzYWNlCndoYXRzYXBwLFdoYXRzQXBwCndpbmRvd3MsV2luZG93cwp4Ym94LFhib3gKeG1hcyxDaHJpc3RtYXMKeW91dHViZSxZb3VUdWJl';
 
-  function decodeSheetBase64(b64) {
-    if (typeof root.atob === 'function') {
-      return root.atob(b64);
-    }
-    if (typeof Buffer !== 'undefined') {
-      return Buffer.from(b64, 'base64').toString('utf8');
-    }
-    throw new Error("Base64 decoding is unavailable in this environment");
-  }
-
-  function buildSheetCanonicalMap() {
-    const csv = decodeSheetBase64(SHEET_B64);
-    const map = {};
-    for (const line of csv.split(/\r?\n/)) {
-      if (!line) continue;
-      const commaIndex = line.indexOf(',');
-      if (commaIndex === -1) continue;
-      const raw = line.slice(0, commaIndex).trim();
-      const canonical = line.slice(commaIndex + 1).trim();
-      if (raw && canonical) {
-        map[raw] = canonical;
-      }
-    }
-    return map;
-  }
-
-  const GLOBAL_PROPER_FROM_SHEET = buildSheetCanonicalMap();
-
-
-  /* === STRUCTURAL-FUZZY NORMALIZER === */
   function normalizeSheetKey(str) {
     return str
       .toLowerCase()
-      .replace(/[.'’]/g, "")
-      .replace(/[-_]/g, " ")
-      .replace(/\s+/g, " ")
+      .replace(/[.'’]/g, "")   // remove apostrophes + dots
+      .replace(/[-_]/g, " ")   // hyphens to spaces
+      .replace(/\s+/g, " ")    // collapse spaces
       .trim();
   }
 
-  /* === BUILD FUZZY LOOKUP === */
-  const GLOBAL_SHEET_FUZZY = {};
-  for (const [rawKey, canonical] of Object.entries(GLOBAL_PROPER_FROM_SHEET)) {
-    GLOBAL_SHEET_FUZZY[normalizeSheetKey(rawKey)] = canonical;
+  function decodeBase64Csv(b64) {
+    if (!b64) return {};
+    const decoder = typeof atob === 'function'
+      ? atob
+      : (value => {
+        if (typeof Buffer === 'undefined') {
+          throw new Error('Base64 decoding is unavailable in this environment');
+        }
+        return Buffer.from(value, 'base64').toString('utf8');
+      });
+    const csv = decoder(b64);
+    const lines = csv.split(/\r?\n/);
+    const map = {};
+
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      const [raw, canonical] = line.split(',');
+      if (!raw || !canonical) continue;
+      map[normalizeSheetKey(raw)] = canonical.trim();
+    }
+
+    return map;
   }
+
+  const GLOBAL_SHEET_FUZZY = decodeBase64Csv(SHEET_B64);
 
   function applyGlobalProperNouns(text) {
     if (!text) return text;
 
-    // ---- 1. Phrase-first replacement from sheet ----
-    for (const [rawKey, canonical] of Object.entries(GLOBAL_PROPER_FROM_SHEET)) {
-      if (rawKey.includes(" ")) {
-        const pattern = rawKey.replace(/\s+/g, "\\s+");
-        const re = new RegExp(`\\b${pattern}\\b`, "gi");
-        text = text.replace(re, canonical);
+    let processed = applySmartProperNouns(text);
+    const tokenRe = /\b[0-9A-Za-z][0-9A-Za-z.'$-]*\b/g;
+
+    processed = processed.replace(tokenRe, raw => {
+      const key = normalizeSheetKey(raw);
+      if (GLOBAL_SHEET_FUZZY[key]) {
+        return GLOBAL_SHEET_FUZZY[key];
       }
-    }
-
-    // ---- 2. Token-level fuzzy replacements ----
-    const tokenRe = /\\b[0-9A-Za-z][0-9A-Za-z.'$-]*\\b/g;
-
-    text = text.replace(tokenRe, raw => {
-      const nRaw = normalizeSheetKey(raw);
-
-      if (GLOBAL_SHEET_FUZZY[nRaw]) {
-        return GLOBAL_SHEET_FUZZY[nRaw];
-      }
-
-      const lower = raw.toLowerCase();
-      if (GLOBAL_PROPER_CANONICAL[lower]) {
-        return GLOBAL_PROPER_CANONICAL[lower];
-      }
-
       return raw;
     });
 
-    return text;
+    return processed;
   }
 
   const SENTENCE_ENDER_FOLLOWING_QUOTES = new Set(["'", '"', '‘', '’', '“', '”']);
@@ -956,46 +770,6 @@
 
   // ---------- Smart Proper Noun / Brand Recognizer (heuristic, no big dictionary) ----------
 
-  // Tiny high-value brand/platform map for cases where input is fully lowercase.
-  // This is NOT meant to be exhaustive, just the heavy hitters.
-  const ALWAYS_PROPER_CANONICAL = {
-    gucci: "Gucci",
-    chanel: "Chanel",
-    prada: "Prada",
-    louis: "Louis",               // so "Louis Vuitton" won't be stuck as lowercase
-    "louis vuitton": "Louis Vuitton",
-    nike: "Nike",
-    adidas: "Adidas",
-    puma: "Puma",
-
-    google: "Google",
-    amazon: "Amazon",
-    apple: "Apple",
-    microsoft: "Microsoft",
-
-    spotify: "Spotify",
-    deezer: "Deezer",
-    tidal: "TIDAL",
-    boomplay: "Boomplay",
-    audiomack: "Audiomack",
-    soundcloud: "SoundCloud",
-
-    tiktok: "TikTok",
-    "tik tok": "TikTok",
-    youtube: "YouTube",
-    instagram: "Instagram",
-    facebook: "Facebook",
-    twitter: "Twitter",
-    x: "X",
-    reddit: "Reddit",
-    whatsapp: "WhatsApp",
-    telegram: "Telegram",
-    snapchat: "Snapchat",
-
-    github: "GitHub",
-    chatgpt: "ChatGPT"
-  };
-
   // Very small set of "boring" words we never auto-promote just because of capitalization.
   const COMMON_WORDS = new Set([
     "the","a","an","and","or","but","if","then","else","for","from","to","in","on","at",
@@ -1076,13 +850,7 @@
     const map = new Map();
 
     for (const [lower, s] of stats.entries()) {
-      // 1) Always-proper brand/platform/tech map (works even if source is fully lowercase)
-      if (Object.prototype.hasOwnProperty.call(ALWAYS_PROPER_CANONICAL, lower)) {
-        map.set(lower, ALWAYS_PROPER_CANONICAL[lower]);
-        continue;
-      }
-
-      // 2) Strong mixed-case patterns (GitHub, YouTube, PlayStation)
+      // 1) Strong mixed-case patterns (GitHub, YouTube, PlayStation)
       if (s.seenInternalUpper) {
         // Use the longest mixed-case form we saw
         let best = null;
@@ -1098,7 +866,7 @@
         continue;
       }
 
-      // 3) Acronyms / all-caps tokens like USA, BBC, NASA
+      // 2) Acronyms / all-caps tokens like USA, BBC, NASA
       if (s.seenAllUpper && lower.length >= 2 && lower.length <= 6 && !COMMON_WORDS.has(lower)) {
         // Use an all-caps canonical
         let best = null;
@@ -1110,7 +878,7 @@
         continue;
       }
 
-      // 4) "Looks like a name": rare, capitalized somewhere, not a super common word
+      // 3) "Looks like a name": rare, capitalized somewhere, not a super common word
       if (s.seenCapitalized && !COMMON_WORDS.has(lower) && s.count <= 4) {
         // pick the most "namey" form (capitalized if present)
         let capitalForm = null;
@@ -1128,33 +896,15 @@
       // Otherwise, we don't touch it.
     }
 
-    // Also support multi-word ALWAYS_PROPER entries like "louis vuitton"
-    // by building a secondary phrase map.
-    const phraseMap = new Map();
-    for (const [key, canonical] of Object.entries(ALWAYS_PROPER_CANONICAL)) {
-      if (key.includes(" ")) {
-        phraseMap.set(key, canonical);
-      }
-    }
-
-    return { wordMap: map, phraseMap };
+    return map;
   }
 
   function applySmartProperNouns(text) {
     if (!text) return text;
 
-    const { wordMap, phraseMap } = buildSmartProperMap(text);
+    const wordMap = buildSmartProperMap(text);
 
-    // First, handle multi-word patterns from ALWAYS_PROPER_CANONICAL ("louis vuitton" → "Louis Vuitton").
-    if (phraseMap.size > 0) {
-      for (const [key, canonical] of phraseMap.entries()) {
-        const pattern = key.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&").replace(/\s+/g, "\\s+");
-        const re = new RegExp(`\\b${pattern}\\b`, "gi");
-        text = text.replace(re, canonical);
-      }
-    }
-
-    // Then apply single-word canonicalizations.
+    // Apply single-word canonicalizations.
     const tokenRe = /\b[0-9A-Za-z][0-9A-Za-z.'$]*\b/g;
     text = text.replace(tokenRe, (raw) => {
       const lower = raw.toLowerCase();
