@@ -635,6 +635,25 @@
     if (!text) return text;
 
     let processed = applySmartProperNouns(text);
+
+    // -----------------------------------------------------------
+    // 1) Phrase-level replacement for sheet entries (multi-word support)
+    // -----------------------------------------------------------
+    for (const [key, canonical] of Object.entries(GLOBAL_SHEET_FUZZY)) {
+      if (!key.includes(" ")) continue; // skip single-word tokens
+
+      // Create regex pattern:
+      // - preserve word boundaries
+      // - allow flexible spaces
+      const pat = key.replace(/\s+/g, "\\s+");
+      const re = new RegExp(`\\b${pat}\\b`, "gi");
+
+      processed = processed.replace(re, canonical);
+    }
+
+    // -----------------------------------------------------------
+    // 2) Token-level pass for single-word entries
+    // -----------------------------------------------------------
     const tokenRe = /\b[0-9A-Za-z][0-9A-Za-z.'$-]*\b/g;
 
     processed = processed.replace(tokenRe, raw => {
