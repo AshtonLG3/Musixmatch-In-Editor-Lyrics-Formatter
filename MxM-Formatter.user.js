@@ -754,164 +754,36 @@
      Column A (lowercase raw) → Column B (canonical form)
      ============================================================ */
 
-  const GLOBAL_PROPER_FROM_SHEET = {
-    "usa": "USA",
-    "uk": "UK",
-    "france": "France",
-    "china": "China",
-    "japan": "Japan",
-    "brazil": "Brazil",
-    "spain": "Spain",
-    "mexico": "Mexico",
-    "germany": "Germany",
-    "italy": "Italy",
-    "canada": "Canada",
-    "australia": "Australia",
-    "south africa": "South Africa",
-    "ny": "NY",
-    "nyc": "NYC",
-    "la": "LA",
-    "atl": "ATL",
-    "atlanta": "Atlanta",
-    "miami": "Miami",
-    "chicago": "Chicago",
-    "houston": "Houston",
-    "dallas": "Dallas",
-    "memphis": "Memphis",
-    "detroit": "Detroit",
-    "oakland": "Oakland",
-    "baltimore": "Baltimore",
-    "compton": "Compton",
-    "queens": "Queens",
-    "harlem": "Harlem",
-    "bronx": "Bronx",
-    "brooklyn": "Brooklyn",
-    "philly": "Philly",
-    "boston": "Boston",
-    "los angeles": "Los Angeles",
-    "new york": "New York",
-    "new york city": "New York City",
-    "long beach": "Long Beach",
-    "london": "London",
-    "paris": "Paris",
-    "tokyo": "Tokyo",
-    "osaka": "Osaka",
-    "kyoto": "Kyoto",
-    "seoul": "Seoul",
-    "lagos": "Lagos",
-    "accra": "Accra",
-    "nairobi": "Nairobi",
-    "kampala": "Kampala",
-    "kigali": "Kigali",
-    "johannesburg": "Johannesburg",
-    "durban": "Durban",
-    "sydney": "Sydney",
-    "melbourne": "Melbourne",
-    "toronto": "Toronto",
-    "vancouver": "Vancouver",
-    "amsterdam": "Amsterdam",
-    "berlin": "Berlin",
-    "munich": "Munich",
-    "dubai": "Dubai",
-    "kingston": "Kingston",
-    "rio": "Rio",
-    "cape town": "Cape Town",
-    "hollywood": "Hollywood",
-    "beverly": "Beverly",
-    "uptown": "Uptown",
-    "downtown": "Downtown",
-    "chinatown": "Chinatown",
-    "soweto": "Soweto",
-    "kibera": "Kibera",
-    "beverly hills": "Beverly Hills",
-    "gucci": "Gucci",
-    "chanel": "Chanel",
-    "prada": "Prada",
-    "balenciaga": "Balenciaga",
-    "dior": "Dior",
-    "fendi": "Fendi",
-    "versace": "Versace",
-    "givenchy": "Givenchy",
-    "hermes": "Hermès",
-    "cartier": "Cartier",
-    "burberry": "Burberry",
-    "moncler": "Moncler",
-    "off-white": "Off-White",
-    "bape": "Bape",
-    "supreme": "Supreme",
-    "louis vuitton": "Louis Vuitton",
-    "nike": "Nike",
-    "adidas": "Adidas",
-    "puma": "Puma",
-    "vans": "Vans",
-    "converse": "Converse",
-    "timberland": "Timberland",
-    "timbs": "Timbs",
-    "apple": "Apple",
-    "itunes": "iTunes",
-    "spotify": "Spotify",
-    "deezer": "Deezer",
-    "tidal": "TIDAL",
-    "youtube": "YouTube",
-    "tiktok": "TikTok",
-    "instagram": "Instagram",
-    "facebook": "Facebook",
-    "twitter": "Twitter",
-    "snapchat": "Snapchat",
-    "reddit": "Reddit",
-    "whatsapp": "WhatsApp",
-    "telegram": "Telegram",
-    "gmail": "Gmail",
-    "google": "Google",
-    "amazon": "Amazon",
-    "windows": "Windows",
-    "xbox": "Xbox",
-    "playstation": "PlayStation",
-    "nintendo": "Nintendo",
-    "github": "GitHub",
-    "chatgpt": "ChatGPT",
-    "toyota": "Toyota",
-    "benz": "Benz",
-    "bmw": "BMW",
-    "tesla": "Tesla",
-    "audi": "Audi",
-    "honda": "Honda",
-    "nissan": "Nissan",
-    "subaru": "Subaru",
-    "jeep": "Jeep",
-    "lamborghini": "Lamborghini",
-    "ferrari": "Ferrari",
-    "porsche": "Porsche",
-    "maserati": "Maserati",
-    "rover": "Rover",
-    "range rover": "Range Rover",
-    "hennessy": "Hennessy",
-    "henny": "Henny",
-    "moet": "Moët",
-    "patron": "Patrón",
-    "bacardi": "Bacardi",
-    "ciroc": "CÎROC",
-    "bud": "Bud",
-    "light": "Light",
-    "grey goose": "Grey Goose",
-    "don julio": "Don Julio",
-    "bud light": "Bud Light",
-    "glock": "Glock",
-    "uzi": "Uzi",
-    "draco": "Draco",
-    "ak": "AK",
-    "ar": "AR",
-    "xmas": "Christmas",
-    "christmas eve": "Christmas Eve",
-    "christmas day": "Christmas Day",
-    "nye": "New Year's Eve",
-    "new years eve": "New Year's Eve",
-    "new years day": "New Year's Day",
-    "halloween": "Halloween",
-    "thanksgiving": "Thanksgiving",
-    "valentine's day": "Valentine's Day",
-    "easter": "Easter"
-  };
+  const SHEET_B64 = 'YWNjcmEsQWNjcmEKYWRpZGFzLEFkaWRhcwphayxBSwphbWF6b24sQW1hem9uCmFtc3RlcmRhbSxBbXN0ZXJkYW0KYXBwbGUsQXBwbGUKYXIsQVIKYXRsLEFUTAphdGxhbnRhLEF0bGFudGEKYXVkaSxBdWRpCmF1c3RyYWxpYSxBdXN0cmFsaWEKYmFjYXJkaSxCYWNhcmRpCmJhbGVuY2lhZ2EsQmFsZW5jaWFnYQpiYWx0aW1vcmUsQmFsdGltb3JlCmJhcGUsQmFwZQpiZW56LEJlbnoKYmVybGluLEJlcmxpbgpiZXZlcmx5LEJldmVybHkKYmV2ZXJseSBoaWxscyxCZXZlcmx5IEhpbGxzCmJtdyxCTVcKYm9zdG9uLEJvc3RvbgpicmF6aWwsQnJhemlsCmJyb254LEJyb254CmJyb29rbHluLEJyb29rbHluCmJ1ZCxCdWQKYnVkIGxpZ2h0LEJ1ZCBMaWdodApidXJiZXJyeSxCdXJiZXJyeQpjYW5hZGEsQ2FuYWRhCmNhcGUgdG93bixDYXBlIFRvd24KY2FydGllcixDYXJ0aWVyCmNoYW5lbCxDaGFuZWwKY2hhdGdwdCxDaGF0R1BUCmNoaWNhZ28sQ2hpY2FnbwpjaGluYSxDaGluYQpjaGluYXRvd24sQ2hpbmF0b3duCmNocmlzdG1hcyBkYXksQ2hyaXN0bWFzIERheQpjaHJpc3RtYXMgZXZlLENocmlzdG1hcyBFdmUKY2lyb2MsQ8OOUk9DCmNvbXB0b24sQ29tcHRvbgpjb252ZXJzZSxDb252ZXJzZQpkYWxsYXMsRGFsbGFzCmRlZXplcixEZWV6ZXIKZGV0cm9pdCxEZXRyb2l0CmRpb3IsRGlvcgpkb24ganVsaW8sRG9uIEp1bGlvCmRvd250b3duLERvd250b3duCmRyYWNvLERyYWNvCmR1YmFpLER1YmFpCmR1cmJhbixEdXJiYW4KZWFzdGVyLEVhc3RlcgpmYWNlYm9vayxGYWNlYm9vawpmZW5kaSxGZW5kaQpmZXJyYXJpLEZlcnJhcmkKZnJhbmNlLEZyYW5jZQpnZXJtYW55LEdlcm1hbnkKZ2l0aHViLEdpdEh1YgpnaXZlbmNoeSxHaXZlbmNoeQpnbG9jayxHbG9jawpnbWFpbCxHbWFpbApnb29nbGUsR29vZ2xlCmdyZXkgZ29vc2UsR3JleSBHb29zZQpndWNjaSxHdWNjaQpoYWxsb3dlZW4sSGFsbG93ZWVuCmhhcmxlbSxIYXJsZW0KaGVubmVzc3ksSGVubmVzc3kKaGVubnksSGVubnkKaGVybWVzLEhlcm3DqHMKaG9sbHl3b29kLEhvbGx5d29vZApob25kYSxIb25kYQpob3VzdG9uLEhvdXN0b24KaW5zdGFncmFtLEluc3RhZ3JhbQppdGFseSxJdGFseQppdHVuZXMsaVR1bmVzCmphcGFuLEphcGFuCmplZXAsSmVlcApqb2hhbm5lc2J1cmcsSm9oYW5uZXNidXJnCmthbXBhbGEsS2FtcGFsYQpraWJlcmEsS2liZXJhCmtpZ2FsaSxLaWdhbGkKa2luZ3N0b24sS2luZ3N0b24Ka3lvdG8sS3lvdG8KbGEsTEEKbGFnb3MsTGFnb3MKbGFtYm9yZ2hpbmksTGFtYm9yZ2hpbmkKbGlnaHQsTGlnaHQKbG9uZG9uLExvbmRvbgpsb25nIGJlYWNoLExvbmcgQmVhY2gKbG9zIGFuZ2VsZXMsTG9zIEFuZ2VsZXMKbG91aXMgdnVpdHRvbixMb3VpcyBWdWl0dG9uCm1hc2VyYXRpLE1hc2VyYXRpCm1lbGJvdXJuZSxNZWxib3VybmUKbWVtcGhpcyxNZW1waGlzCm1leGljbyxNZXhpY28KbWlhbWksTWlhbWkKbW9ldCxNb8OrdAptb25jbGVyLE1vbmNsZXIKbXVuaWNoLE11bmljaApuYWlyb2JpLE5haXJvYmkKbmV3IHllYXJzIGRheSxOZXcgWWVhcidzIERheQpuZXcgeWVhcnMgZXZlLE5ldyBZZWFyJ3MgRXZlCm5ldyB5b3JrLE5ldyBZb3JrCm5ldyB5b3JrIGNpdHksTmV3IFlvcmsgQ2l0eQpuaWtlLE5pa2UKbmludGVuZG8sTmludGVuZG8Kbmlzc2FuLE5pc3NhbgpueSxOWQpueWMsTllDCm55ZSxOZXcgWWVhcidzIEV2ZQpvYWtsYW5kLE9ha2xhbmQKb2ZmLXdoaXRlLE9mZi1XaGl0ZQpvc2FrYSxPc2FrYQpwYXJpcyxQYXJpcwpwYXRyb24sUGF0csOzbgpwaGlsbHksUGhpbGx5CnBsYXlzdGF0aW9uLFBsYXlTdGF0aW9uCnBvcnNjaGUsUG9yc2NoZQpwcmFkYSxQcmFkYQpwdW1hLFB1bWEKcXVlZW5zLFF1ZWVucwpyYW5nZSByb3ZlcixSYW5nZSBSb3ZlcgpyZWRkaXQsUmVkZGl0CnJpbyxSaW8Kcm92ZXIsUm92ZXIKc2VvdWwsU2VvdWwKc25hcGNoYXQsU25hcGNoYXQKc291dGggYWZyaWNhLFNvdXRoIEFmcmljYQpzb3dldG8sU293ZXRvCnNwYWluLFNwYWluCnNwb3RpZnksU3BvdGlmeQpzdWJhcnUsU3ViYXJ1CnN1cHJlbWUsU3VwcmVtZQpzeWRuZXksU3lkbmV5CnRlbGVncmFtLFRlbGVncmFtCnRlc2xhLFRlc2xhCnRoYW5rc2dpdmluZyxUaGFua3NnaXZpbmcKdGlkYWwsVElEQUwKdGlrdG9rLFRpa1Rvawp0aW1iZXJsYW5kLFRpbWJlcmxhbmQKdGltYnMsVGltYnMKdG9reW8sVG9reW8KdG9yb250byxUb3JvbnRvCnRveW90YSxUb3lvdGEKdHdpdHRlcixUd2l0dGVyCnVrLFVLCnVwdG93bixVcHRvd24KdXNhLFVTQQp1emksVXppCnZhbGVudGluZSdzIGRheSxWYWxlbnRpbmUncyBEYXkKdmFuY291dmVyLFZhbmNvdXZlcgp2YW5zLFZhbnMKdmVyc2FjZSxWZXJzYWNlCndoYXRzYXBwLFdoYXRzQXBwCndpbmRvd3MsV2luZG93cwp4Ym94LFhib3gKeG1hcyxDaHJpc3RtYXMKeW91dHViZSxZb3VUdWJl';
+
+  function decodeSheetBase64(b64) {
+    if (typeof root.atob === 'function') {
+      return root.atob(b64);
+    }
+    if (typeof Buffer !== 'undefined') {
+      return Buffer.from(b64, 'base64').toString('utf8');
+    }
+    throw new Error("Base64 decoding is unavailable in this environment");
+  }
+
+  function buildSheetCanonicalMap() {
+    const csv = decodeSheetBase64(SHEET_B64);
+    const map = {};
+    for (const line of csv.split(/\r?\n/)) {
+      if (!line) continue;
+      const commaIndex = line.indexOf(',');
+      if (commaIndex === -1) continue;
+      const raw = line.slice(0, commaIndex).trim();
+      const canonical = line.slice(commaIndex + 1).trim();
+      if (raw && canonical) {
+        map[raw] = canonical;
+      }
+    }
+    return map;
+  }
+
+  const GLOBAL_PROPER_FROM_SHEET = buildSheetCanonicalMap();
+
 
   /* === STRUCTURAL-FUZZY NORMALIZER === */
   function normalizeSheetKey(str) {
