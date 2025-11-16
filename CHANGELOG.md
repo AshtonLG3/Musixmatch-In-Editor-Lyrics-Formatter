@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.1.73-internal.12
+- Re-run the formatter automatically when Musixmatch Studio swaps SPA routes by listening for URL mutations and re-applying the
+  initialization logic.
+- Gate the floating controls behind the edit route, including new Tampermonkey `@include` entries and a safety flag to avoid
+  injecting duplicate UI on successive tasks.
+- Bump the userscript, extension, and package metadata to the 1.1.73-internal.12 build.
+
 ## v1.1.73
 - Restore canonical capitalization for a curated set of brands, locations, and acronyms using a static helper.
 - Run the proper-noun normalization after backing-vocal lowercasing so parentheses stay fixed.

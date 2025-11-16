@@ -1,7 +1,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.73-internal.11';
+  const SCRIPT_VERSION = '1.1.73-internal.12';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -13,6 +13,19 @@
     showFloatingButton: false
   };
   const extensionOptions = { ...extensionDefaults };
+  let extensionOptionsInitialized = false;
+  const EDIT_MODE_TOKEN = 'mode=edit';
+
+  function isEditModeUrl(url) {
+    return typeof url === 'string' && url.includes(EDIT_MODE_TOKEN);
+  }
+
+  function onUrlChange(url) {
+    if (!hasWindow) return;
+    if (isEditModeUrl(url)) startFormatter();
+    else stopFormatter();
+  }
+
 
   const LANG_RULES = {
     EN: { preserve: ['Latin'], droppedG: true, tagMap: {} },
@@ -2052,6 +2065,19 @@
 
   const { doc: uiDocument, win: uiWindowCandidate } = resolveUiContext();
   const uiWindow = uiDocument?.defaultView || uiWindowCandidate || window;
+  if (hasWindow) {
+    let lastUrl = location.href;
+    if (typeof MutationObserver !== 'undefined') {
+      new MutationObserver(() => {
+        const currentUrl = location.href;
+        if (currentUrl !== lastUrl) {
+          lastUrl = currentUrl;
+          onUrlChange(currentUrl);
+        }
+      }).observe(document, { subtree: true, childList: true });
+    }
+    onUrlChange(lastUrl);
+  }
   bindFocusTracker(document);
   if (uiDocument && uiDocument !== document) bindFocusTracker(uiDocument);
 
@@ -2177,6 +2203,10 @@
   }
 
   function syncFloatingButtonVisibility(){
+    if(!root.__mxmFormatterInitialized){
+      removeFloatingButton();
+      return;
+    }
     if(extensionOptions.showFloatingButton) createFloatingButton();
     else removeFloatingButton();
   }
@@ -2197,12 +2227,15 @@
       extensionOptions.showFloatingButton=nextShow;
     }
     if(showChanged) syncFloatingButtonVisibility();
-    else if(extensionOptions.showFloatingButton && !floatingButton) createFloatingButton();
+    else if(root.__mxmFormatterInitialized && extensionOptions.showFloatingButton && !floatingButton)
+      createFloatingButton();
   }
 
   function initializeExtensionOptions(){
     ensureShortcutListeners();
     syncFloatingButtonVisibility();
+    if(extensionOptionsInitialized) return;
+    extensionOptionsInitialized = true;
     const chromeStorage=typeof chrome!=='undefined'?chrome.storage:undefined;
     if(!chromeStorage?.sync) return;
 
@@ -2233,7 +2266,20 @@
     }
   }
 
-  initializeExtensionOptions();
+  function startFormatter(){
+    if(!hasWindow) return;
+    if(!isEditModeUrl(location.href)) return;
+    if(root.__mxmFormatterInitialized) return;
+    root.__mxmFormatterInitialized = true;
+    initializeExtensionOptions();
+  }
+
+  function stopFormatter(){
+    if(!root.__mxmFormatterInitialized) return;
+    root.__mxmFormatterInitialized = false;
+    removeFloatingButton();
+  }
+
   function toast(msg){
     if(!uiDocument) return;
     const t=uiDocument.createElement('div');
