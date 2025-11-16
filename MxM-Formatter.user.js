@@ -1626,7 +1626,7 @@ x = x.replace(
     return boundary + formatted;
   }
 );
-	  
+
     // Numbers & timing logic
     x = normalizeOClock(x);
     x = applyNumberRules(x);
@@ -1778,19 +1778,18 @@ x = x.replace(/([A-Za-z])(\r?\n)"(?=[A-Za-z])/g, '$1\n"');
     );
 
 // --- PATCH START: Strict fix for double commas + quote spacing ---
-
 // 1️⃣ Collapse redundant commas but keep line integrity
-x = x.replace(/,{2,}/g, ',');            // collapse double commas
-x = x.replace(/[ \t]*,(?=[^"\s])/g, ', ');  // normalize comma spacing without touching newlines
+x = x.replace(/,{2,}/g, ','); // collapse double commas
+x = x.replace(/[ \t]*,(?=[A-Za-z0-9])/g, ', '); // normalize comma spacing before words only
 x = x.replace(/,[ \t]+,[ \t]*/g, ', '); // safety fix for broken comma pairs
+
+// Remove space between punctuation and a following quote
+x = x.replace(/([,.;!?])\s+(["'“”‘’])/g, '$1$2');
 
 // 2️⃣ Fix quote spacing inside parentheses — no other structure touched
 x = x
-  .replace(/\(\s*["“]/g, '("')         // remove space between ( and "
-  .replace(/["”]\s*\)/g, '")')         // remove space before closing )
-
-
-
+  .replace(/\(\s*["“]/g, '("') // remove space between ( and "
+  .replace(/["”]\s*\)/g, '")'); // remove space before closing )
 // --- PATCH END ---
 
      // --- Final I-contraction normalization (post-format override) ---
