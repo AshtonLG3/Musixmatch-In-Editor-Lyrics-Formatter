@@ -1,13 +1,11 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.73-internal.15
+// @version    1.1.75
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
 // @match        https://curators-beta.musixmatch.com/*
-// @include      https://curators.musixmatch.com/tool?*mode=edit*
-// @include      https://curators-beta.musixmatch.com/tool?*mode=edit*
 // @run-at       document-idle
 // @grant        none
 // @downloadURL  https://raw.githubusercontent.com/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/main/MxM-Formatter.user.js
@@ -17,18 +15,16 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.73-internal.15';
+  const SCRIPT_VERSION = '1.1.73';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
   const LAST_ORIGINAL_KEY = 'mxmFmtLastOriginal.v1';
   let lastFormatState = null;
-
   const runningAsExtension =
     typeof chrome !== 'undefined' &&
     typeof chrome.runtime === 'object' &&
     !!chrome.runtime?.id;
-
   const extensionDefaults = {
     lang: "EN",
     autoLowercase: false,
@@ -36,20 +32,6 @@
     showFloatingButton: !runningAsExtension // show button for userscript installs
   };
   const extensionOptions = { ...extensionDefaults };
-  let extensionOptionsInitialized = false;
-  const EDIT_MODE_TOKEN = 'mode=edit';
-
-  function isEditModeUrl(url) {
-    return typeof url === 'string' && url.includes(EDIT_MODE_TOKEN);
-  }
-
-  function onUrlChange(url) {
-    if (!hasWindow) return;
-    if (isEditModeUrl(url)) startFormatter();
-    else stopFormatter();
-  }
-
-
   const LANG_RULES = {
     EN: { preserve: ['Latin'], droppedG: true, tagMap: {} },
     RU: {
@@ -588,7 +570,7 @@
     return text;
   }
 
-  // ---------- Global Proper Noun Support (no CSV) ----------
+// ---------- Global Proper Noun Support (no CSV) ----------
   // Small, hand-picked list you can extend as needed.
   // Everything should be stored in lowercase here; the canonical
   // form is what will be written into the lyrics.
@@ -611,7 +593,6 @@
     // US Cities
     "ny": "NY",
     "nyc": "NYC",
-    "la": "LA",
     "atl": "ATL",
     "atlanta": "Atlanta",
     "miami": "Miami",
@@ -658,8 +639,6 @@
     // Places & Hoods
     "hollywood": "Hollywood",
     "beverly": "Beverly",
-    "uptown": "Uptown",
-    "downtown": "Downtown",
     "chinatown": "Chinatown",
     "soweto": "Soweto",
     "kibera": "Kibera",
@@ -679,7 +658,6 @@
     "moncler": "Moncler",
     "off-white": "Off-White",
     "bape": "Bape",
-    "supreme": "Supreme",
 
     // Footwear / Streetwear
     "nike": "Nike",
@@ -691,11 +669,9 @@
     "timbs": "Timbs",
 
     // Tech & Platforms
-    "apple": "Apple",
     "itunes": "iTunes",
     "spotify": "Spotify",
     "deezer": "Deezer",
-    "tidal": "TIDAL",
     "youtube": "YouTube",
     "tiktok": "TikTok",
     "instagram": "Instagram",
@@ -708,8 +684,7 @@
     "gmail": "Gmail",
     "google": "Google",
     "amazon": "Amazon",
-    "windows": "Windows",
-    "xbox": "Xbox",
+     "xbox": "Xbox",
     "playstation": "PlayStation",
     "nintendo": "Nintendo",
     "github": "GitHub",
@@ -735,11 +710,9 @@
     "hennessy": "Hennessy",
     "henny": "Henny",
     "moet": "Moët",
-    "patron": "Patrón",
+    "patrón": "Patrón",
     "bacardi": "Bacardi",
     "ciroc": "CÎROC",
-    "bud": "Bud",
-    "light": "Light",
 
     // Weapons (always capitalize)
     "glock": "Glock",
@@ -770,7 +743,6 @@
     "south africa": "South Africa",
     "ny": "NY",
     "nyc": "NYC",
-    "la": "LA",
     "atl": "ATL",
     "atlanta": "Atlanta",
     "miami": "Miami",
@@ -782,7 +754,6 @@
     "oakland": "Oakland",
     "baltimore": "Baltimore",
     "compton": "Compton",
-    "queens": "Queens",
     "harlem": "Harlem",
     "bronx": "Bronx",
     "brooklyn": "Brooklyn",
@@ -818,8 +789,6 @@
     "cape town": "Cape Town",
     "hollywood": "Hollywood",
     "beverly": "Beverly",
-    "uptown": "Uptown",
-    "downtown": "Downtown",
     "chinatown": "Chinatown",
     "soweto": "Soweto",
     "kibera": "Kibera",
@@ -838,8 +807,8 @@
     "moncler": "Moncler",
     "off-white": "Off-White",
     "bape": "Bape",
-    "supreme": "Supreme",
     "louis vuitton": "Louis Vuitton",
+	"mercedes benz": "Mercedes-Benz",
     "nike": "Nike",
     "adidas": "Adidas",
     "puma": "Puma",
@@ -847,7 +816,6 @@
     "converse": "Converse",
     "timberland": "Timberland",
     "timbs": "Timbs",
-    "apple": "Apple",
     "itunes": "iTunes",
     "spotify": "Spotify",
     "deezer": "Deezer",
@@ -888,11 +856,9 @@
     "hennessy": "Hennessy",
     "henny": "Henny",
     "moet": "Moët",
-    "patron": "Patrón",
+    "patrón": "Patrón",
     "bacardi": "Bacardi",
     "ciroc": "CÎROC",
-    "bud": "Bud",
-    "light": "Light",
     "grey goose": "Grey Goose",
     "don julio": "Don Julio",
     "bud light": "Bud Light",
@@ -942,7 +908,8 @@
     }
 
     // ---- 2. Token-level fuzzy replacements ----
-    const tokenRe = /\\b[0-9A-Za-z][0-9A-Za-z.'$-]*\\b/g;
+    // FIX: Corrected regex to use \b word boundary and include hyphens, periods, and slashes
+    const tokenRe = /\b[0-9A-Za-z][0-9A-Za-z.'$-]*\b/g;
 
     text = text.replace(tokenRe, raw => {
       const nRaw = normalizeSheetKey(raw);
@@ -961,7 +928,6 @@
 
     return text;
   }
-
   const SENTENCE_ENDER_FOLLOWING_QUOTES = new Set(["'", '"', '‘', '’', '“', '”']);
 
   function capitalizeAfterSentenceEnders(text) {
@@ -1082,7 +1048,7 @@
     return result.join('\n');
   }
 
-  // ---------- Smart Proper Noun / Brand Recognizer (heuristic, no big dictionary) ----------
+// ---------- Smart Proper Noun / Brand Recognizer (heuristic, no big dictionary) ----------
 
   // Tiny high-value brand/platform map for cases where input is fully lowercase.
   // This is NOT meant to be exhaustive, just the heavy hitters.
@@ -1098,7 +1064,6 @@
 
     google: "Google",
     amazon: "Amazon",
-    apple: "Apple",
     microsoft: "Microsoft",
 
     spotify: "Spotify",
@@ -1160,7 +1125,8 @@
 
   // Build a map of lowercased tokens -> "canonical" casing we want to enforce.
   function buildSmartProperMap(text) {
-    const tokenRe = /\b[0-9A-Za-z][0-9A-Za-z.'$]*\b/g;
+    // FIX: Corrected regex to use \b word boundary and include hyphens, periods, and slashes
+    const tokenRe = /\b[A-Za-z0-9][A-Za-z0-9'’\-\.\/]*\b/g;
     const stats = new Map();
 
     let m;
@@ -1509,7 +1475,7 @@
         let line = contractionLines[i];
         line = line.replace(/\bgunna\b/gi, "gonna");
         line = line.replace(/\bgon\b(?!['\u2019])/gi, "gon'");
-        line = line.replace(/'?c(?:uz|os|oz)\b/gi, (match, offset, str) => {
+        line = line.replace(/'?c(?:uz|us|os|oz)\b/gi, (match, offset, str) => {
           const prevChar = offset > 0 ? str[offset - 1] : '';
           const nextIndex = offset + match.length;
           const nextChar = nextIndex < str.length ? str[nextIndex] : '';
@@ -1728,7 +1694,7 @@ const WELL_CLAUSE_STARTERS = new Set([
         "pumpkin","grin","chin","twin","skin","basin","raisn","savin","login","pin","curtain",
         "fin","din","min","gin","lin","kin","sin","win","bin","thin","tin","akin","leadin","captain","mountain",
         "fountain","certain","again","gain","spin","twin","main","cain","maintain","retain","detain","vain","regain",
-        "rain","brain","pain","drain","train","grain","cabin","coffin","satin","chain","plain","remain","campaign",
+        "rain","brain","pain","drain","train","grain","cabin","satin","chain","plain","remain","campaign",
         "fein","contain","domain","explain","sustain","pertain","obtain","entertain","villain","admin","abstain","stain"
       ]);
 
@@ -1786,7 +1752,7 @@ x = x.replace(
       parts.push(group);
     }
 
-    // ✅ Handle fused 'lalalalala' (5+ la's)
+    // ✅ Specific fix: handle fused 'lalalalala' (5 or more la's)
     if (/^la+$/.test(fused || '') && total > 4) {
       const groups = [];
       for (let i = 0; i < total; i += 4) {
@@ -1859,9 +1825,8 @@ x = x.replace(
     });
 
 
-    // === Apply global proper-noun engine ===
+	// === Apply global proper-noun engine ===
     x = applyGlobalProperNouns(x);
-
 
     // Maintain capitalization for lines starting with "("
     x = x.replace(/(^|\n)(\(\s*)(["'“”‘’]?)(\p{Ll})/gu,
@@ -1891,6 +1856,7 @@ x = x.replace(
 
     x = x
       .replace(/([,;!?])(\S)/g, (match, punct, next, offset, str) => {
+
         const following = str[offset + match.length] || '';
         if (
           next === "'" &&
@@ -1899,7 +1865,7 @@ x = x.replace(
         ) {
           return punct + ' ' + next;
         }
-        if (next === '"' || next === "'" || next === '”' || next === '’') return punct + next;
+		if (next === '"' || next === "'" || next === '”' || next === '’') return punct + next;
         const isLetter = next.toLocaleLowerCase() !== next.toLocaleUpperCase();
         if (isLetter || /\d/.test(next)) return punct + ' ' + next;
         return punct + next;
@@ -1923,15 +1889,10 @@ x = x.replace(/([A-Za-z])(\r?\n)"(?=[A-Za-z])/g, '$1\n"');
 
 // --- PATCH END ---
 
-    // 1️⃣ Remove trailing commas inside closing quotes when they end the line
-    x = x.replace(/"([^"]*?),"\s*$/gm, '"$1"');
-
-    // 2️⃣ Preserve commas inside quotes when more text follows on the same line
-    x = x.replace(/"([^"]*?),\s*"\s+(?=\S)/g, '"$1," ');
-
-    // 3️⃣ Normalize comma + quote spacing to prevent drift after replacements
-    x = x.replace(/,\s*"(\S)/g, ', "$1');
+    // 1️⃣ Remove trailing commas from line endings entirely
+    x = x.replace(/,+\s*$/gm, "");
     x = x.replace(/([!?])[ \t]+(["'“”‘’])/g, "$1$2"); // remove space between punctuation and any quote mark
+	x = x.replace(/([!?])[ \t]+(["'“”‘’])/g, "$1$2"); // remove space between punctuation and any quote mark
 
     // Prevent any amalgamation of lines ending with ")" or BV phrases
     x = x.replace(/(\))[ \t]*\n(?=[^\n])/g, '$1\n');
@@ -1955,6 +1916,7 @@ x = x.replace(/([A-Za-z])(\r?\n)"(?=[A-Za-z])/g, '$1\n"');
     );
 
 // --- PATCH START: Strict fix for double commas + quote spacing ---
+
 // 1️⃣ Collapse redundant commas but keep line integrity
 x = x.replace(/,{2,}/g, ','); // collapse double commas
 x = x.replace(/[ \t]*,(?=[A-Za-z0-9])/g, ', '); // normalize comma spacing before words only
@@ -1962,6 +1924,7 @@ x = x.replace(/,[ \t]+,[ \t]*/g, ', '); // safety fix for broken comma pairs
 
 // Remove space between punctuation and a following quote
 x = x.replace(/([,.;!?])\s+(["'“”‘’])/g, '$1$2');
+
 
 // 2️⃣ Fix quote spacing inside parentheses — no other structure touched
 x = x
@@ -1993,9 +1956,6 @@ x = x
 
     // === Prevent #HOOK duplication after non-verbal insertion ===
     x = x.replace(/(#(INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))(\n\1)+/g, '$1');
-
-    // === Smart proper noun / brand pass (Gucci, GitHub, TikTok, etc.) ===
-    x = applySmartProperNouns(x);
 
     // === Final cleanup ===
     x = x.replace(/ +\n/g, '\n'); // trim spaces before line breaks
@@ -2081,22 +2041,8 @@ x = x
 
   const { doc: uiDocument, win: uiWindowCandidate } = resolveUiContext();
   const uiWindow = uiDocument?.defaultView || uiWindowCandidate || window;
-  if (hasWindow) {
-    let lastUrl = location.href;
-    if (typeof MutationObserver !== 'undefined') {
-      new MutationObserver(() => {
-        const currentUrl = location.href;
-        if (currentUrl !== lastUrl) {
-          lastUrl = currentUrl;
-          onUrlChange(currentUrl);
-        }
-      }).observe(document, { subtree: true, childList: true });
-    }
-    onUrlChange(lastUrl);
-  }
   bindFocusTracker(document);
   if (uiDocument && uiDocument !== document) bindFocusTracker(uiDocument);
-
   const BUTTON_RIGHT_OFFSET = 16;
   const BUTTON_BASE_BOTTOM = 146;
   const BUTTON_GAP_PX = 12;
@@ -2236,7 +2182,7 @@ x = x
 
       pop=uiDocument.createElement('div');
       pop.id='mxmFmtPopover';
-      Object.assign(pop.style,{position:'absolute',bottom:'42px',right:'0',background:'#1e1e1e',border:'1px solid #333',borderRadius:'10px',padding:'8px 12px',fontSize:'13px',color:'#eee',boxShadow:'0 4px 16px rgba(0,0,0,0.4)',zIndex:2147483647,boxSizing:'border-box',overflow:'hidden'});
+      Object.assign(pop.style,{position:'absolute',bottom:'42px',right:'0',background:'#1e1e1e',border:'1px solid #333',borderRadius:'10px',padding:'8px 12px',fontSize:'13px',color:'#eee',boxShadow:'0 4px 16px rgba(0,0,0,0.4)',zIndex:2147483647});
 
       pop.innerHTML=`
     <div style="margin-bottom:6px;">
@@ -2284,151 +2230,7 @@ x = x
       };
 
       container.appendChild(pop);
-
-      const containerRect=container.getBoundingClientRect();
-      const panelRect=pop.getBoundingClientRect();
-      const MIN_WIDTH=220;
-      const MIN_HEIGHT=140;
-      const MIN_SIZE=160;
-      const initialWidth=Math.max(Math.round(panelRect.width),MIN_WIDTH);
-      const initialHeight=Math.max(Math.round(panelRect.height),MIN_HEIGHT);
-      pop.style.minWidth=`${MIN_WIDTH}px`;
-      pop.style.minHeight=`${MIN_HEIGHT}px`;
-      pop.style.width=`${initialWidth}px`;
-      pop.style.height=`${initialHeight}px`;
-      const initialLeft=Math.min(Math.round(containerRect.width-initialWidth),0);
-      const initialTop=Math.min(Math.round(-initialHeight-42),-42);
-      pop.style.right='';
-      pop.style.bottom='';
-      pop.style.left=`${initialLeft}px`;
-      pop.style.top=`${initialTop}px`;
-
-      const doc=uiDocument||document;
-      const panel=pop;
-      let isResizing=false;
-      let startX=0;
-      let startY=0;
-      let startWidth=initialWidth;
-      let startHeight=initialHeight;
-      let startLeft=initialLeft;
-      let startTop=initialTop;
-      let currentDir='';
-
-      function resizeMouseMove(e){
-        if(!isResizing) return;
-
-        let dx=e.clientX-startX;
-        let dy=e.clientY-startY;
-
-        let newWidth=startWidth;
-        let newHeight=startHeight;
-        let newLeft=startLeft;
-        let newTop=startTop;
-
-        if(currentDir.includes('e')){
-          newWidth=startWidth+dx;
-        }else if(currentDir.includes('w')){
-          newWidth=startWidth-dx;
-          newLeft=startLeft+dx;
-        }
-
-        if(currentDir.includes('s')){
-          newHeight=startHeight+dy;
-        }else if(currentDir.includes('n')){
-          newHeight=startHeight-dy;
-          newTop=startTop+dy;
-        }
-
-        newWidth=Math.max(newWidth,MIN_SIZE);
-        newHeight=Math.max(newHeight,MIN_SIZE);
-
-        panel.style.width=newWidth+'px';
-        panel.style.height=newHeight+'px';
-        panel.style.left=newLeft+'px';
-        panel.style.top=newTop+'px';
-      }
-
-      function stopResize(){
-        isResizing=false;
-        doc.removeEventListener('mousemove',resizeMouseMove);
-        doc.removeEventListener('mouseup',stopResize);
-      }
-
-      function createResizer(direction){
-        const resizer=uiDocument.createElement('div');
-        resizer.dataset.dir=direction;
-        resizer.style.position='absolute';
-        resizer.style.userSelect='none';
-        resizer.style.touchAction='none';
-        resizer.style.zIndex='2147483648';
-        resizer.style.background='transparent';
-        if(direction==='n'){
-          resizer.style.cursor='ns-resize';
-          resizer.style.top='-4px';
-          resizer.style.left='0';
-          resizer.style.right='0';
-          resizer.style.height='8px';
-        }else if(direction==='s'){
-          resizer.style.cursor='ns-resize';
-          resizer.style.bottom='-4px';
-          resizer.style.left='0';
-          resizer.style.right='0';
-          resizer.style.height='8px';
-        }else if(direction==='e'){
-          resizer.style.cursor='ew-resize';
-          resizer.style.top='0';
-          resizer.style.bottom='0';
-          resizer.style.right='-4px';
-          resizer.style.width='8px';
-        }else if(direction==='w'){
-          resizer.style.cursor='ew-resize';
-          resizer.style.top='0';
-          resizer.style.bottom='0';
-          resizer.style.left='-4px';
-          resizer.style.width='8px';
-        }else{
-          resizer.style.width='12px';
-          resizer.style.height='12px';
-          if(direction==='ne'){
-            resizer.style.cursor='nesw-resize';
-            resizer.style.top='-6px';
-            resizer.style.right='-6px';
-          }else if(direction==='nw'){
-            resizer.style.cursor='nwse-resize';
-            resizer.style.top='-6px';
-            resizer.style.left='-6px';
-          }else if(direction==='se'){
-            resizer.style.cursor='nwse-resize';
-            resizer.style.bottom='-6px';
-            resizer.style.right='-6px';
-          }else if(direction==='sw'){
-            resizer.style.cursor='nesw-resize';
-            resizer.style.bottom='-6px';
-            resizer.style.left='-6px';
-          }
-        }
-        panel.appendChild(resizer);
-        resizer.addEventListener('mousedown',function(e){
-          e.preventDefault();
-          isResizing=true;
-          currentDir=direction;
-
-          startX=e.clientX;
-          startY=e.clientY;
-          startWidth=panel.offsetWidth;
-          startHeight=panel.offsetHeight;
-          startLeft=panel.offsetLeft;
-          startTop=panel.offsetTop;
-
-          doc.addEventListener('mousemove',resizeMouseMove);
-          doc.addEventListener('mouseup',stopResize);
-        });
-      }
-
-      ['n','e','s','w','ne','nw','se','sw'].forEach(createResizer);
-
       gearBtn.setAttribute('aria-expanded','true');
-
       const closer=evt=>{
         if(!pop.contains(evt.target) && evt.target!==gearBtn){
           pop.remove();
@@ -2507,10 +2309,6 @@ x = x
   }
 
   function syncFloatingButtonVisibility(){
-    if(!root.__mxmFormatterInitialized){
-      removeFloatingButton();
-      return;
-    }
     if(extensionOptions.showFloatingButton) createFloatingButton();
     else removeFloatingButton();
   }
@@ -2573,15 +2371,15 @@ x = x
       extensionOptions.showFloatingButton=nextShow;
     }
     if(showChanged) syncFloatingButtonVisibility();
-    else if(root.__mxmFormatterInitialized && extensionOptions.showFloatingButton && !floatingButtonContainer)
-      createFloatingButton();
+    else if(extensionOptions.showFloatingButton && !floatingButtonContainer) createFloatingButton();
+
   }
 
   function initializeExtensionOptions(){
     ensureShortcutListeners();
     syncFloatingButtonVisibility();
-    if(extensionOptionsInitialized) return;
-    extensionOptionsInitialized = true;
+
+
     const chromeStorage=typeof chrome!=='undefined'?chrome.storage:undefined;
     if(!chromeStorage?.sync) return;
 
@@ -2612,20 +2410,7 @@ x = x
     }
   }
 
-  function startFormatter(){
-    if(!hasWindow) return;
-    if(!isEditModeUrl(location.href)) return;
-    if(root.__mxmFormatterInitialized) return;
-    root.__mxmFormatterInitialized = true;
-    initializeExtensionOptions();
-  }
-
-  function stopFormatter(){
-    if(!root.__mxmFormatterInitialized) return;
-    root.__mxmFormatterInitialized = false;
-    removeFloatingButton();
-  }
-
+  initializeExtensionOptions();
   function toast(msg){
     if(!uiDocument) return;
     const t=uiDocument.createElement('div');
@@ -2637,7 +2422,7 @@ x = x
     uiDocument.documentElement.appendChild(t);
     (uiWindow||window).setTimeout(()=>t.remove(),1800);
   }
-
+	
   // ---------- Runner ----------
   function runFormat(passedOptions){
     if(passedOptions && typeof passedOptions==='object'){
