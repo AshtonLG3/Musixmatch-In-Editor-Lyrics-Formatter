@@ -90,4 +90,8 @@ These transformations are safe to re-run—executing the formatter multiple time
 ---
 
 ## License
-Released under the MIT License — free to use, modify, and share.
+Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International.
+
+You are free to share and adapt the formatter with appropriate attribution, but commercial use is prohibited and derivative
+works must remain under the same license. Read the full text at
+https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode.

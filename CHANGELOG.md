@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1.76
+- Update project licensing to Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International.
+- Bump the userscript, extension, and package metadata to the 1.1.76 release.
+
 ## v1.1.73-internal.14
 - Preserve apostrophe spacing fixes while tightening the punctuation callback so closing quotes (", ', ”, ’) stay attached to
   their punctuation without triggering the apostrophe letter guard.
