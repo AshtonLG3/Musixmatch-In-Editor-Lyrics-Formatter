@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1.77
+- Remove the comma/quote spacing collapse that merged lines ending with punctuation into the next quoted line.
+- Bump the userscript, extension, and package metadata to the 1.1.77 release.
+
 ## v1.1.76
 - Update project licensing to Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International.
 - Bump the userscript, extension, and package metadata to the 1.1.76 release.
