@@ -1,7 +1,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.77';
+  const SCRIPT_VERSION = '1.1.78';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -1767,8 +1767,11 @@
 
     // === Normalize syllable repetitions (na, la, etc.) ===
     x = x.replace(
-      /((?:^|\n|[?!\.\s]*)?)((?:na|la))(?:[-\s]+\2){1,}\b|((?:^|\n|[?!\.\s]*)?)((?:na|la){4,})\b/gi,
+      /((?:^|[?!\.\s]*)?)((?:na|la))(?:[-\t ]+\2){1,}\b|((?:^|[?!\.\s]*)?)((?:na|la){4,})\b/gim,
       (full, boundaryA, syllableA, boundaryB, fused) => {
+        // Skip if match contains newlines (don't merge across lines)
+        if (full.includes('\n')) return full;
+
         const boundary = boundaryA || boundaryB || '';
         const syllable = (syllableA || fused?.slice(0, 2) || '').toLowerCase();
         if (!syllable) return full;
@@ -1787,7 +1790,7 @@
           parts.push(group);
         }
 
-        // ✅ Handle fused 'lalalalala' (5+ la's)
+        // ✅ Specific fix: handle fused 'lalalalala' (5 or more la's)
         if (/^la+$/.test(fused || '') && total > 4) {
           const groups = [];
           for (let i = 0; i < total; i += 4) {

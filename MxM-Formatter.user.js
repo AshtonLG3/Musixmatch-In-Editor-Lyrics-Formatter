@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version    1.1.77
+// @version    1.1.78
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.77';
+  const SCRIPT_VERSION = '1.1.78';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -1732,44 +1732,47 @@ const WELL_CLAUSE_STARTERS = new Set([
     })();
 
       // === Normalize syllable repetitions (na, la, etc.) ===
-x = x.replace(
-  /((?:^|\n|[?!.\s]*)?)((?:na|la))(?:[-\s]+\2){1,}\b|((?:^|\n|[?!.\s]*)?)((?:na|la){4,})\b/gi,
-  (full, boundaryA, syllableA, boundaryB, fused) => {
-    const boundary = boundaryA || boundaryB || '';
-    const syllable = (syllableA || fused?.slice(0, 2) || '').toLowerCase();
-    if (!syllable) return full;
+      x = x.replace(
+        /((?:^|[?!.\s]*)?)((?:na|la))(?:[-\t ]+\2){1,}\b|((?:^|[?!.\s]*)?)((?:na|la){4,})\b/gim,
+        (full, boundaryA, syllableA, boundaryB, fused) => {
+          // Skip if match contains newlines (don't merge across lines)
+          if (full.includes('\n')) return full;
 
-    // Count total syllables
-    const matches = (full.match(new RegExp(`${syllable}`, 'gi')) || []).length;
-    const total = Math.max(2, matches);
+          const boundary = boundaryA || boundaryB || '';
+          const syllable = (syllableA || fused?.slice(0, 2) || '').toLowerCase();
+          if (!syllable) return full;
 
-    // Group syllables in sets of 4, separated by commas every 4 repeats
-    const parts = [];
-    for (let i = 0; i < total; i += 4) {
-      const group = Array.from(
-        { length: Math.min(4, total - i) },
-        () => syllable
-      ).join('-');
-      parts.push(group);
-    }
+          // Count total syllables
+          const matches = (full.match(new RegExp(`${syllable}`, 'gi')) || []).length;
+          const total = Math.max(2, matches);
 
-    // ✅ Specific fix: handle fused 'lalalalala' (5 or more la's)
-    if (/^la+$/.test(fused || '') && total > 4) {
-      const groups = [];
-      for (let i = 0; i < total; i += 4) {
-        const chunk = Math.min(4, total - i);
-        groups.push(Array.from({ length: chunk }, () => syllable).join('-'));
-      }
-      return boundary + groups.join(', ');
-    }
+          // Group syllables in sets of 4, separated by commas every 4 repeats
+          const parts = [];
+          for (let i = 0; i < total; i += 4) {
+            const group = Array.from(
+              { length: Math.min(4, total - i) },
+              () => syllable
+            ).join('-');
+            parts.push(group);
+          }
 
-    let formatted = parts.join(', ');
-    if (/[?!.\n]\s*$/.test(boundary))
-      formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1);
+          // ✅ Specific fix: handle fused 'lalalalala' (5 or more la's)
+          if (/^la+$/.test(fused || '') && total > 4) {
+            const groups = [];
+            for (let i = 0; i < total; i += 4) {
+              const chunk = Math.min(4, total - i);
+              groups.push(Array.from({ length: chunk }, () => syllable).join('-'));
+            }
+            return boundary + groups.join(', ');
+          }
 
-    return boundary + formatted;
-  }
-);
+          let formatted = parts.join(', ');
+          if (/[?!.\n]\s*$/.test(boundary))
+            formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1);
+
+          return boundary + formatted;
+        }
+      );
 
     // Numbers & timing logic
     x = normalizeOClock(x);
