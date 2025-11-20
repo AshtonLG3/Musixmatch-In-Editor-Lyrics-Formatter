@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1.78
+- Prevent the syllable normalizer from merging across lines by ignoring matches that include newlines and tightening the match pattern.
+- Bump the userscript, extension, and package metadata to the 1.1.78 release.
+
 ## v1.1.77
 - Remove the comma/quote spacing collapse that merged lines ending with punctuation into the next quoted line.
 - Bump the userscript, extension, and package metadata to the 1.1.77 release.
