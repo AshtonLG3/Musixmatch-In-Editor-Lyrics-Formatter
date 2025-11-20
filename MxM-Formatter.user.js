@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version    1.1.76
+// @version    1.1.77
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.76';
+  const SCRIPT_VERSION = '1.1.77';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -1921,9 +1921,6 @@ x = x.replace(/([A-Za-z])(\r?\n)"(?=[A-Za-z])/g, '$1\n"');
 x = x.replace(/,{2,}/g, ','); // collapse double commas
 x = x.replace(/[ \t]*,(?=[A-Za-z0-9])/g, ', '); // normalize comma spacing before words only
 x = x.replace(/,[ \t]+,[ \t]*/g, ', '); // safety fix for broken comma pairs
-
-// Remove space between punctuation and a following quote
-x = x.replace(/([,.;!?])\s+(["'“”‘’])/g, '$1$2');
 
 
 // 2️⃣ Fix quote spacing inside parentheses — no other structure touched
