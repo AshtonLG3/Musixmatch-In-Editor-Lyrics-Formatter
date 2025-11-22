@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version    1.1.78
+// @version      1.1.78
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -1535,10 +1535,13 @@
       .replace(/\bdont\b/gi, "don't")
       .replace(/\bcant\b/gi, "can't")
       .replace(/\bwont\b/gi, "won't")
+      .replace(/\bwasnt\b/gi, "wasn't")
+      .replace(/\bisnt\b/gi, "isn't")
       .replace(/\baint\b/gi, "ain't")
       .replace(/\bwoah\b/gi, "whoa")
 	  .replace(/\byall\b/gi, "y'all")
 	  .replace(/\bya'll\b/gi, "y'all")
+	  .replace(/\beveryday\b/gi, "every day")
 	  .replace(/\bmhm\b/gi, "hmm")
 	  .replace(/\bmhmm\b/gi, "hmm")
 	  .replace(/\bmmh\b/gi, "hmm")
@@ -1692,7 +1695,7 @@ const WELL_CLAUSE_STARTERS = new Set([
 
       const LOCAL_EXCLUSIONS = new Set([
         "begin","began","within","cousin","violin","virgin","origin","margin","resin","penguin",
-        "pumpkin","grin","chin","twin","skin","basin","raisn","savin","login","pin","curtain",
+        "pumpkin","grin","chin","twin","skin","basin","raisn","spain","login","pin","curtain",
         "fin","din","min","gin","lin","kin","sin","win","bin","thin","tin","akin","leadin","captain","mountain",
         "fountain","certain","again","gain","spin","twin","main","cain","maintain","retain","detain","vain","regain",
         "rain","brain","pain","drain","train","grain","cabin","satin","chain","plain","remain","campaign",
