@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.78
+// @version      1.1.79
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -2460,8 +2460,13 @@ x = x
     document.dispatchEvent(event);
   };
 
+	 // ==== Floating button visibility toggle ====
   document.addEventListener('mxmFormatRequest', (evt) => {
     if (typeof runFormat === 'function') runFormat(evt?.detail);
   });
-
+setInterval(() => {
+  const isEditor = location.pathname === '/tool' || location.pathname === '/tool/';
+  const btn = document.getElementById('mxmFmtBtnWrap');
+  if (btn) btn.style.display = isEditor ? 'flex' : 'none';
+}, 800);
 })(typeof globalThis !== 'undefined' ? globalThis : this);
