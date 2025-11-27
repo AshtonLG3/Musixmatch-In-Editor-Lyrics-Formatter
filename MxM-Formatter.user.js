@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MxM In-Editor Formatter (EN)
 // @namespace    mxm-tools
-// @version      1.1.80
+// @version      1.1.81
 // @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
 // @author       Richard Mangezi Muketa
 // @match        https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.80';
+  const SCRIPT_VERSION = '1.1.81';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -2108,6 +2108,10 @@ x = x
     const buttonParent=uiDocument.body||uiDocument.documentElement;
     if(!buttonParent) return;
 
+    const MF_BLUE='#0A4C78';
+    const MF_GOLD='#D7B46A';
+    const MF_GLOW='rgba(215,180,106,0.55)';
+
     let container=floatingButtonContainer||uiDocument.getElementById('mxmFmtBtnWrap');
     if(!container){
       container=uiDocument.createElement('div');
@@ -2128,11 +2132,12 @@ x = x
     }
 
     if(!formatBtn.dataset.mxmStyled){
-      Object.assign(formatBtn.style,{padding:'10px 14px',borderRadius:'12px',border:'1px solid #303030',background:'linear-gradient(135deg,#181818,#101010)',color:'#f9f9f9',fontFamily:'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',fontSize:'13px',letterSpacing:'0.3px',cursor:'pointer',transition:'transform .18s ease, box-shadow .18s ease',boxShadow:'0 6px 18px rgba(0,0,0,.28)'});
-      formatBtn.addEventListener('mouseenter',()=>{formatBtn.style.transform='translateY(-2px)';formatBtn.style.boxShadow='0 10px 24px rgba(0,0,0,.32)';});
-      formatBtn.addEventListener('mouseleave',()=>{formatBtn.style.transform='';formatBtn.style.boxShadow='0 6px 18px rgba(0,0,0,.28)';});
-      formatBtn.addEventListener('focus',()=>{formatBtn.style.boxShadow='0 0 0 3px rgba(255,255,255,.18)';});
-      formatBtn.addEventListener('blur',()=>{formatBtn.style.boxShadow='0 6px 18px rgba(0,0,0,.28)';});
+      Object.assign(formatBtn.style,{padding:'12px 24px',borderRadius:'12px',border:`2px solid ${MF_GOLD}`,background:MF_BLUE,color:'#fff',fontFamily:'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',fontSize:'15px',fontWeight:'600',letterSpacing:'0.3px',cursor:'pointer',transition:'transform .18s ease, box-shadow .18s ease',boxShadow:`0 0 14px ${MF_GLOW}`});
+      formatBtn.addEventListener('mouseenter',()=>{formatBtn.style.transform='translateY(-3px)';formatBtn.style.boxShadow=`0 0 22px ${MF_GLOW}`;});
+      formatBtn.addEventListener('mouseleave',()=>{formatBtn.style.transform='';formatBtn.style.boxShadow=`0 0 14px ${MF_GLOW}`;});
+      formatBtn.addEventListener('focus',()=>{formatBtn.style.boxShadow=`0 0 0 3px ${MF_GLOW}`;});
+      formatBtn.addEventListener('blur',()=>{formatBtn.style.boxShadow=`0 0 14px ${MF_GLOW}`;});
+      formatBtn.addEventListener('click',()=>{formatBtn.animate([{boxShadow:`0 0 22px ${MF_GLOW}`},{boxShadow:`0 0 40px ${MF_GOLD}`},{boxShadow:`0 0 22px ${MF_GLOW}`}],{duration:320,easing:'ease-out'});});
       formatBtn.dataset.mxmStyled='1';
     }
 
