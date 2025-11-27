@@ -877,9 +877,7 @@
     "halloween": "Halloween",
     "thanksgiving": "Thanksgiving",
     "valentine's day": "Valentine's Day",
-    "easter": "Easter",
-	  "jesus": "Jesus",
-	"christ": "Christ"
+    "easter": "Easter"
   };
 
   /* === STRUCTURAL-FUZZY NORMALIZER === */
