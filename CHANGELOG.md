@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1.80
+- Wire the extension manifest to the bundled blue icon set so browser menus display the correct artwork.
+- Bump the userscript, extension, and package metadata to the 1.1.80 release.
+
 ## v1.1.78
 - Prevent the syllable normalizer from merging across lines by ignoring matches that include newlines and tightening the match pattern.
 - Bump the userscript, extension, and package metadata to the 1.1.78 release.
