@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1.81
+- Refresh the floating format button with Musixmatch Formatter blue and gold theming plus a subtle click glow animation.
+- Bump the userscript, extension, and package metadata to the 1.1.81 release.
+
 ## v1.1.80
 - Wire the extension manifest to the bundled blue icon set so browser menus display the correct artwork.
 - Bump the userscript, extension, and package metadata to the 1.1.80 release.
