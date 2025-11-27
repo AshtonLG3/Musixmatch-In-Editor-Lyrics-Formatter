@@ -2126,18 +2126,19 @@ x = x
       formatBtn=uiDocument.createElement('button');
       formatBtn.id='mxmFmtBtn';
       formatBtn.type='button';
-      formatBtn.textContent='Format MxM';
+      formatBtn.textContent='format';
       formatBtn.setAttribute('aria-label','Format lyrics (Alt+M)');
       container.appendChild(formatBtn);
     }
 
     if(!formatBtn.dataset.mxmStyled){
-      Object.assign(formatBtn.style,{padding:'12px 24px',borderRadius:'12px',border:`2px solid ${MF_GOLD}`,background:MF_BLUE,color:'#fff',fontFamily:'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',fontSize:'15px',fontWeight:'600',letterSpacing:'0.3px',cursor:'pointer',transition:'transform .18s ease, box-shadow .18s ease',boxShadow:`0 0 14px ${MF_GLOW}`});
-      formatBtn.addEventListener('mouseenter',()=>{formatBtn.style.transform='translateY(-3px)';formatBtn.style.boxShadow=`0 0 22px ${MF_GLOW}`;});
-      formatBtn.addEventListener('mouseleave',()=>{formatBtn.style.transform='';formatBtn.style.boxShadow=`0 0 14px ${MF_GLOW}`;});
+      formatBtn.textContent='format';
+      Object.assign(formatBtn.style,{padding:'10px 20px',borderRadius:'10px',border:`2px solid ${MF_GOLD}`,background:MF_BLUE,color:'#FFFFFF',fontFamily:'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',fontSize:'14px',fontWeight:'600',letterSpacing:'0.3px',cursor:'pointer',transition:'transform .18s ease, box-shadow .18s ease',boxShadow:`0 0 12px ${MF_GLOW}`});
+      formatBtn.addEventListener('mouseenter',()=>{formatBtn.style.transform='translateY(-2px)';formatBtn.style.boxShadow=`0 0 20px ${MF_GLOW}`;});
+      formatBtn.addEventListener('mouseleave',()=>{formatBtn.style.transform='';formatBtn.style.boxShadow=`0 0 12px ${MF_GLOW}`;});
       formatBtn.addEventListener('focus',()=>{formatBtn.style.boxShadow=`0 0 0 3px ${MF_GLOW}`;});
-      formatBtn.addEventListener('blur',()=>{formatBtn.style.boxShadow=`0 0 14px ${MF_GLOW}`;});
-      formatBtn.addEventListener('click',()=>{formatBtn.animate([{boxShadow:`0 0 22px ${MF_GLOW}`},{boxShadow:`0 0 40px ${MF_GOLD}`},{boxShadow:`0 0 22px ${MF_GLOW}`}],{duration:320,easing:'ease-out'});});
+      formatBtn.addEventListener('blur',()=>{formatBtn.style.boxShadow=`0 0 12px ${MF_GLOW}`;});
+      formatBtn.addEventListener('click',()=>{formatBtn.animate([{boxShadow:`0 0 20px ${MF_GLOW}`},{boxShadow:`0 0 34px ${MF_GOLD}`},{boxShadow:`0 0 20px ${MF_GLOW}`}],{duration:320,easing:'ease-out'});});
       formatBtn.dataset.mxmStyled='1';
     }
 
@@ -2146,17 +2147,23 @@ x = x
       revertBtn=uiDocument.createElement('button');
       revertBtn.id='mxmFmtRevertBtn';
       revertBtn.type='button';
-      revertBtn.textContent='Revert';
+      revertBtn.textContent='';
       revertBtn.setAttribute('aria-label','Revert to original lyrics');
       container.appendChild(revertBtn);
     }
 
     if(!revertBtn.dataset.mxmStyled){
-      Object.assign(revertBtn.style,{padding:'10px 14px',borderRadius:'12px',border:'1px solid #3a3a3a',background:'linear-gradient(135deg,#222,#161616)',color:'#f0f0f0',fontFamily:'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',fontSize:'13px',letterSpacing:'0.3px',cursor:'pointer',transition:'transform .18s ease, box-shadow .18s ease',boxShadow:'0 6px 18px rgba(0,0,0,.24)'});
-      revertBtn.addEventListener('mouseenter',()=>{if(revertBtn.disabled) return;revertBtn.style.transform='translateY(-2px)';revertBtn.style.boxShadow='0 10px 24px rgba(0,0,0,.28)';});
-      revertBtn.addEventListener('mouseleave',()=>{revertBtn.style.transform='';revertBtn.style.boxShadow=revertBtn.disabled?'':'0 6px 18px rgba(0,0,0,.24)';});
-      revertBtn.addEventListener('focus',()=>{revertBtn.style.boxShadow='0 0 0 3px rgba(255,255,255,.18)';});
-      revertBtn.addEventListener('blur',()=>{revertBtn.style.boxShadow=revertBtn.disabled?'':'0 6px 18px rgba(0,0,0,.24)';});
+      revertBtn.textContent='';
+      const revertIcon=uiDocument.createElement('img');
+      revertIcon.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNTYiIGhlaWdodD0iMjU2IiBmaWxsPSJub25lIiBzdHJva2U9IiNEN0I0NkEiIHN0cm9rZS13aWR0aD0iMjAiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgdmlld0JveD0iMCAwIDI1NiAyNTYiPjxwYXRoIGQ9Ik04MCAxNjAgTDIwIDEwMCBMODAgNDAiIC8+PHBhdGggZD0iTTIwIDEwMCBIMTUwIEMyMTAgMTAwIDI0MCAxNDAgMjQwIDE4MCBDMjQwIDIyMCAyMTAgMjQwIDE1MCAyNDAiIC8+PC9zdmc+';
+      Object.assign(revertIcon.style,{width:'18px',height:'18px',display:'block',filter:'drop-shadow(0 0 2px rgba(215,180,106,0.5))'});
+      revertBtn.appendChild(revertIcon);
+
+      Object.assign(revertBtn.style,{padding:'8px 12px',borderRadius:'10px',border:`2px solid ${MF_GOLD}`,background:MF_BLUE,cursor:'pointer',boxShadow:`0 0 10px ${MF_GLOW}`,transition:'transform .18s ease, box-shadow .18s ease'});
+      revertBtn.addEventListener('mouseenter',()=>{if(revertBtn.disabled) return;revertBtn.style.transform='translateY(-2px)';revertBtn.style.boxShadow=`0 0 18px ${MF_GLOW}`;});
+      revertBtn.addEventListener('mouseleave',()=>{revertBtn.style.transform='';revertBtn.style.boxShadow=revertBtn.disabled?'':`0 0 10px ${MF_GLOW}`;});
+      revertBtn.addEventListener('focus',()=>{revertBtn.style.boxShadow=`0 0 0 3px ${MF_GLOW}`;});
+      revertBtn.addEventListener('blur',()=>{revertBtn.style.boxShadow=revertBtn.disabled?'':`0 0 10px ${MF_GLOW}`;});
       revertBtn.dataset.mxmStyled='1';
     }
 
@@ -2330,11 +2337,12 @@ x = x
     btn.setAttribute('aria-disabled',btn.disabled?'true':'false');
     btn.style.opacity=btn.disabled?'0.55':'1';
     btn.style.cursor=btn.disabled?'not-allowed':'pointer';
+    const baseShadow='0 0 10px rgba(215,180,106,0.55)';
     if(btn.disabled){
       btn.style.transform='';
       btn.style.boxShadow='';
     }else if(!btn.style.boxShadow){
-      btn.style.boxShadow='0 6px 18px rgba(0,0,0,.24)';
+      btn.style.boxShadow=baseShadow;
     }
   }
 
