@@ -1,21 +1,21 @@
 // ==UserScript==
-// @name         MxM In-Editor Formatter (EN)
-// @namespace    mxm-tools
-// @version      1.1.81
-// @description  Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
-// @author       Richard Mangezi Muketa
-// @match        https://curators.musixmatch.com/*
-// @match        https://curators-beta.musixmatch.com/*
-// @run-at       document-idle
-// @grant        none
-// @downloadURL  https://raw.githubusercontent.com/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/main/MxM-Formatter.user.js
-// @updateURL    https://raw.githubusercontent.com/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/main/MxM-Formatter.meta.js
+// @name          MxM In-Editor Formatter (EN)
+// @namespace     mxm-tools
+// @version       1.1.82
+// @description   Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
+// @author        Richard Mangezi Muketa
+// @match         https://curators.musixmatch.com/*
+// @match         https://curators-beta.musixmatch.com/*
+// @run-at        document-idle
+// @grant         none
+// @downloadURL   https://raw.githubusercontent.com/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/main/MxM-Formatter.user.js
+// @updateURL     https://raw.githubusercontent.com/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/main/MxM-Formatter.meta.js
 // ==/UserScript==
 
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.81';
+  const SCRIPT_VERSION = '1.1.82';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -723,9 +723,9 @@
   };
 
   /* ============================================================
-     === GOOGLE SHEET PROPER NOUN CANONICAL MAP (STRUCTURAL-FUZZY) ===
-     Column A (lowercase raw) → Column B (canonical form)
-     ============================================================ */
+      === GOOGLE SHEET PROPER NOUN CANONICAL MAP (STRUCTURAL-FUZZY) ===
+      Column A (lowercase raw) → Column B (canonical form)
+      ============================================================ */
 
   const GLOBAL_PROPER_FROM_SHEET = {
     "usa": "USA",
@@ -1057,7 +1057,7 @@
     gucci: "Gucci",
     chanel: "Chanel",
     prada: "Prada",
-    louis: "Louis",               // so "Louis Vuitton" won't be stuck as lowercase
+    louis: "Louis",                // so "Louis Vuitton" won't be stuck as lowercase
     "louis vuitton": "Louis Vuitton",
     nike: "Nike",
     adidas: "Adidas",
@@ -1306,7 +1306,7 @@
     // Accepts: optional leading #[, (, spaces], the Russian label, optional number,
     // optional separators/credits, then optional closing ], )
     // Examples matched:
-    //   [Куплет 1: Artist], (Припев — Мумий Тролль), #Интерлюдия - Имя, Инструментал
+    //    [Куплет 1: Artist], (Припев — Мумий Тролль), #Интерлюдия - Имя, Инструментал
     if (currentLang === 'RU') {
       const RU_STRUCTURE_RE =
         /(^|\n)\s*#?\s*[\[\(\s]*\s*(куплет|припев|хук|бридж|интерлюдия|брейкдаун|брэйкдаун|инструментал|интро|аутро|предприпев|пред-припев)(?:\s*\d+)?(?:\s*[-:–—]\s*[\p{L}\d .,'’&()\-–—]*)?[\]\)\s]*(?=\n|$)/gimu;
@@ -1877,12 +1877,12 @@ const WELL_CLAUSE_STARTERS = new Set([
         if (isLetter || /\d/.test(next)) return punct + ' ' + next;
         return punct + next;
       })
-      .replace(/ +/g, " ")                           // collapse multiple spaces
-      .replace(/[ \t]+([,.;!?\)])/g, "$1")           // preserve newlines, remove only spaces before punctuation (except before "(")
-      .replace(/([!?])[ \t]+(?=")/g, '$1')            // keep punctuation tight to closing quotes
-      .replace(/([!?])(?=\s*["“(])/g, '$1 ')          // preserve space before opening quotes
+      .replace(/ +/g, " ")                             // collapse multiple spaces
+      .replace(/[ \t]+([,.;!?\)])/g, "$1")             // preserve newlines, remove only spaces before punctuation (except before "(")
+      .replace(/([!?])[ \t]+(?=")/g, '$1')              // keep punctuation tight to closing quotes
+      .replace(/([!?])(?=\s*["“(])/g, '$1 ')           // preserve space before opening quotes
       .replace(/(?<=[A-Za-z0-9])"(?=[^\s"!.?,;:)\]])/g, '" ') // ensure space after closing quotes when followed by text
-      .replace(/([!?])[ \t]*(?=\()/g, "$1 ")         // ensure space between !/? and following "("
+      .replace(/([!?])[ \t]*(?=\()/g, "$1 ")          // ensure space between !/? and following "("
       .replace(/([A-Za-z])\(/g, "$1 (")              // space before (
       .replace(/\)([A-Za-z])/g, ") $1")              // space after )
       .replace(/\( +/g, "(").replace(/ +\)/g, ")")
@@ -2108,9 +2108,10 @@ x = x
     const buttonParent=uiDocument.body||uiDocument.documentElement;
     if(!buttonParent) return;
 
-    const MF_BLUE='#0A4C78';
-    const MF_GOLD='#D7B46A';
-    const MF_GLOW='rgba(215,180,106,0.55)';
+    // Updated Colors to match Logo (approx)
+    const MF_BLUE='#0e4f7a'; // Slightly richer blue from icon
+    const MF_GOLD='#d4af37'; // Metallic Gold
+    const MF_GLOW='rgba(212, 175, 55, 0.55)'; // Gold Glow
 
     let container=floatingButtonContainer||uiDocument.getElementById('mxmFmtBtnWrap');
     if(!container){
@@ -2118,7 +2119,8 @@ x = x
       container.id='mxmFmtBtnWrap';
       container.setAttribute('role','group');
       container.setAttribute('aria-label','Lyrics formatter controls');
-      Object.assign(container.style,{display:'flex',gap:'10px',alignItems:'center',position:'fixed',zIndex:2147483647,padding:'8px 10px',borderRadius:'16px',border:'1px solid #252525',background:'rgba(18,18,18,.92)',backdropFilter:'blur(12px)'});
+      // Slightly increased gap to accommodate circular buttons
+      Object.assign(container.style,{display:'flex',gap:'12px',alignItems:'center',position:'fixed',zIndex:2147483647,padding:'8px 10px',borderRadius:'16px',border:'none',background:'transparent',backdropFilter:'none'});
     }
 
     let formatBtn=floatingFormatButton||container.querySelector('#mxmFmtBtn');
@@ -2126,19 +2128,33 @@ x = x
       formatBtn=uiDocument.createElement('button');
       formatBtn.id='mxmFmtBtn';
       formatBtn.type='button';
-      formatBtn.textContent='format';
+      // New content: Serif Italic 'f'
+      formatBtn.innerHTML = '<span style="font-family: \'Times New Roman\', serif; font-style: italic; font-weight: 700; font-size: 38px; line-height: 1; padding-bottom: 4px; padding-right: 2px;">f</span>';
       formatBtn.setAttribute('aria-label','Format lyrics (Alt+M)');
       container.appendChild(formatBtn);
     }
 
     if(!formatBtn.dataset.mxmStyled){
-      formatBtn.textContent='format';
-      Object.assign(formatBtn.style,{padding:'10px 20px',borderRadius:'10px',border:`2px solid ${MF_GOLD}`,background:MF_BLUE,color:'#FFFFFF',fontFamily:'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',fontSize:'14px',fontWeight:'600',letterSpacing:'0.3px',cursor:'pointer',transition:'transform .18s ease, box-shadow .18s ease',boxShadow:`0 0 12px ${MF_GLOW}`});
-      formatBtn.addEventListener('mouseenter',()=>{formatBtn.style.transform='translateY(-2px)';formatBtn.style.boxShadow=`0 0 20px ${MF_GLOW}`;});
-      formatBtn.addEventListener('mouseleave',()=>{formatBtn.style.transform='';formatBtn.style.boxShadow=`0 0 12px ${MF_GLOW}`;});
+      // Updated Styles: Circular, Blue BG, Gold Text
+      Object.assign(formatBtn.style,{
+        width: '56px',
+        height: '56px',
+        borderRadius: '50%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        border: `2px solid ${MF_GOLD}`,
+        background: MF_BLUE,
+        color: MF_GOLD,
+        cursor:'pointer',
+        transition:'transform .18s ease, box-shadow .18s ease',
+        boxShadow:`0 4px 14px ${MF_GLOW}`
+      });
+      formatBtn.addEventListener('mouseenter',()=>{formatBtn.style.transform='translateY(-3px) scale(1.05)';formatBtn.style.boxShadow=`0 6px 22px ${MF_GLOW}`;});
+      formatBtn.addEventListener('mouseleave',()=>{formatBtn.style.transform='';formatBtn.style.boxShadow=`0 4px 14px ${MF_GLOW}`;});
       formatBtn.addEventListener('focus',()=>{formatBtn.style.boxShadow=`0 0 0 3px ${MF_GLOW}`;});
-      formatBtn.addEventListener('blur',()=>{formatBtn.style.boxShadow=`0 0 12px ${MF_GLOW}`;});
-      formatBtn.addEventListener('click',()=>{formatBtn.animate([{boxShadow:`0 0 20px ${MF_GLOW}`},{boxShadow:`0 0 34px ${MF_GOLD}`},{boxShadow:`0 0 20px ${MF_GLOW}`}],{duration:320,easing:'ease-out'});});
+      formatBtn.addEventListener('blur',()=>{formatBtn.style.boxShadow=`0 4px 14px ${MF_GLOW}`;});
+      formatBtn.addEventListener('click',()=>{formatBtn.animate([{transform:'scale(0.9)'},{transform:'scale(1)'}],{duration:150,easing:'ease-out'});});
       formatBtn.dataset.mxmStyled='1';
     }
 
@@ -2147,23 +2163,34 @@ x = x
       revertBtn=uiDocument.createElement('button');
       revertBtn.id='mxmFmtRevertBtn';
       revertBtn.type='button';
-      revertBtn.textContent='';
+      // New content: Undo Arrow SVG
+      const undoSvg = `<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg>`;
+      revertBtn.innerHTML = undoSvg;
       revertBtn.setAttribute('aria-label','Revert to original lyrics');
       container.appendChild(revertBtn);
     }
 
     if(!revertBtn.dataset.mxmStyled){
-      revertBtn.textContent='';
-      const revertIcon=uiDocument.createElement('img');
-      revertIcon.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNTYiIGhlaWdodD0iMjU2IiBmaWxsPSJub25lIiBzdHJva2U9IiNEN0I0NkEiIHN0cm9rZS13aWR0aD0iMjAiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgdmlld0JveD0iMCAwIDI1NiAyNTYiPjxwYXRoIGQ9Ik04MCAxNjAgTDIwIDEwMCBMODAgNDAiIC8+PHBhdGggZD0iTTIwIDEwMCBIMTUwIEMyMTAgMTAwIDI0MCAxNDAgMjQwIDE4MCBDMjQwIDIyMCAyMTAgMjQwIDE1MCAyNDAiIC8+PC9zdmc+';
-      Object.assign(revertIcon.style,{width:'18px',height:'18px',display:'block',filter:'drop-shadow(0 0 2px rgba(215,180,106,0.5))'});
-      revertBtn.appendChild(revertIcon);
-
-      Object.assign(revertBtn.style,{padding:'8px 12px',borderRadius:'10px',border:`2px solid ${MF_GOLD}`,background:MF_BLUE,cursor:'pointer',boxShadow:`0 0 10px ${MF_GLOW}`,transition:'transform .18s ease, box-shadow .18s ease'});
-      revertBtn.addEventListener('mouseenter',()=>{if(revertBtn.disabled) return;revertBtn.style.transform='translateY(-2px)';revertBtn.style.boxShadow=`0 0 18px ${MF_GLOW}`;});
-      revertBtn.addEventListener('mouseleave',()=>{revertBtn.style.transform='';revertBtn.style.boxShadow=revertBtn.disabled?'':`0 0 10px ${MF_GLOW}`;});
-      revertBtn.addEventListener('focus',()=>{revertBtn.style.boxShadow=`0 0 0 3px ${MF_GLOW}`;});
-      revertBtn.addEventListener('blur',()=>{revertBtn.style.boxShadow=revertBtn.disabled?'':`0 0 10px ${MF_GLOW}`;});
+       // Updated Styles: Smaller Circular Button, Blue BG, Gold Icon
+      Object.assign(revertBtn.style,{
+        width: '40px',
+        height: '40px',
+        borderRadius: '50%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '0',
+        border: `1px solid ${MF_GOLD}`,
+        background: MF_BLUE,
+        color: MF_GOLD,
+        cursor:'pointer',
+        transition:'transform .18s ease, box-shadow .18s ease, opacity .2s',
+        boxShadow:'0 4px 12px rgba(0,0,0,.3)'
+      });
+      revertBtn.addEventListener('mouseenter',()=>{if(revertBtn.disabled) return;revertBtn.style.transform='translateY(-2px)';revertBtn.style.boxShadow='0 6px 16px rgba(0,0,0,.4)';});
+      revertBtn.addEventListener('mouseleave',()=>{revertBtn.style.transform='';revertBtn.style.boxShadow=revertBtn.disabled?'':'0 4px 12px rgba(0,0,0,.3)';});
+      revertBtn.addEventListener('focus',()=>{revertBtn.style.boxShadow=`0 0 0 2px ${MF_GOLD}`;});
+      revertBtn.addEventListener('blur',()=>{revertBtn.style.boxShadow=revertBtn.disabled?'':'0 4px 12px rgba(0,0,0,.3)';});
       revertBtn.dataset.mxmStyled='1';
     }
 
@@ -2181,7 +2208,8 @@ x = x
     }
 
     if(!gearBtn.dataset.mxmStyled){
-      Object.assign(gearBtn.style,{fontSize:'16px',marginLeft:'2px',cursor:'pointer',background:'transparent',border:'none',color:'#f5f5f5',padding:'6px'});
+      // Make the gear icon Gold
+      Object.assign(gearBtn.style,{fontSize:'18px',marginLeft:'2px',cursor:'pointer',background:'transparent',border:'none',color:MF_GOLD,padding:'6px',textShadow: '0 2px 4px rgba(0,0,0,0.5)'});
       gearBtn.dataset.mxmStyled='1';
     }
 
@@ -2198,12 +2226,12 @@ x = x
 
       pop=uiDocument.createElement('div');
       pop.id='mxmFmtPopover';
-      Object.assign(pop.style,{position:'absolute',bottom:'42px',right:'0',background:'#1e1e1e',border:'1px solid #333',borderRadius:'10px',padding:'8px 12px',fontSize:'13px',color:'#eee',boxShadow:'0 4px 16px rgba(0,0,0,0.4)',zIndex:2147483647});
+      Object.assign(pop.style,{position:'absolute',bottom:'70px',right:'0',background:'#1e1e1e',border:`1px solid ${MF_GOLD}`,borderRadius:'10px',padding:'8px 12px',fontSize:'13px',color:'#eee',boxShadow:'0 4px 16px rgba(0,0,0,0.4)',zIndex:2147483647});
 
       pop.innerHTML=`
     <div style="margin-bottom:6px;">
       <label style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-        <span>Language:</span>
+        <span style="color:${MF_GOLD}">Language:</span>
         <select id="mxmLangSelect" style="background:#222;color:#fff;border:1px solid #444;border-radius:6px;padding:2px 4px;">
           <option value="EN">EN</option>
           <option value="RU">RU</option>
@@ -2216,7 +2244,7 @@ x = x
     </div>
     <div>
       <label style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-        <span>Auto Lowercase:</span>
+        <span style="color:${MF_GOLD}">Auto Lowercase:</span>
         <input type="checkbox" id="mxmLowercaseToggle">
       </label>
     </div>
@@ -2260,7 +2288,7 @@ x = x
 
     if(!container.isConnected) buttonParent.appendChild(container);
 
-    container.style.boxShadow='0 6px 18px rgba(0,0,0,.28)';
+    // container.style.boxShadow='0 6px 18px rgba(0,0,0,.28)'; // Removed container shadow since buttons have their own
     placeButton(container);
 
     const hostWindow=uiWindow||window;
@@ -2337,15 +2365,14 @@ x = x
     btn.setAttribute('aria-disabled',btn.disabled?'true':'false');
     btn.style.opacity=btn.disabled?'0.55':'1';
     btn.style.cursor=btn.disabled?'not-allowed':'pointer';
-    const baseShadow='0 0 10px rgba(215,180,106,0.55)';
     if(btn.disabled){
       btn.style.transform='';
       btn.style.boxShadow='';
     }else if(!btn.style.boxShadow){
-      btn.style.boxShadow=baseShadow;
+      btn.style.boxShadow='0 4px 12px rgba(0,0,0,.3)';
     }
   }
-
+  
   function revertLastFormat(){
     const original=getLastOriginalText();
     if(original===null){
