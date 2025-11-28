@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name          MxM In-Editor Formatter (EN)
 // @namespace     mxm-tools
-// @version       1.1.82
-// @description   Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes
+// @version       1.1.83
+// @description   Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes. STRICT MODE: Runs only on mode=edit.
 // @author        Richard Mangezi Muketa
 // @match         https://curators.musixmatch.com/*
 // @match         https://curators-beta.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.82';
+  const SCRIPT_VERSION = '1.1.83'; // Bumped version for tracking
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -200,6 +200,61 @@
   const shortcutTrackedDocs = new WeakSet();
 
   const INSTRUMENTAL_PHRASE_RE = /^(?:instrumental(?:\s+(?:break|bridge|outro|interlude|solo))?)$/i;
+
+  // ============================================================
+  //  STRICT ROUTE DETECTION LAYER (Mode=Edit Only)
+  //  Replaces previous DOM-based detection
+  // ============================================================
+
+  function isAllowedPage() {
+    if (!hasWindow) return false;
+    const url = new URL(window.location.href);
+    
+    // 1. Must be on /tool path
+    if (url.pathname !== '/tool' && url.pathname !== '/tool/') return false;
+
+    // 2. Must be STRICTLY 'edit' mode
+    // This filters out: mode=sync, mode=tag_structure, mode=tag_performer, etc.
+    const mode = url.searchParams.get('mode');
+    if (mode !== 'edit') return false;
+
+    return true;
+  }
+
+  function checkRouteAndVisibility() {
+    const container = document.getElementById('mxmFmtBtnWrap');
+    
+    if (isAllowedPage()) {
+        // We are on an Edit page - Show Button & Enable Shortcuts
+        if (container) container.style.display = 'flex';
+        ensureShortcutListeners();
+    } else {
+        // We are on Sync/Tag/Dashboard - Hide Button
+        if (container) container.style.display = 'none';
+    }
+  }
+
+  // Monitor URL changes for Single Page Application navigation
+  if (hasWindow) {
+    let lastUrl = location.href;
+    const spaObserver = new MutationObserver(() => {
+        const currentUrl = location.href;
+        if (currentUrl !== lastUrl) {
+            lastUrl = currentUrl;
+            checkRouteAndVisibility();
+        }
+    });
+    // Start observing body for changes that indicate navigation
+    spaObserver.observe(document.body, { childList: true, subtree: true });
+    
+    // Initial check
+    setTimeout(checkRouteAndVisibility, 500);
+  }
+
+  // ============================================================
+  //   END OF ROUTE DETECTION LAYER
+  // ============================================================
+
 
   // ---------- Dynamic Focus Tracker ----------
   let currentEditable = null;
@@ -1696,7 +1751,7 @@ const WELL_CLAUSE_STARTERS = new Set([
       const LOCAL_EXCLUSIONS = new Set([
         "begin","began","within","cousin","violin","virgin","origin","margin","resin","penguin",
         "pumpkin","grin","chin","twin","skin","basin","raisn","spain","login","pin","curtain",
-        "fin","din","min","gin","lin","kin","sin","win","bin","thin","tin","akin","strain","spain","leadin","captain","mountain",
+        "fin","din","min","gin","lin","kin","sin","win","bin","thin","tin","akin","leadin","captain","mountain",
         "fountain","certain","again","gain","spin","twin","main","cain","maintain","retain","detain","vain","regain",
         "rain","brain","pain","drain","train","grain","cabin","satin","chain","plain","remain","campaign",
         "fein","contain","domain","explain","sustain","pertain","obtain","entertain","villain","admin","abstain","stain"
@@ -2504,9 +2559,12 @@ x = x
   document.addEventListener('mxmFormatRequest', (evt) => {
     if (typeof runFormat === 'function') runFormat(evt?.detail);
   });
-setInterval(() => {
-  const isEditor = location.pathname === '/tool' || location.pathname === '/tool/';
-  const btn = document.getElementById('mxmFmtBtnWrap');
-  if (btn) btn.style.display = isEditor ? 'flex' : 'none';
-}, 800);
+  
+  // Replaced the simple interval with one that calls the strict route check
+  setInterval(() => {
+    if (typeof checkRouteAndVisibility === 'function') {
+        checkRouteAndVisibility();
+    }
+  }, 1000);
+
 })(typeof globalThis !== 'undefined' ? globalThis : this);
