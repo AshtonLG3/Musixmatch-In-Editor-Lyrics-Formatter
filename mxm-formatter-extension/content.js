@@ -1069,6 +1069,12 @@
         ? Boolean(_options.fixBackingVocals)
         : extensionOptions.fixBackingVocals ?? true);
 
+    const applyCasedReplacement = (match, canonical) => {
+      if (match === match.toUpperCase()) return canonical.toUpperCase();
+      if (match[0] === match[0].toUpperCase()) return canonical.charAt(0).toUpperCase() + canonical.slice(1);
+      return canonical;
+    };
+
     for (const [src, tag] of Object.entries(langProfile.tagMap)) {
       const rx = new RegExp(`(^|\\n)\\s*\\[?${src}\\]?\\s*(?=\\n|$)`, 'gi');
       x = x.replace(rx, `$1${tag}`);
@@ -1192,6 +1198,17 @@
     x = x.replace(/\bnew[\s-]*years?\b/gi, "New Year");
     x = x.replace(/\bhappy[\s-]*holidays?\b/gi, "Happy Holidays");
     x = x.replace(/\bseasons?[\s-]*greetings?\b/gi, "Season's Greetings");
+
+    // Normalize selected phrases and ensure religious names are capitalized
+    x = x.replace(/\bnight[\s-]*time\b/gi, (match) => applyCasedReplacement(match, 'nighttime'));
+    x = x.replace(/\bone[\s-]+night[\s-]+stand\b/gi, (match) => applyCasedReplacement(match, 'one-night-stand'));
+    x = x.replace(/\bvery\s+very\b/gi, (match) => {
+      if (match === match.toUpperCase()) return 'VERY, VERY';
+      if (match[0] === match[0].toUpperCase()) return 'Very, very';
+      return 'very, very';
+    });
+    x = x.replace(/\bjesus\b/gi, (match) => applyCasedReplacement(match, 'Jesus'));
+    x = x.replace(/\bchrist\b/gi, (match) => applyCasedReplacement(match, 'Christ'));
 
     // === Capitalize proper names or title phrases inside parentheses (only if the line starts with "(") ===
     // e.g., (jesus christ) → (Jesus Christ), (cape town) → (Cape Town)

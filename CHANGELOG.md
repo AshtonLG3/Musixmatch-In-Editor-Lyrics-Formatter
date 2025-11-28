@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1.84
+- Normalize key phrases like "nighttime", "one-night-stand", and "very, very" while enforcing capitalization for "Jesus" and "Christ".
+- Bump the userscript, extension, and package metadata to the 1.1.84 release.
+
 ## v1.1.81
 - Refresh the floating format button with Musixmatch Formatter blue and gold theming plus a subtle click glow animation.
 - Bump the userscript, extension, and package metadata to the 1.1.81 release.
