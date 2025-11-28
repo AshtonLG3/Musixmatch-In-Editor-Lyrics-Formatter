@@ -1,8 +1,27 @@
-# 🎵 Musixmatch In-Editor Lyrics Formatter
+<div align="center">
+  <img src="banner.png" width="100%" alt="Musixmatch In-Editor Formatter Banner">
+  
+  <br>
 
-![Downloads](https://img.shields.io/github/downloads/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/total.svg)
-![Release](https://img.shields.io/github/v/release/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter)
-![License](https://img.shields.io/github/license/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter)
+  <img src="https://img.shields.io/badge/version-1.1.75-0e4f7a?style=for-the-badge&logo=tampermonkey&logoColor=white" alt="Version">
+  <img src="https://img.shields.io/badge/downloads-98-d4af37?style=for-the-badge&logoColor=black" alt="Downloads">
+  <img src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FAshtonLG3%2FMusixmatch-In-Editor-Lyrics-Formatter%2Fmain%2FMxM-Formatter.meta.js&query=%24.version&label=Latest&color=0e4f7a&style=for-the-badge" alt="Auto Version">
+
+  <br><br>
+
+  <p align="center">
+    <b>Turbo-charge your Musixmatch Studio workflow.</b><br>
+    The formatter cleans, normalises, and standardises English lyrics to comply with community guidelines in one keystroke.
+  </p>
+
+  <a href="https://github.com/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/raw/main/MxM-Formatter.user.js">
+    <img src="https://img.shields.io/badge/INSTALL_SCRIPT-d4af37?style=for-the-badge&logo=tampermonkey&logoColor=black" height="45">
+  </a>
+</div>
+
+---
+
+# 🎵 Musixmatch In-Editor Lyrics Formatter
 
 > Turbo-charge your Musixmatch Studio workflow with one keystroke. The formatter cleans, normalises, and standardises English lyrics so they comply with the community guidelines before you hit **Submit**.
 
