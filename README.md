@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="banner.png" width="100%" alt="Musixmatch In-Editor Formatter Banner">
+  <img src="img/banner.png" width="100%" alt="Musixmatch In-Editor Formatter Banner">
   
   <br>
 
