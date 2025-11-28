@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name          MxM In-Editor Formatter (EN)
 // @namespace     mxm-tools
-// @version       1.1.84
+// @version       1.1.85
 // @description   Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes. STRICT MODE: Runs only on mode=edit.
 // @author        Richard Mangezi Muketa
 // @match         https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.84'; // Bumped version for tracking
+  const SCRIPT_VERSION = '1.1.85'; // Bumped version
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -222,14 +222,21 @@
   }
 
   function checkRouteAndVisibility() {
-    const container = document.getElementById('mxmFmtBtnWrap');
-    
-    if (isAllowedPage()) {
-        // We are on an Edit page - Show Button & Enable Shortcuts
+    let container = document.getElementById('mxmFmtBtnWrap');
+    const allowed = isAllowedPage();
+
+    if (allowed) {
+        // If allowed but missing, create it
+        if (!container && extensionOptions.showFloatingButton) {
+            createFloatingButton(); 
+            container = document.getElementById('mxmFmtBtnWrap');
+        }
+        
+        // Ensure it is visible
         if (container) container.style.display = 'flex';
         ensureShortcutListeners();
     } else {
-        // We are on Sync/Tag/Dashboard - Hide Button
+        // If forbidden, hide it
         if (container) container.style.display = 'none';
     }
   }
@@ -246,9 +253,6 @@
     });
     // Start observing body for changes that indicate navigation
     spaObserver.observe(document.body, { childList: true, subtree: true });
-    
-    // Initial check
-    setTimeout(checkRouteAndVisibility, 500);
   }
 
   // ============================================================
@@ -2191,8 +2195,10 @@ x = x
       container.id='mxmFmtBtnWrap';
       container.setAttribute('role','group');
       container.setAttribute('aria-label','Lyrics formatter controls');
-      // Slightly increased gap to accommodate circular buttons
-      Object.assign(container.style,{display:'flex',gap:'12px',alignItems:'center',position:'fixed',zIndex:2147483647,padding:'8px 10px',borderRadius:'16px',border:'none',background:'transparent',backdropFilter:'none'});
+      
+      // FIX FOR FLICKER: Determine correct display style immediately based on current URL
+      const initialDisplay = isAllowedPage() ? 'flex' : 'none';
+      Object.assign(container.style,{display:initialDisplay,gap:'12px',alignItems:'center',position:'fixed',zIndex:2147483647,padding:'8px 10px',borderRadius:'16px',border:'none',background:'transparent',backdropFilter:'none'});
     }
 
     let formatBtn=floatingFormatButton||container.querySelector('#mxmFmtBtn');
@@ -2527,6 +2533,9 @@ x = x
   }
 
   initializeExtensionOptions();
+  // Call IMMEDIATELY to set correct state without waiting for timeout
+  // This prevents valid pages from waiting, and ensures invalid pages (missions) never see the button
+  checkRouteAndVisibility();
   function toast(msg){
     if(!uiDocument) return;
     const t=uiDocument.createElement('div');
