@@ -4,20 +4,16 @@
   </a>
   <br>
   
-  <a target="_blank" rel="noopener noreferrer nofollow" href="https://github.com/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/releases">
-    <img src="https://img.shields.io/badge/version-1.1.85-0e4f7a?style=for-the-badge&logo=tampermonkey&logoColor=white" alt="Version" style="max-width: 100%;">
+  <a target="_blank" rel="noopener noreferrer nofollow" href="https://github.com/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/blob/main/package.json">
+    <img src="https://img.shields.io/badge/dynamic/json?url=https://raw.githubusercontent.com/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/main/package.json&query=$.version&label=Version&style=for-the-badge&logo=tampermonkey&logoColor=white&color=0e4f7a" alt="Version 1.1.85">
   </a>
 
   <a target="_blank" rel="noopener noreferrer nofollow" href="#">
     <img src="https://img.shields.io/badge/downloads-98-d4af37?style=for-the-badge&logoColor=black" alt="Downloads" style="max-width: 100%;">
   </a>
 
-  <a target="_blank" rel="noopener noreferrer nofollow" href="https://github.com/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/blob/main/package.json">
-    <img src="https://img.shields.io/badge/dynamic/json?url=https://raw.githubusercontent.com/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/main/package.json&query=$.version&label=Latest&style=for-the-badge&color=0e4f7a" alt="Latest Version">
-  </a>
-
   <a target="_blank" rel="noopener noreferrer nofollow" href="https://github.com/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter?style=for-the-badge&color=d4af37" alt="License">
+    <img src="https://img.shields.io/badge/license-CC_BY--NC--SA_4.0-d4af37?style=for-the-badge&logo=creative-commons&logoColor=black" alt="License: CC BY-NC-SA 4.0">
   </a>
 
   <p dir="auto"><br><br></p>
