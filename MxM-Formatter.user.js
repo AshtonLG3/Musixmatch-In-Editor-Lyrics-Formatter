@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name          MxM In-Editor Formatter (EN)
 // @namespace     mxm-tools
-// @version       1.1.83
+// @version       1.1.84
 // @description   Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes. STRICT MODE: Runs only on mode=edit.
 // @author        Richard Mangezi Muketa
 // @match         https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.83'; // Bumped version for tracking
+  const SCRIPT_VERSION = '1.1.84'; // Bumped version for tracking
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -1352,6 +1352,12 @@
     const currentLang = (extensionOptions.lang || 'EN').toUpperCase();
     const langProfile = LANG_RULES[currentLang] || LANG_RULES.EN;
 
+    const applyCasedReplacement = (match, canonical) => {
+      if (match === match.toUpperCase()) return canonical.toUpperCase();
+      if (match[0] === match[0].toUpperCase()) return canonical.charAt(0).toUpperCase() + canonical.slice(1);
+      return canonical;
+    };
+
     for (const [src, tag] of Object.entries(langProfile.tagMap)) {
       const rx = new RegExp(`(^|\\n)\\s*\\[?${src}\\]?\\s*(?=\\n|$)`, 'gi');
       x = x.replace(rx, `$1${tag}`);
@@ -1511,6 +1517,17 @@
     x = x.replace(/\bnew[\s-]*years?\b/gi, "New Year");
     x = x.replace(/\bhappy[\s-]*holidays?\b/gi, "Happy Holidays");
     x = x.replace(/\bseasons?[\s-]*greetings?\b/gi, "Season's Greetings");
+
+    // Normalize selected phrases and ensure religious names are capitalized
+    x = x.replace(/\bnight[\s-]*time\b/gi, (match) => applyCasedReplacement(match, 'nighttime'));
+    x = x.replace(/\bone[\s-]+night[\s-]+stand\b/gi, (match) => applyCasedReplacement(match, 'one-night-stand'));
+    x = x.replace(/\bvery\s+very\b/gi, (match) => {
+      if (match === match.toUpperCase()) return 'VERY, VERY';
+      if (match[0] === match[0].toUpperCase()) return 'Very, very';
+      return 'very, very';
+    });
+    x = x.replace(/\bjesus\b/gi, (match) => applyCasedReplacement(match, 'Jesus'));
+    x = x.replace(/\bchrist\b/gi, (match) => applyCasedReplacement(match, 'Christ'));
 
     x = x.replace(/([A-Za-z])-(?:[ \t]*)(\r?\n)(\s*)(em\b)/gi, (match, letter, newline, spaces, word) => {
       const token = `${HYPHENATED_EM_TOKEN}${hyphenatedEmTokens.length}${HYPHENATED_EM_TOKEN}`;
