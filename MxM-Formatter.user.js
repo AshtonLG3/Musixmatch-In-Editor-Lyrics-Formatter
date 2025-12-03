@@ -1328,6 +1328,13 @@
       return input.replace(/\s+$/gm, '').trim();
     }
     let x = ("\n" + input.trim() + "\n");
+    // --- AUTO LOWERCASE APPLIED BEFORE ALL PROCESSING ---
+    if (extensionOptions.autoLowercase) {
+      // Only lowercase *main lyrics*, not structure tags or BV parentheses
+      x = x.replace(/(^|\n)(?!#)([^\n]+)/g, (m, b, line) => {
+        return b + line.toLowerCase();
+      });
+    }
     const preservedStandaloneParens = [];
     const STANDALONE_PAREN_SENTINEL = "__MXM_SP__";
 
@@ -1991,6 +1998,17 @@ x = x.replace(/([A-Za-z])(\r?\n)"(?=[A-Za-z])/g, '$1\n"');
         return original === undefined ? '' : original;
       });
     }
+
+    // --- MAIN VOCAL FIRST-WORD LOWERCASE AFTER BV SPLIT ---
+    x = x.replace(/\)\s*([A-Z][^\n]*)/g, (m, tail) => {
+      // Keep proper nouns intact
+      const first = tail.split(/\s+/)[0];
+
+      if (BV_FIRST_WORD_EXCEPTIONS.has(first)) return m;
+
+      const lowered = tail[0].toLowerCase() + tail.slice(1);
+      return ") " + lowered;
+    });
 
     // 2️⃣ Ensure a blank line before structure tags when previous stanza ends with yeah/oh/whoa/huh or ")"
     x = x.replace(
