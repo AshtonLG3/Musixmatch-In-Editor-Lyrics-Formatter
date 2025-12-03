@@ -1,21 +1,21 @@
 // ==UserScript==
 // @name          MxM In-Editor Formatter (EN)
 // @namespace     mxm-tools
-// @version       1.1.86
+// @version       1.1.88
 // @description   Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes. STRICT MODE: Runs only on mode=edit.
 // @author        Richard Mangezi Muketa
 // @match         https://curators.musixmatch.com/*
 // @match         https://curators-beta.musixmatch.com/*
 // @run-at        document-idle
 // @grant         none
-// @downloadURL   https://raw.githubusercontent.com/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/main/MxM-Formatter.user.js
-// @updateURL     https://raw.githubusercontent.com/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/main/MxM-Formatter.meta.js
+// @downloadURL https://update.greasyfork.org/scripts/556204/MxM%20In-Editor%20Formatter%20%28EN%29.user.js
+// @updateURL https://update.greasyfork.org/scripts/556204/MxM%20In-Editor%20Formatter%20%28EN%29.meta.js
 // ==/UserScript==
 
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.86'; // Bumped version
+  const SCRIPT_VERSION = '1.1.88'; // Bumped version
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -209,7 +209,7 @@
   function isAllowedPage() {
     if (!hasWindow) return false;
     const url = new URL(window.location.href);
-    
+
     // 1. Must be on /tool path
     if (url.pathname !== '/tool' && url.pathname !== '/tool/') return false;
 
@@ -228,10 +228,10 @@
     if (allowed) {
         // If allowed but missing, create it
         if (!container && extensionOptions.showFloatingButton) {
-            createFloatingButton(); 
+            createFloatingButton();
             container = document.getElementById('mxmFmtBtnWrap');
         }
-        
+
         // Ensure it is visible
         if (container) container.style.display = 'flex';
         ensureShortcutListeners();
@@ -557,7 +557,7 @@
     text = text.replace(
       /((?:['’]?)[A-Za-z0-9][^\s,.;!?()#"]*)([ \t]+)([Nn][Oo])(\s*,\s*)((?:['’]?)[A-Za-z0-9][^\s,.;!?()#"]*)/g,
       (match, prevWord, preSpaces, noWord, commaBlock, nextWord) => {
-        if (preSpaces.includes('\n')) return match;
+        if (preSpaces.includes('\n') || postSpaces.includes('\n')) return match;
 
         const prevLower = prevWord.replace(/^['’"]+/, '').toLowerCase();
         const nextLower = nextWord.replace(/['’"]+$/, '').toLowerCase();
@@ -1328,13 +1328,6 @@
       return input.replace(/\s+$/gm, '').trim();
     }
     let x = ("\n" + input.trim() + "\n");
-    // --- AUTO LOWERCASE APPLIED BEFORE ALL PROCESSING ---
-    if (extensionOptions.autoLowercase) {
-      // Only lowercase *main lyrics*, not structure tags or BV parentheses
-      x = x.replace(/(^|\n)(?!#)([^\n]+)/g, (m, b, line) => {
-        return b + line.toLowerCase();
-      });
-    }
     const preservedStandaloneParens = [];
     const STANDALONE_PAREN_SENTINEL = "__MXM_SP__";
 
@@ -1999,17 +1992,6 @@ x = x.replace(/([A-Za-z])(\r?\n)"(?=[A-Za-z])/g, '$1\n"');
       });
     }
 
-    // --- MAIN VOCAL FIRST-WORD LOWERCASE AFTER BV SPLIT ---
-    x = x.replace(/\)\s*([A-Z][^\n]*)/g, (m, tail) => {
-      // Keep proper nouns intact
-      const first = tail.split(/\s+/)[0];
-
-      if (BV_FIRST_WORD_EXCEPTIONS.has(first)) return m;
-
-      const lowered = tail[0].toLowerCase() + tail.slice(1);
-      return ") " + lowered;
-    });
-
     // 2️⃣ Ensure a blank line before structure tags when previous stanza ends with yeah/oh/whoa/huh or ")"
     x = x.replace(
       /(\b(?:yeah|oh|whoa|huh|ooh|ah|uh)\b|\))[ \t]*\n+(?=#(?:INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO))/gim,
@@ -2072,6 +2054,15 @@ x = x
     // 4️⃣ Remove stray indentation and trailing spaces on each line
     x = x.replace(/^[ \t]+/gm, "");
     x = x.replace(/[ \t]+$/gm, "");
+
+    // --- LOWERCASE MAIN VOCAL AFTER BACKING VOCAL SPLIT ---
+    // (He loves her) Could anyone love you better? -> (He loves her) could anyone love you better?
+    x = x.replace(/(^|\n)(\([^\n]*?\))\s*([A-Z][^\n]*)/g, function(match, boundary, bv, tail){
+      var first = tail.split(/\s+/)[0];
+      if(BV_FIRST_WORD_EXCEPTIONS.has(first)) return match;
+      var lowered = tail.charAt(0).toLowerCase() + tail.slice(1);
+      return boundary + bv + " " + lowered;
+    });
 
     x = x.trim();
 
@@ -2213,7 +2204,7 @@ x = x
       container.id='mxmFmtBtnWrap';
       container.setAttribute('role','group');
       container.setAttribute('aria-label','Lyrics formatter controls');
-      
+
       // FIX FOR FLICKER: Determine correct display style immediately based on current URL
       const initialDisplay = isAllowedPage() ? 'flex' : 'none';
       Object.assign(container.style,{display:initialDisplay,gap:'12px',alignItems:'center',position:'fixed',zIndex:2147483647,padding:'8px 10px',borderRadius:'16px',border:'none',background:'transparent',backdropFilter:'none'});
@@ -2436,7 +2427,7 @@ x = x
     }
     const popover=uiDocument?.getElementById('mxmFmtPopover');
     if(popover){
-      const closerRef=popover.__mxmCloser;
+      const closerRef=pop.__mxmCloser;
       if(typeof closerRef==='function') uiDocument.removeEventListener('click',closerRef);
       popover.remove();
     }
@@ -2468,7 +2459,7 @@ x = x
       btn.style.boxShadow='0 4px 12px rgba(0,0,0,.3)';
     }
   }
-  
+
   function revertLastFormat(){
     const original=getLastOriginalText();
     if(original===null){
@@ -2565,7 +2556,7 @@ x = x
     uiDocument.documentElement.appendChild(t);
     (uiWindow||window).setTimeout(()=>t.remove(),1800);
   }
-	
+
   // ---------- Runner ----------
   function runFormat(passedOptions){
     if(passedOptions && typeof passedOptions==='object'){
@@ -2586,9 +2577,30 @@ x = x
     if(!el){alert('Click inside the lyrics field first, then press Alt+M.');return;}
     const before=getEditorText(el);
     saveLastOriginal(el,before);
-    const effectiveOptions={...extensionOptions};
-    let out=formatLyrics(before,effectiveOptions);
-    if(effectiveOptions.autoLowercase) out=out.toLowerCase();
+
+    let raw=before;
+
+    // === AUTO LOWERCASE: APPLY BEFORE FORMATTING, THEN TURN OFF ===
+    if(extensionOptions.autoLowercase){
+      // Lowercase only non-tag lines (do not touch #VERSE/#CHORUS/etc.)
+      raw = raw.replace(/(^|\n)(?!#)([^\n]+)/g, function(m,b,line){
+        return b + line.toLowerCase();
+      });
+
+      // Auto-disable after one use
+      extensionOptions.autoLowercase = false;
+      writeLocalOption('mxmFmtAutoLowercase','0');
+
+      // Update UI toggle if settings panel is open
+      if(uiDocument){
+        const toggle = uiDocument.getElementById('mxmLowercaseToggle');
+        if(toggle) toggle.checked = false;
+      }
+    }
+    // === END AUTO LOWERCASE BLOCK ===
+
+    let out=formatLyrics(raw,extensionOptions);
+
     writeToEditor(el,out);
     toast(`Formatted ✓ (v${SCRIPT_VERSION})`);
   }
@@ -2603,7 +2615,7 @@ x = x
   document.addEventListener('mxmFormatRequest', (evt) => {
     if (typeof runFormat === 'function') runFormat(evt?.detail);
   });
-  
+
   // Replaced the simple interval with one that calls the strict route check
   setInterval(() => {
     if (typeof checkRouteAndVisibility === 'function') {
