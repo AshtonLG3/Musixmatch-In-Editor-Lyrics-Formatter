@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.1.86
+- Apply the auto-lowercase option before all other formatting while preserving tags and backing-vocal parentheses.
+- Lowercase the main vocal text immediately after a backing-vocal split unless the word is an exception.
+- Bump the userscript, extension, and package metadata to the 1.1.86 release.
+
 ## v1.1.84
 - Normalize key phrases like "nighttime", "one-night-stand", and "very, very" while enforcing capitalization for "Jesus" and "Christ".
 - Bump the userscript, extension, and package metadata to the 1.1.84 release.
