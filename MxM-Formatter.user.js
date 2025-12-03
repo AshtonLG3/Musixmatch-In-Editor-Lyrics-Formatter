@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name          MxM In-Editor Formatter (EN)
 // @namespace     mxm-tools
-// @version       1.1.88
+// @version       1.1.89
 // @description   Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes. STRICT MODE: Runs only on mode=edit.
 // @author        Richard Mangezi Muketa
 // @match         https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.88'; // Bumped version
+  const SCRIPT_VERSION = '1.1.89'; // Bumped version
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -749,6 +749,9 @@
     "github": "GitHub",
     "chatgpt": "ChatGPT",
 
+    // Convenience stores
+    "7-eleven": "7-Eleven",
+
     // Cars
     "toyota": "Toyota",
     "benz": "Benz",
@@ -922,6 +925,11 @@
     "grey goose": "Grey Goose",
     "don julio": "Don Julio",
     "bud light": "Bud Light",
+    "7-11": "7-Eleven",
+    "7 eleven": "7-Eleven",
+    "seven 11": "7-Eleven",
+    "seven eleven": "7-Eleven",
+    "seven-eleven": "7-Eleven",
     "glock": "Glock",
     "uzi": "Uzi",
     "draco": "Draco",
@@ -1456,6 +1464,46 @@
          .replace(/[（﹙]/g, '(')
          .replace(/[）﹚]/g, ')');
 
+    // === Normalize syllable repetitions (na, la, etc.) ===
+    x = x.replace(
+      /((?:^|\n|[?!\.\s]*)?)((?:na|la))(?:[-\s]+\2){1,}\b|((?:^|\n|[?!\.\s]*)?)((?:na|la){4,})\b/gi,
+      (full, boundaryA, syllableA, boundaryB, fused) => {
+        const boundary = boundaryA || boundaryB || '';
+        const syllable = (syllableA || fused?.slice(0, 2) || '').toLowerCase();
+        if (!syllable) return full;
+
+        // Count total syllables
+        const matches = (full.match(new RegExp(`${syllable}`, 'gi')) || []).length;
+        const total = Math.max(2, matches);
+
+        // Group syllables in sets of 4, separated by commas every 4 repeats
+        const parts = [];
+        for (let i = 0; i < total; i += 4) {
+          const group = Array.from(
+            { length: Math.min(4, total - i) },
+            () => syllable
+          ).join('-');
+          parts.push(group);
+        }
+
+        // ✅ Handle fused 'lalalalala' (5+ la's)
+        if (/^la+$/.test(fused || '') && total > 4) {
+          const groups = [];
+          for (let i = 0; i < total; i += 4) {
+            const chunk = Math.min(4, total - i);
+            groups.push(Array.from({ length: chunk }, () => syllable).join('-'));
+          }
+          return boundary + groups.join(', ');
+        }
+
+        let formatted = parts.join(', ');
+        if (/[?!\.\n]\s*$/.test(boundary))
+          formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1);
+
+        return boundary + formatted;
+      }
+    );
+
     // Section tags
     x = x.replace(/\[(.*?)\]/g, (_, raw) => {
       const t = String(raw).toLowerCase().trim();
@@ -1521,6 +1569,20 @@
     x = x.replace(/\bnew[\s-]*years?\b/gi, "New Year");
     x = x.replace(/\bhappy[\s-]*holidays?\b/gi, "Happy Holidays");
     x = x.replace(/\bseasons?[\s-]*greetings?\b/gi, "Season's Greetings");
+
+    // 7-Eleven and variants
+    x = x.replace(
+      /\b(?:7\s*[-/]\s*11|seven\s*[-\s]+11|seven\s*[-\s]+eleven)\b/gi,
+      "7-Eleven"
+    );
+
+    // Can not -> cannot (but not "can not only")
+    x = x.replace(/\b(C|c)an not\b(?!\s+only)/g, (_, c) =>
+      c === "C" ? "Cannot" : "cannot"
+    );
+
+    // 24/7 -> 24-7
+    x = x.replace(/\b24\s*\/\s*7\b/g, "24-7");
 
     // Normalize selected phrases and ensure religious names are capitalized
     x = x.replace(/\bnight[\s-]*time\b/gi, (match) => applyCasedReplacement(match, 'nighttime'));
