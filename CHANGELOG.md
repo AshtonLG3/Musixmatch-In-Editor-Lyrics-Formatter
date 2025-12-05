@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.1.90
+- Keep backing-vocal main-line lowercasing from crossing newline boundaries by limiting whitespace consumption.
+- Recognize Chevy as a capitalized car make in both built-in and sheet-driven proper noun maps.
+- Bump the userscript, extension, and package metadata to the 1.1.90 release.
+
 ## v1.1.86
 - Apply the auto-lowercase option before all other formatting while preserving tags and backing-vocal parentheses.
 - Lowercase the main vocal text immediately after a backing-vocal split unless the word is an exception.

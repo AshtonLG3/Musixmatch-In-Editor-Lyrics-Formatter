@@ -1,7 +1,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.86';
+  const SCRIPT_VERSION = '1.1.90';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -645,6 +645,7 @@
     // Cars
     "toyota": "Toyota",
     "benz": "Benz",
+    "chevy": "Chevy",
     "bmw": "BMW",
     "tesla": "Tesla",
     "audi": "Audi",
@@ -1973,7 +1974,8 @@
     }
 
     // --- MAIN VOCAL FIRST-WORD LOWERCASE AFTER BV SPLIT ---
-    x = x.replace(/\)\s*([A-Z][^\n]*)/g, (m, tail) => {
+    // FIX: Changed \s* to [ \t]* so it does not consume newlines and merge separate lines
+    x = x.replace(/\)[ \t]*([A-Z][^\n]*)/g, (m, tail) => {
       // Keep proper nouns intact
       const first = tail.split(/\s+/)[0];
 

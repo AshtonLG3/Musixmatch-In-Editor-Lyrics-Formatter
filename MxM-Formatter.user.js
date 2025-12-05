@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name          MxM In-Editor Formatter (EN)
 // @namespace     mxm-tools
-// @version       1.1.89
+// @version       1.1.90
 // @description   Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes. STRICT MODE: Runs only on mode=edit.
 // @author        Richard Mangezi Muketa
 // @match         https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.89'; // Bumped version
+  const SCRIPT_VERSION = '1.1.90'; // Bumped version
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -755,6 +755,7 @@
     // Cars
     "toyota": "Toyota",
     "benz": "Benz",
+    "chevy": "Chevy",
     "bmw": "BMW",
     "tesla": "Tesla",
     "audi": "Audi",
@@ -901,6 +902,7 @@
     "chatgpt": "ChatGPT",
     "toyota": "Toyota",
     "benz": "Benz",
+    "chevy": "Chevy",
     "bmw": "BMW",
     "tesla": "Tesla",
     "audi": "Audi",
@@ -2119,7 +2121,8 @@ x = x
 
     // --- LOWERCASE MAIN VOCAL AFTER BACKING VOCAL SPLIT ---
     // (He loves her) Could anyone love you better? -> (He loves her) could anyone love you better?
-    x = x.replace(/(^|\n)(\([^\n]*?\))\s*([A-Z][^\n]*)/g, function(match, boundary, bv, tail){
+    // FIX: Changed \s* to [ \t]* so it does not consume newlines and merge separate lines
+    x = x.replace(/(^|\n)(\([^\n]*?\))[ \t]*([A-Z][^\n]*)/g, function(match, boundary, bv, tail){
       var first = tail.split(/\s+/)[0];
       if(BV_FIRST_WORD_EXCEPTIONS.has(first)) return match;
       var lowered = tail.charAt(0).toLowerCase() + tail.slice(1);
