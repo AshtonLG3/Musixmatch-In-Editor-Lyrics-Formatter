@@ -1615,6 +1615,7 @@
       for (let i = 0; i < contractionLines.length; i++) {
         let line = contractionLines[i];
         line = line.replace(/\bgunna\b/gi, "gonna");
+		line = line.replace(/\bgonna['’]\b/gi, "gonna");
         line = line.replace(/\bgon\b(?!['\u2019])/gi, "gon'");
         line = line.replace(/'?c(?:uz|us|os|oz)\b/gi, (match, offset, str) => {
           const prevChar = offset > 0 ? str[offset - 1] : '';
