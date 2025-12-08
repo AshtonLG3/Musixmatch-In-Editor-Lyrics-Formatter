@@ -10,6 +10,6 @@
 // @include       https://curators-beta.musixmatch.com/tool?*mode=edit*
 // @run-at        document-idle
 // @grant         none
-// @downloadURL   https://raw.githubusercontent.com/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/main/MxM-Formatter.user.js
-// @updateURL     https://raw.githubusercontent.com/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/main/MxM-Formatter.meta.js
+// @downloadURL https://update.greasyfork.org/scripts/556204/MxM%20In-Editor%20Formatter%20%28EN%29.user.js
+// @updateURL https://update.greasyfork.org/scripts/556204/MxM%20In-Editor%20Formatter%20%28EN%29.meta.js
 // ==/UserScript==
