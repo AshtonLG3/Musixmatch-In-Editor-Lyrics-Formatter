@@ -5,7 +5,7 @@
   <br>
 
   <a target="_blank" rel="noopener noreferrer nofollow" href="https://github.com/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/blob/main/package.json">
-    <img src="https://img.shields.io/badge/dynamic/json?url=https://raw.githubusercontent.com/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/main/package.json&query=$.version&label=Version&style=for-the-badge&logo=tampermonkey&logoColor=white&color=0e4f7a" alt="Version 1.1.86">
+    <img src="https://img.shields.io/badge/dynamic/json?url=https://raw.githubusercontent.com/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/main/package.json&query=$.version&label=Version&style=for-the-badge&logo=tampermonkey&logoColor=white&color=0e4f7a" alt="Version 1.1.91">
   </a>
 
   <a target="_blank" rel="noopener noreferrer nofollow" href="#">
