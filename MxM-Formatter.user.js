@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name          MxM In-Editor Formatter (EN)
 // @namespace     mxm-tools
-// @version       1.1.92
+// @version       1.1.93
 // @description   Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes. STRICT MODE: Runs only on mode=edit.
 // @author        Richard Mangezi Muketa
 // @match         https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.92'; // Bumped version
+  const SCRIPT_VERSION = '1.1.93'; // Bumped version
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -302,8 +302,8 @@
     return /^\s*(?:o\s+clock|oclock|o['’]clock)\b/i.test(after);
   }
   function isCountingSequence(line) {
-    // Detects rhythmic count-offs like 1,2,3,4 or 1 2 3 4
-    return /^\s*(?:\d{1,2}[,\s]+){1,}\d{1,2}\s*$/.test(line.trim());
+    // Detects rhythmic count-offs like 1,2,3,4 or 1 2 3 4, optionally ending with "go"
+    return /^\s*(?:\d{1,2}[,\s]+)+\d{1,2}(?:[,\s]+(?:go|let'?s\s*go|c'?mon|everybody))?[.!?]*\s*$/i.test(line.trim());
   }
 
   function spellOutCountSequence(line) {
@@ -361,19 +361,19 @@
         lines[i] = spellOutCountSequence(currentLine);
         continue;
       }
-      const numCount = (currentLine.match(/\b\d+\b/g) || []).length;
-      const useNumerals =
-        numCount >= 3 ||
-        /\b(19|20)\d{2}\b|['’]\d0s|\d{1,2}:\d{2}\s*(?:a\.m\.|p\.m\.)/i.test(currentLine);
-      if (useNumerals && settings.aggressiveNumbers) {
-        lines[i] = currentLine;
-      } else {
-        let L = numerals0to10ToWords(currentLine);
-        if (settings.aggressiveNumbers) L = words11to99ToNumerals(L);
-        lines[i] = L;
-      }
+      // Always convert 0–10 to words, and 11–99 to numerals when aggressive mode is on.
+      let L = numerals0to10ToWords(currentLine);
+      if (settings.aggressiveNumbers) L = words11to99ToNumerals(L);
+      lines[i] = L;
     }
     return lines.join('\n');
+  }
+
+  function normalizeSpelledOutNumbers(text) {
+    return text.replace(
+      /\b(one|two|three|four|five|six|seven|eight|nine|ten)\s+(?=(one|two|three|four|five|six|seven|eight|nine|ten)\b)/gi,
+      "$1, "
+    );
   }
 
   function normalizeOClock(text) {
@@ -1836,7 +1836,7 @@ const WELL_CLAUSE_STARTERS = new Set([
 
       const LOCAL_EXCLUSIONS = new Set([
         "begin","began","within","cousin","violin","virgin","gremlin","origin","margin","resin","penguin",
-        "pumpkin","grin","chin","twin","skin","basin","raisn","spain","login","pin","curtain",
+        "pumpkin","grin","chin","twin","skin","basin","raisn","spain","birkin","balmain","boutin","login","pin","curtain",
         "fin","din","min","gin","lin","kin","sin","win","bin","thin","tin","akin","leadin","captain","mountain",
         "fountain","certain","again","gain","spin","twin","main","cain","maintain","retain","detain","vain","regain",
         "rain","brain","pain","drain","train","grain","cabin","satin","chain","plain","remain","campaign",
@@ -1921,14 +1921,55 @@ const WELL_CLAUSE_STARTERS = new Set([
     // Numbers & timing logic
     x = normalizeOClock(x);
     x = applyNumberRules(x);
+    x = normalizeSpelledOutNumbers(x);
     x = applyNoCommaRules(x);
 
-    // Normalize "god damn" -> "goddamn" while respecting casing
-    x = x.replace(/\bgod\s+damn\b/gi, match => {
-      if (match === match.toUpperCase()) return 'GODDAMN';
-      if (match[0] === 'G') return 'Goddamn';
-      return 'goddamn';
+    // Normalize "God damn" into "Goddamn" or "goddamn"
+    x = x.replace(/\b[Gg]od damn\b/g, (m, offset, str) => {
+      const isStart = /^[\s"']*$/.test(str.slice(0, offset));
+      return isStart ? "Goddamn" : "goddamn";
     });
+
+    // Normalize all variants of "tryna"
+    x = x.replace(
+      /\btry(?:in'?|i?n+a?|i?n'?na?|i?n'?n?a?)\b/gi,
+      "tryna"
+    );
+
+    // Normalize till → 'til (only when used as "until")
+    x = x.replace(/\b['’]?till\b/gi, "'til");
+
+    // past time → pastime (leisure activity)
+    x = x.replace(/\bpast time\b/gi, (m) => {
+      return m[0] === m[0].toUpperCase() ? "Pastime" : "pastime";
+    });
+
+    // everytime → every time
+    x = x.replace(/\beverytime\b/gi, (m) => {
+      if (m === m.toUpperCase()) return "EVERY TIME";
+      if (m[0] === m[0].toUpperCase()) return "Every time";
+      return "every time";
+    });
+
+    // Hollywood Boulevard
+    x = x.replace(/\bhollywood boulevard\b/gi, "Hollywood Boulevard");
+
+    // Sunset Strip
+    x = x.replace(/\bsunset strip\b/gi, "Sunset Strip");
+
+    // Add comma after "thank you" when followed by an address word or name
+    x = x.replace(
+      /\b(thank you)\s+([A-Za-z][A-Za-z'’-]*)\b/gi,
+      (full, ty, name) => {
+        if (ty === ty.toUpperCase()) {
+          return `THANK YOU, ${name.toUpperCase()}`;
+        }
+        if (ty[0] === ty[0].toUpperCase()) {
+          return `Thank you, ${name[0].toUpperCase() + name.slice(1)}`;
+        }
+        return `thank you, ${name}`;
+      }
+    );
 
     // Remove stray spaces that appear immediately before punctuation marks
     x = x.replace(/[ \t]+([!?.,;:])/g, '$1');

@@ -60,8 +60,8 @@ if (preservedLine !== '(YEAH, YEAH)') {
 }
 
 const countingLine = '1 2 3 4';
-if (formatLyrics(countingLine) !== 'One Two Three Four') {
-  throw new Error('Rhythmic count sequences should be spelled out with capitalised words');
+if (formatLyrics(countingLine) !== 'One, Two, Three, Four') {
+  throw new Error('Rhythmic count sequences should be spelled out with capitalised words and comma separated');
 }
 
 const countingCommaLine = '1,2,3,4';
