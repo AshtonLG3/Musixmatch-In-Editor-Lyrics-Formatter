@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name          MxM In-Editor Formatter (EN)
 // @namespace     mxm-tools
-// @version       1.1.91
+// @version       1.1.92
 // @description   Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes. STRICT MODE: Runs only on mode=edit.
 // @author        Richard Mangezi Muketa
 // @match         https://curators.musixmatch.com/*
@@ -15,10 +15,10 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.91'; // Bumped version
+  const SCRIPT_VERSION = '1.1.92'; // Bumped version
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
-  const defaults = { showPanel: true, aggressiveNumbers: true };
+  const defaults = { showPanel: true };
   const LAST_ORIGINAL_KEY = 'mxmFmtLastOriginal.v1';
   let lastFormatState = null;
   const runningAsExtension =
@@ -276,104 +276,57 @@
   }
 
   // ---------- Number Rules ----------
-  const NUM_WORDS_0_10 = ["zero","one","two","three","four","five","six","seven","eight","nine","ten"];
-  const WORD_TO_NUM_11_19 = { eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19 };
-  const WORD_TO_TENS = { twenty:20,thirty:30,forty:40,fifty:50,sixty:60,seventy:70,eighty:80,ninety:90 };
-  const WORD_TO_ONES = { one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9 };
   const OCLOCK_DIGIT_TO_WORD = {
     1:"one",2:"two",3:"three",4:"four",5:"five",6:"six",7:"seven",8:"eight",9:"nine",10:"ten",11:"eleven",12:"twelve"
   };
   const OCLOCK_WORD_SET = new Set(Object.values(OCLOCK_DIGIT_TO_WORD));
 
-  function isTimeContext(line, _s, e) {
-    const after = line.slice(e);
-    return (/^\s*:\s*\d{2}/.test(after) || /^\s*(?:a|p)\.?m\.?/i.test(after) || /^\s*(?:am|pm)\b/i.test(after));
-  }
-  function isDateContext(line, s, e) {
-    const ctx = line.slice(Math.max(0, s - 6), Math.min(line.length, e + 6));
-    return (/(?:\d{1,2}[\/-]\d{1,2}(?:[\/-]\d{2,4})?)/.test(ctx) || /\b(19|20)\d{2}\b/.test(ctx));
-  }
-  function isDecadeNumeric(line, _s, e) {
-    const after = line.slice(e);
-    return /^['’]s\b/.test(after);
-  }
-  function isOClockFollowing(line, e) {
-    const after = line.slice(e);
-    return /^\s*(?:o\s+clock|oclock|o['’]clock)\b/i.test(after);
-  }
-  function isCountingSequence(line) {
-    // Detects rhythmic count-offs like 1,2,3,4 or 1 2 3 4
-    return /^\s*(?:\d{1,2}[,\s]+){1,}\d{1,2}\s*$/.test(line.trim());
+  function applyNumberRules(text) {
+    const words0to10 = [
+      "zero","one","two","three","four","five","six","seven","eight","nine","ten"
+    ];
+
+    return text.replace(/\b(\d+)\b/g, (match, num, offset, str) => {
+      const n = parseInt(num, 10);
+
+      // ----- EXCEPTIONS -----
+
+      // Time: 4:32 , 6 a.m.
+      const after = str.slice(offset + num.length);
+      if (/^\s*:\s*\d{2}/.test(after) || /^\s*(a|p)\.?m\.?/i.test(after)) {
+        return match;
+      }
+
+      // O'clock: 4 o'clock , four o'clock
+      if (/^\s*o['’]?clock\b/i.test(after)) {
+        return match;
+      }
+
+      // Model / version numbers: BMW X6, Mustang 5.0, PS5
+      if (
+        /[A-Za-z]\s*$/.test(str.slice(0, offset)) ||       // letter before
+        /^[\d.]+\b/.test(after)                            // decimal version
+      ) {
+        return match;
+      }
+
+      // ----- NORMAL MxM LOGIC -----
+
+      // 0–10 must be spelled out
+      if (n >= 0 && n <= 10) {
+        return words0to10[n];
+      }
+
+      // 11+ must remain numerals
+      return match;
+    });
   }
 
-  function spellOutCountSequence(line) {
-    // Convert each number (0–10) in a count sequence into its word form
-    const numWords = ["zero","one","two","three","four","five","six","seven","eight","nine","ten"];
-    return line
-      .replace(/\b(0|[1-9]|10)\b/g, (_, d) => numWords[Number(d)])
-      .replace(/([a-z])([a-z])/gi, (m, a, b) => a + b.toLowerCase()) // normalize casing
-      .replace(/(^|\s)([a-z])/g, (m, s, l) => s + l.toUpperCase())   // capitalize first if needed
-      .replace(/\s*,\s*/g, ", ")                                     // clean spacing after commas
-      .replace(/\s+/g, " ");                                         // collapse spaces
-  }
-  function numerals0to10ToWords(line) {
-    const re = /\b(0|1|2|3|4|5|6|7|8|9|10)\b/g;
-    let out = "", last = 0, m;
-    while ((m = re.exec(line)) !== null) {
-      const s = m.index, e = s + m[0].length, num = parseInt(m[0], 10);
-      if (
-        isTimeContext(line, s, e) ||
-        isDateContext(line, s, e) ||
-        isDecadeNumeric(line, s, e)
-      ) {
-        out += line.slice(last, e);
-      }
-      else out += line.slice(last, s) + NUM_WORDS_0_10[num];
-      last = e;
-    }
-    out += line.slice(last);
-    return out;
-  }
-  function words11to99ToNumerals(line) {
-    line = line.replace(/\b(eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen)\b/gi,
-      (w, raw, offset, str) => {
-        const end = offset + w.length;
-        if (isOClockFollowing(str, end)) return w;
-        return String(WORD_TO_NUM_11_19[raw.toLowerCase()]);
-      });
-    line = line.replace(/\b(twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)(?:[-\s]+(one|two|three|four|five|six|seven|eight|nine)|(one|two|three|four|five|six|seven|eight|nine))?\b/gi,
-      (_, tensRaw, onesWithSep, onesBare, offset, str) => {
-        const match = _;
-        const end = offset + match.length;
-        if (isOClockFollowing(str, end)) return match;
-        let n = WORD_TO_TENS[tensRaw.toLowerCase()];
-        const onesRaw = onesWithSep || onesBare;
-        if (onesRaw) n += WORD_TO_ONES[onesRaw.toLowerCase()];
-        return String(n);
-      });
-    return line;
-  }
-  function applyNumberRules(text) {
-    const lines = text.split('\n');
-    for (let i = 0; i < lines.length; i++) {
-      const currentLine = lines[i];
-      if (isCountingSequence(currentLine)) {
-        lines[i] = spellOutCountSequence(currentLine);
-        continue;
-      }
-      const numCount = (currentLine.match(/\b\d+\b/g) || []).length;
-      const useNumerals =
-        numCount >= 3 ||
-        /\b(19|20)\d{2}\b|['’]\d0s|\d{1,2}:\d{2}\s*(?:a\.m\.|p\.m\.)/i.test(currentLine);
-      if (useNumerals && settings.aggressiveNumbers) {
-        lines[i] = currentLine;
-      } else {
-        let L = numerals0to10ToWords(currentLine);
-        if (settings.aggressiveNumbers) L = words11to99ToNumerals(L);
-        lines[i] = L;
-      }
-    }
-    return lines.join('\n');
+  function normalizeSpelledOutNumbers(text) {
+    return text.replace(
+      /\b(one|two|three|four|five|six|seven|eight|nine|ten)\s+(?=(one|two|three|four|five|six|seven|eight|nine|ten)\b)/gi,
+      "$1, "
+    );
   }
 
   function normalizeOClock(text) {
@@ -1661,17 +1614,9 @@
     // --- End contraction normalization block ---
 
     x = x
-      .replace(/(?<!['\w])ti(?:ll|l)(?:')?(?!\w)/gi, (m, offset, str) => {
-        const prev = offset > 0 ? str[offset - 1] : '';
-        if (prev === "'" || prev === "\u2019") return m;
-        const base = m.replace(/'/g, "");
-        if (base === base.toUpperCase()) return "'TIL";
-        if (base[0] === base[0].toUpperCase()) return "'Til";
-        return "'til";
-      })
       .replace(/\bima\b/gi, "I'ma")
-	  .replace(/\bimma\b/gi, "I'ma")
-	  .replace(/\bi'mma\b/gi, "I'ma")
+          .replace(/\bimma\b/gi, "I'ma")
+          .replace(/\bi'mma\b/gi, "I'ma")
       .replace(/\bim\b/gi, "I'm")
       .replace(/\bdont\b/gi, "don't")
       .replace(/\bcant\b/gi, "can't")
@@ -1680,26 +1625,51 @@
       .replace(/\bisnt\b/gi, "isn't")
       .replace(/\baint\b/gi, "ain't")
       .replace(/\bwoah\b/gi, "whoa")
-	  .replace(/\byall\b/gi, "y'all")
-	  .replace(/\bya'll\b/gi, "y'all")
-	  .replace(/\beveryday\b/gi, "every day")
-	  .replace(/\bmhm\b/gi, "hmm")
-	  .replace(/\bmhmm\b/gi, "hmm")
-	  .replace(/\bmmh\b/gi, "hmm")
-	  .replace(/\trynna\b/gi, "tryna");
+          .replace(/\byall\b/gi, "y'all")
+          .replace(/\bya'll\b/gi, "y'all")
+          .replace(/\beveryday\b/gi, "every day")
+          .replace(/\bmhm\b/gi, "hmm")
+      .replace(/\bmhmm\b/gi, "hmm")
+      .replace(/\bmmh\b/gi, "hmm")
+      // Normalize all variants of "tryna"
+      .replace(
+        /\btry(?:in'?|i?n+a?|i?n'?na?|i?n'?n?a?)\b/gi,
+        "tryna"
+      )
+      // Normalize till → 'til (only when used as "until")
+      .replace(/\b['’]?till\b/gi, "'til");
 
-    x = x.replace(/((?:^|\n)\s*)'til\b/g, (match, boundary, offset, str) => {
-      const start = offset + boundary.length;
-      const afterStart = start + 4;
-      const lineEnd = str.indexOf('\n', afterStart);
-      const rest = lineEnd === -1 ? str.slice(afterStart) : str.slice(afterStart, lineEnd);
-      const hasLower = /[a-z]/.test(rest);
-      const hasUpper = /[A-Z]/.test(rest);
-      const replacement = hasUpper && !hasLower ? "'TIL" : "'Til";
-      return boundary + replacement;
+    // past time → pastime (leisure activity)
+    x = x.replace(/\bpast time\b/gi, (m) => {
+      return m[0] === m[0].toUpperCase() ? "Pastime" : "pastime";
     });
 
-    x = x.replace(/(-\s+)'til\b/g, (_, prefix) => prefix + "'Til");
+    // everytime → every time
+    x = x.replace(/\beverytime\b/gi, (m) => {
+      if (m === m.toUpperCase()) return "EVERY TIME";
+      if (m[0] === m[0].toUpperCase()) return "Every time";
+      return "every time";
+    });
+
+    // Hollywood Boulevard
+    x = x.replace(/\bhollywood boulevard\b/gi, "Hollywood Boulevard");
+
+    // Sunset Strip
+    x = x.replace(/\bsunset strip\b/gi, "Sunset Strip");
+
+    // Add comma after "thank you" when followed by an address word or name
+    x = x.replace(
+      /\b(thank you)\s+([A-Za-z][A-Za-z'’-]*)\b/gi,
+      (full, ty, name) => {
+        if (ty === ty.toUpperCase()) {
+          return `THANK YOU, ${name.toUpperCase()}`;
+        }
+        if (ty[0] === ty[0].toUpperCase()) {
+          return `Thank you, ${name[0].toUpperCase() + name.slice(1)}`;
+        }
+        return `thank you, ${name}`;
+      }
+    );
 
     x = normalizeAmPmTimes(x);
     x = normalizeEmPronouns(x);
@@ -1843,6 +1813,14 @@ const WELL_CLAUSE_STARTERS = new Set([
         "fein","contain","domain","explain","sustain","pertain","obtain","entertain","villain","admin","abstain","stain"
       ]);
 
+      // Protect proper nouns from dropped-G handling
+      const DROPPED_G_PROTECT = new Set([
+        "spain",
+        "birkin",
+        "balmain",
+        "boutin"
+      ]);
+
       const parseCSV = (text) =>
         new Set(
           text
@@ -1868,7 +1846,9 @@ const WELL_CLAUSE_STARTERS = new Set([
 
       // Apply Dropped-G immediately
       x = x.replace(/\b([A-Za-z]+in)(?!['’g])\b/g, (match, base) => {
-        if (EXCLUSIONS.has(base.toLowerCase())) return match;
+        const normalized = base.toLowerCase();
+        if (EXCLUSIONS.has(normalized)) return match;
+        if (DROPPED_G_PROTECT.has(normalized)) return match;
         if (match === match.toUpperCase()) return base.toUpperCase() + "'";
         if (match[0] === match[0].toUpperCase()) return base[0].toUpperCase() + base.slice(1) + "'";
         return base + "'";
@@ -1921,13 +1901,13 @@ const WELL_CLAUSE_STARTERS = new Set([
     // Numbers & timing logic
     x = normalizeOClock(x);
     x = applyNumberRules(x);
+    x = normalizeSpelledOutNumbers(x);
     x = applyNoCommaRules(x);
 
-    // Normalize "god damn" -> "goddamn" while respecting casing
-    x = x.replace(/\bgod\s+damn\b/gi, match => {
-      if (match === match.toUpperCase()) return 'GODDAMN';
-      if (match[0] === 'G') return 'Goddamn';
-      return 'goddamn';
+    // Normalize "God damn" into "Goddamn" or "goddamn"
+    x = x.replace(/\b[Gg]od damn\b/g, (m, offset, str) => {
+      const isStart = /^[\s"']*$/.test(str.slice(0, offset));
+      return isStart ? "Goddamn" : "goddamn";
     });
 
     // Remove stray spaces that appear immediately before punctuation marks
