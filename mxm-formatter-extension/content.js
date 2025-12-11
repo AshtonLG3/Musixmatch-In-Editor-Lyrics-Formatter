@@ -1,7 +1,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.93';
+  const SCRIPT_VERSION = '1.1.94';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -177,19 +177,18 @@
     return /^\s*(?:o\s+clock|oclock|o['’]clock)\b/i.test(after);
   }
   function isCountingSequence(line) {
-    // Detects rhythmic count-offs like 1,2,3,4 or 1 2 3 4, optionally ending with "go"
-    return /^\s*(?:\d{1,2}[,\s]+)+\d{1,2}(?:[,\s]+(?:go|let'?s\s*go|c'?mon|everybody))?[.!?]*\s*$/i.test(line.trim());
+    // ← replace the whole old function with this one line
+    return /^\s*(?:\d{1,2}\s*[,–—.\u2026]?\s*){2,}\d{1,2}\b.*\b(?:go|down|lift.?off|let['’]?s\s*go|c'?mon|start|ready|set|and)?\b/i.test(line.trim());
   }
 
   function spellOutCountSequence(line) {
-    // Convert each number (0–10) in a count sequence into its word form
-    const numWords = ["zero","one","two","three","four","five","six","seven","eight","nine","ten"];
+    // ← replace the whole old function with this
     return line
-      .replace(/\b(0|[1-9]|10)\b/g, (_, d) => numWords[Number(d)])
-      .replace(/([a-z])([a-z])/gi, (m, a, b) => a + b.toLowerCase()) // normalize casing
-      .replace(/(^|\s)([a-z])/g, (m, s, l) => s + l.toUpperCase())   // capitalize first if needed
-      .replace(/\s*,\s*/g, ", ")                                     // clean spacing after commas
-      .replace(/\s+/g, " ");                                         // collapse spaces
+      .replace(/\b(0|[1-9]|10)\b/g, (_, d) => ["zero","one","two","three","four","five","six","seven","eight","nine","ten"][d])
+      .replace(/\s*[,–—.\u2026]+\s*/g, ", ")   // turns - • … : ; into ", "
+      .replace(/\s+/g, " ")                           // collapse spaces
+      .trim();                                 // remove leading/trailing junk
+      // no capitalization → stays lowercase, exactly what you want
   }
   function numerals0to10ToWords(line) {
     const re = /\b(0|1|2|3|4|5|6|7|8|9|10)\b/g;
