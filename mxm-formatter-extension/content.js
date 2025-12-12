@@ -1,7 +1,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-const SCRIPT_VERSION = '1.1.96';
+const SCRIPT_VERSION = '1.1.97';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -1792,63 +1792,73 @@ const SCRIPT_VERSION = '1.1.96';
       });
     })();
 
-    // === Pure syllable-line protector (prevents stanza merging) ===
+    // === Pure syllable-line detector (prevents stanza merging) ===
     const PURE_SYLLABLE_LINE_RE = /^[ \t]*(?:la|na)(?:-(?:la|na))+[ \t]*$/i;
-    const SYLLABLE_MARK = "\u200B"; // zero-width joiner
 
     // === Normalize syllable repetitions (na, la, etc.) ===
-    x = x
-      .split("\n")
-      .map((line, idx) => {
-        if (PURE_SYLLABLE_LINE_RE.test(line.trim())) {
-          // Add invisible uniqueness marker to stop merging
-          return line + SYLLABLE_MARK + idx;
-        }
-        return line;
-      })
-      .join("\n");
+    {
+      const SYLLABLE_RE =
+        /((?:^|[?!.\s]*)?)((?:na|la))(?:[-\t ]+\2){1,}\b|((?:^|[?!.\s]*)?)((?:na|la){4,})\b/gi;
 
-    x = x.replace(
-      /((?:^|[?!\.\s]*)?)((?:na|la))(?:[-\t ]+\2){1,}\b|((?:^|[?!\.\s]*)?)((?:na|la){4,})\b/gim,
-      (full, boundaryA, syllableA, boundaryB, fused) => {
-        // Skip if match contains newlines (don't merge across lines)
-        if (full.includes('\n')) return full;
+      function normalizeSyllablesInLine(line) {
+        return line.replace(
+          SYLLABLE_RE,
+          (full, boundaryA, syllableA, boundaryB, fused) => {
+            const boundary = boundaryA || boundaryB || '';
+            const syllable = (syllableA || (fused ? fused.slice(0, 2) : '') || '')
+              .toLowerCase();
+            if (!syllable) return full;
 
-        const boundary = boundaryA || boundaryB || '';
-        const syllable = (syllableA || fused?.slice(0, 2) || '').toLowerCase();
-        if (!syllable) return full;
+            // Count total syllables
+            const matches = (full.match(new RegExp(syllable, 'gi')) || []).length;
+            const total = Math.max(2, matches);
 
-        // Count total syllables
-        const matches = (full.match(new RegExp(`${syllable}`, 'gi')) || []).length;
-        const total = Math.max(2, matches);
+            // Group syllables in sets of 4, separated by commas every 4 repeats
+            const parts = [];
+            for (let i = 0; i < total; i += 4) {
+              const group = Array.from(
+                { length: Math.min(4, total - i) },
+                () => syllable
+              ).join('-');
+              parts.push(group);
+            }
 
-        // Group syllables in sets of 4, separated by commas every 4 repeats
-        const parts = [];
-        for (let i = 0; i < total; i += 4) {
-          const group = Array.from(
-            { length: Math.min(4, total - i) },
-            () => syllable
-          ).join('-');
-          parts.push(group);
-        }
+            // Handle fused 'lalalalala' (5+ la's)
+            if (fused && /^la+$/i.test(fused) && total > 4) {
+              const groups = [];
+              for (let i = 0; i < total; i += 4) {
+                const chunk = Math.min(4, total - i);
+                groups.push(
+                  Array.from({ length: chunk }, () => syllable).join('-')
+                );
+              }
+              return boundary + groups.join(', ');
+            }
 
-        // ✅ Specific fix: handle fused 'lalalalala' (5 or more la's)
-        if (/^la+$/.test(fused || '') && total > 4) {
-          const groups = [];
-          for (let i = 0; i < total; i += 4) {
-            const chunk = Math.min(4, total - i);
-            groups.push(Array.from({ length: chunk }, () => syllable).join('-'));
+            let formatted = parts.join(', ');
+            if (/[?!.\n]\s*$/.test(boundary)) {
+              formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1);
+            }
+
+            return boundary + formatted;
           }
-          return boundary + groups.join(', ');
-        }
-
-        let formatted = parts.join(', ');
-        if (/[?!\.\n]\s*$/.test(boundary))
-          formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1);
-
-        return boundary + formatted;
+        );
       }
-    );
+
+      x = x
+        .split('\n')
+        .map((line) => {
+          const trimmed = line.trim();
+
+          // HARD RULE: pure la/la-na stanza lines must not be touched at all
+          if (PURE_SYLLABLE_LINE_RE.test(trimmed)) {
+            return line;
+          }
+
+          return normalizeSyllablesInLine(line);
+        })
+        .join('\n');
+    }
 
     // Numbers & timing logic
     x = normalizeOClock(x);
