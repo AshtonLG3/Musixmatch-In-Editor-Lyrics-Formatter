@@ -1466,35 +1466,33 @@
          .replace(/[）﹚]/g, ')');
 
     // === Pure syllable-line protector (prevents stanza merging) ===
-    // Uses strict spacing (no \s which includes newlines)
-    const PURE_SYLLABLE_LINE_RE = /^[ \t]*(?:la|na)(?:[-\t ]+(?:la|na))+[ \t]*$/i;
+    const PURE_SYLLABLE_LINE_RE = /^[ \t]*(?:la|na)(?:-(?:la|na))+[ \t]*$/i;
     const SYLLABLE_MARK = "\u200B"; // zero-width joiner
 
+    // === Normalize syllable repetitions (na, la, etc.) ===
     x = x
       .split("\n")
       .map((line, idx) => {
         if (PURE_SYLLABLE_LINE_RE.test(line.trim())) {
+          // Add invisible uniqueness marker to stop merging
           return line + SYLLABLE_MARK + idx;
         }
         return line;
       })
       .join("\n");
 
-    // === Normalize syllable repetitions (na, la, etc.) ===
     x = x.replace(
-      // CHANGED: Replaced [-\s] with [-\t ] to prevent crossing newlines
-      /((?:^|\n|[?!\.\s]*)?)((?:na|la))(?:[-\t ]+\2){1,}\b|((?:^|\n|[?!\.\s]*)?)((?:na|la){4,})\b/gi,
+      /((?:^|\n|[?!\.\s]*)?)((?:na|la))(?:[-\s]+\2){1,}\b|((?:^|\n|[?!\.\s]*)?)((?:na|la){4,})\b/gi,
       (full, boundaryA, syllableA, boundaryB, fused) => {
-        // CHANGED: Strict safety check - if the match crossed a line, abort immediately
-        if (full.includes('\n') && !boundaryA && !boundaryB) return full;
-
         const boundary = boundaryA || boundaryB || '';
         const syllable = (syllableA || fused?.slice(0, 2) || '').toLowerCase();
         if (!syllable) return full;
 
+        // Count total syllables
         const matches = (full.match(new RegExp(`${syllable}`, 'gi')) || []).length;
         const total = Math.max(2, matches);
 
+        // Group syllables in sets of 4, separated by commas every 4 repeats
         const parts = [];
         for (let i = 0; i < total; i += 4) {
           const group = Array.from(
@@ -1504,6 +1502,7 @@
           parts.push(group);
         }
 
+        // ✅ Handle fused 'lalalalala' (5+ la's)
         if (/^la+$/.test(fused || '') && total > 4) {
           const groups = [];
           for (let i = 0; i < total; i += 4) {
@@ -1893,7 +1892,59 @@ const WELL_CLAUSE_STARTERS = new Set([
       });
     })();
 
-      // (Duplicate syllable logic removed)
+      // === Normalize syllable repetitions (na, la, etc.) ===
+      x = x
+        .split("\n")
+        .map((line, idx) => {
+          if (PURE_SYLLABLE_LINE_RE.test(line.trim())) {
+            // Add invisible uniqueness marker to stop merging
+            return line + SYLLABLE_MARK + idx;
+          }
+          return line;
+        })
+        .join("\n");
+
+      x = x.replace(
+        /((?:^|[?!.\s]*)?)((?:na|la))(?:[-\t ]+\2){1,}\b|((?:^|[?!.\s]*)?)((?:na|la){4,})\b/gim,
+        (full, boundaryA, syllableA, boundaryB, fused) => {
+          // Skip if match contains newlines (don't merge across lines)
+          if (full.includes('\n')) return full;
+
+          const boundary = boundaryA || boundaryB || '';
+          const syllable = (syllableA || fused?.slice(0, 2) || '').toLowerCase();
+          if (!syllable) return full;
+
+          // Count total syllables
+          const matches = (full.match(new RegExp(`${syllable}`, 'gi')) || []).length;
+          const total = Math.max(2, matches);
+
+          // Group syllables in sets of 4, separated by commas every 4 repeats
+          const parts = [];
+          for (let i = 0; i < total; i += 4) {
+            const group = Array.from(
+              { length: Math.min(4, total - i) },
+              () => syllable
+            ).join('-');
+            parts.push(group);
+          }
+
+          // ✅ Specific fix: handle fused 'lalalalala' (5 or more la's)
+          if (/^la+$/.test(fused || '') && total > 4) {
+            const groups = [];
+            for (let i = 0; i < total; i += 4) {
+              const chunk = Math.min(4, total - i);
+              groups.push(Array.from({ length: chunk }, () => syllable).join('-'));
+            }
+            return boundary + groups.join(', ');
+          }
+
+          let formatted = parts.join(', ');
+          if (/[?!.\n]\s*$/.test(boundary))
+            formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1);
+
+          return boundary + formatted;
+        }
+      );
 
     // Numbers & timing logic
     x = normalizeOClock(x);
@@ -2147,12 +2198,12 @@ x = x
       (_, b, p, q, l) => b + p + q + l.toLocaleUpperCase()
     );
 
-    // === Remove syllable uniqueness markers ===
-    x = x.replace(/\u200B\d*/g, "");
-
     // 4️⃣ Remove stray indentation and trailing spaces on each line
     x = x.replace(/^[ \t]+/gm, "");
     x = x.replace(/[ \t]+$/gm, "");
+
+    // === Remove syllable uniqueness markers ===
+    x = x.replace(/\u200B\d*/g, "");
 
     // --- LOWERCASE MAIN VOCAL AFTER BACKING VOCAL SPLIT ---
     // (He loves her) Could anyone love you better? -> (He loves her) could anyone love you better?
