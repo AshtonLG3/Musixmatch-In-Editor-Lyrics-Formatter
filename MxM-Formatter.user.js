@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name          MxM In-Editor Formatter (EN)
 // @namespace     mxm-tools
-// @version       1.1.95
+// @version       1.1.96
 // @description   Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes. STRICT MODE: Runs only on mode=edit.
 // @author        Richard Mangezi Muketa
 // @match         https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.95'; // Bumped version
+  const SCRIPT_VERSION = '1.1.96'; // Bumped version
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -1465,7 +1465,22 @@
          .replace(/[（﹙]/g, '(')
          .replace(/[）﹚]/g, ')');
 
+    // === Pure syllable-line protector (prevents stanza merging) ===
+    const PURE_SYLLABLE_LINE_RE = /^[ \t]*(?:la|na)(?:-(?:la|na))+[ \t]*$/i;
+    const SYLLABLE_MARK = "\u200B"; // zero-width joiner
+
     // === Normalize syllable repetitions (na, la, etc.) ===
+    x = x
+      .split("\n")
+      .map((line, idx) => {
+        if (PURE_SYLLABLE_LINE_RE.test(line.trim())) {
+          // Add invisible uniqueness marker to stop merging
+          return line + SYLLABLE_MARK + idx;
+        }
+        return line;
+      })
+      .join("\n");
+
     x = x.replace(
       /((?:^|\n|[?!\.\s]*)?)((?:na|la))(?:[-\s]+\2){1,}\b|((?:^|\n|[?!\.\s]*)?)((?:na|la){4,})\b/gi,
       (full, boundaryA, syllableA, boundaryB, fused) => {
@@ -1878,6 +1893,17 @@ const WELL_CLAUSE_STARTERS = new Set([
     })();
 
       // === Normalize syllable repetitions (na, la, etc.) ===
+      x = x
+        .split("\n")
+        .map((line, idx) => {
+          if (PURE_SYLLABLE_LINE_RE.test(line.trim())) {
+            // Add invisible uniqueness marker to stop merging
+            return line + SYLLABLE_MARK + idx;
+          }
+          return line;
+        })
+        .join("\n");
+
       x = x.replace(
         /((?:^|[?!.\s]*)?)((?:na|la))(?:[-\t ]+\2){1,}\b|((?:^|[?!.\s]*)?)((?:na|la){4,})\b/gim,
         (full, boundaryA, syllableA, boundaryB, fused) => {
@@ -2175,6 +2201,9 @@ x = x
     // 4️⃣ Remove stray indentation and trailing spaces on each line
     x = x.replace(/^[ \t]+/gm, "");
     x = x.replace(/[ \t]+$/gm, "");
+
+    // === Remove syllable uniqueness markers ===
+    x = x.replace(/\u200B\d*/g, "");
 
     // --- LOWERCASE MAIN VOCAL AFTER BACKING VOCAL SPLIT ---
     // (He loves her) Could anyone love you better? -> (He loves her) could anyone love you better?
