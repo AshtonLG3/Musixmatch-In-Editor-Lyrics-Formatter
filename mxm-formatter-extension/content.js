@@ -1,7 +1,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.94';
+  const SCRIPT_VERSION = '1.1.95';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -1263,6 +1263,10 @@
           cmonProtections.push(match);
           return `§CMON${cmonProtections.length - 1}§`;
         });
+        // Fix 'till → 'til without creating ''til
+        line = line
+          .replace(/\b['’]{2,}till\b/gi, "'til")   // collapse double apostrophes safely
+          .replace(/\b['’]?till\b/gi, "'til");     // main rule
         line = line.replace(/\bgunna\b/gi, "gonna");
         line = line.replace(/\bgon\b(?!['\u2019])/gi, "gon'");
         line = line.replace(/'?c(?:uz|os|oz|us)\b/gi, (match, offset, str) => {
@@ -1292,7 +1296,6 @@
         });
         // Restore protected "c'mon" / "C'mon"
         line = line.replace(/§CMON(\d+)§/g, (_, idx) => cmonProtections[Number(idx)] ?? "c'mon");
-        line = line.replace(/\b'til\b/gi, "'til");
         line = line.replace(/\bimma\b/gi, "I'ma");
         line = line.replace(/\bim'ma\b/gi, "I'ma");
         line = line.replace(/\bem'(?!\w)/gi, (match, offset, str) => {
@@ -1856,7 +1859,9 @@
     );
 
     // Normalize till → 'til (only when used as "until")
-    x = x.replace(/\b['’]?till\b/gi, "'til");
+    x = x
+      .replace(/\b['’]{2,}till\b/gi, "'til")   // collapse double apostrophes safely
+      .replace(/\b['’]?till\b/gi, "'til");     // main rule
 
     // past time → pastime (leisure activity)
     x = x.replace(/\bpast time\b/gi, (m) => {
@@ -1892,6 +1897,17 @@
 
     // Remove stray spaces that appear immediately before punctuation marks
     x = x.replace(/[ \t]+([!?.,;:])/g, '$1');
+
+    // Normalize repeated punctuation: ??, !!, '', etc.
+    x = x
+      // collapse multiple apostrophes or fancy quotes to a single '
+      .replace(/['’]{2,}/g, "'")
+
+      // collapse multiple ? or ! into one
+      .replace(/([!?])\1+/g, "$1")
+
+      // remove comma(s) directly after ? or !
+      .replace(/([!?]),+/g, "$1");
 
     // Standalone pronoun fixes
     x = ensureStandaloneICapitalized(x);

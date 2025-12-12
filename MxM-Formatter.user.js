@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name          MxM In-Editor Formatter (EN)
 // @namespace     mxm-tools
-// @version       1.1.94
+// @version       1.1.95
 // @description   Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes. STRICT MODE: Runs only on mode=edit.
 // @author        Richard Mangezi Muketa
 // @match         https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.94'; // Bumped version
+  const SCRIPT_VERSION = '1.1.95'; // Bumped version
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -1613,8 +1613,12 @@
       const contractionLines = x.split('\n');
       for (let i = 0; i < contractionLines.length; i++) {
         let line = contractionLines[i];
+        // Fix 'till → 'til without creating ''til
+        line = line
+          .replace(/\b['’]{2,}till\b/gi, "'til")   // collapse double apostrophes safely
+          .replace(/\b['’]?till\b/gi, "'til");     // main rule
         line = line.replace(/\bgunna\b/gi, "gonna");
-		line = line.replace(/\bgonna['’]\b/gi, "gonna");
+                line = line.replace(/\bgonna['’]\b/gi, "gonna");
         line = line.replace(/\bgon\b(?!['\u2019])/gi, "gon'");
         line = line.replace(/'?c(?:uz|us|os|oz)\b/gi, (match, offset, str) => {
           const prevChar = offset > 0 ? str[offset - 1] : '';
@@ -1641,10 +1645,9 @@
           if (match[0] === match[0].toUpperCase()) return "'Cause";
           return "'cause";
         });
-        line = line.replace(/\b'til\b/gi, "'til");
         line = line.replace(/\bimma\b/gi, "I'ma");
-		line = line.replace(/\bi'll\b/gi, "I'll");
-		line = line.replace(/\bive\b/gi, "I've");
+                line = line.replace(/\bi'll\b/gi, "I'll");
+                line = line.replace(/\bive\b/gi, "I've");
 		line = line.replace(/\bi've\b/gi, "I've");
 		line = line.replace(/\bi'd\b/gi, "I'd");
         line = line.replace(/\bim'ma\b/gi, "I'ma");
@@ -1936,7 +1939,9 @@ const WELL_CLAUSE_STARTERS = new Set([
     );
 
     // Normalize till → 'til (only when used as "until")
-    x = x.replace(/\b['’]?till\b/gi, "'til");
+    x = x
+      .replace(/\b['’]{2,}till\b/gi, "'til")   // collapse double apostrophes safely
+      .replace(/\b['’]?till\b/gi, "'til");     // main rule
 
     // past time → pastime (leisure activity)
     x = x.replace(/\bpast time\b/gi, (m) => {
@@ -1972,6 +1977,17 @@ const WELL_CLAUSE_STARTERS = new Set([
 
     // Remove stray spaces that appear immediately before punctuation marks
     x = x.replace(/[ \t]+([!?.,;:])/g, '$1');
+
+    // Normalize repeated punctuation: ??, !!, '', etc.
+    x = x
+      // collapse multiple apostrophes or fancy quotes to a single '
+      .replace(/['’]{2,}/g, "'")
+
+      // collapse multiple ? or ! into one
+      .replace(/([!?])\1+/g, "$1")
+
+      // remove comma(s) directly after ? or !
+      .replace(/([!?]),+/g, "$1");
 
     // Standalone pronoun fixes
     x = ensureStandaloneICapitalized(x);
