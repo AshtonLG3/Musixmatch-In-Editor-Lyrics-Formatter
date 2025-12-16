@@ -1,7 +1,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-const SCRIPT_VERSION = '1.1.97';
+const SCRIPT_VERSION = '1.1.98';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -1043,10 +1043,29 @@ const SCRIPT_VERSION = '1.1.97';
     return text;
   }
 
+  // ---------- Accent Normalization (safe, word-boundary only) ----------
+  const ACCENT_CANONICAL_MAP = {
+    chateau: 'château',
+    resume: 'résumé',
+    fiance: 'fiancé',
+    cafe: 'café'
+  };
+
+  function normalizeAccents(text) {
+    if (!text) return text;
+    for (const [plain, accented] of Object.entries(ACCENT_CANONICAL_MAP)) {
+      const re = new RegExp(`\\b${plain}\\b`, 'gi');
+      text = text.replace(re, accented);
+    }
+    return text;
+  }
+
   // ---------- Formatter ----------
   function formatLyrics(input, _options = {}) {
     if (!input) return "";
     let x = ("\n" + input.trim() + "\n");
+    // Accent normalization (must run early)
+    x = normalizeAccents(x);
     // --- AUTO LOWERCASE APPLIED BEFORE ALL PROCESSING ---
     if (extensionOptions.autoLowercase) {
       // Only lowercase *main lyrics*, not structure tags or BV parentheses

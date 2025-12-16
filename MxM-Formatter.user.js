@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name          MxM In-Editor Formatter (EN)
 // @namespace     mxm-tools
-// @version       1.1.97
+// @version       1.1.98
 // @description   Musixmatch Studio-only formatter with improved BV, punctuation, and comma relocation fixes. STRICT MODE: Runs only on mode=edit.
 // @author        Richard Mangezi Muketa
 // @match         https://curators.musixmatch.com/*
@@ -15,7 +15,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '1.1.97'; // Bumped version
+  const SCRIPT_VERSION = '1.1.98'; // Bumped version
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -1329,6 +1329,23 @@
     return text;
   }
 
+  // ---------- Accent Normalization (safe, word-boundary only) ----------
+  const ACCENT_CANONICAL_MAP = {
+    chateau: 'château',
+    resume: 'résumé',
+    fiance: 'fiancé',
+    cafe: 'café'
+  };
+
+  function normalizeAccents(text) {
+    if (!text) return text;
+    for (const [plain, accented] of Object.entries(ACCENT_CANONICAL_MAP)) {
+      const re = new RegExp(`\\b${plain}\\b`, 'gi');
+      text = text.replace(re, accented);
+    }
+    return text;
+  }
+
   // ---------- Formatter ----------
   function formatLyrics(input, _options = {}) {
     if (!input) return "";
@@ -1337,6 +1354,8 @@
       return input.replace(/\s+$/gm, '').trim();
     }
     let x = ("\n" + input.trim() + "\n");
+    // Accent normalization (must run early)
+    x = normalizeAccents(x);
     const preservedStandaloneParens = [];
     const STANDALONE_PAREN_SENTINEL = "__MXM_SP__";
 
