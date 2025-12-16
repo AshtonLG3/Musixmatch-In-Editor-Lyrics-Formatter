@@ -1823,7 +1823,7 @@ const WELL_CLAUSE_STARTERS = new Set([
         "pumpkin","grin","chin","twin","skin","basin","raisn","spain","birkin","balmain","boutin","login","pin","curtain",
         "fin","din","min","gin","lin","kin","sin","win","bin","thin","tin","akin","leadin","captain","mountain",
         "fountain","certain","again","gain","spin","twin","main","cain","maintain","retain","detain","vain","regain",
-        "rain","brain","pain","drain","train","grain","cabin","satin","chain","plain","remain","campaign",
+        "rain","brain","pain","drain","train","grain","cabin","satin","chain","robin","kevin","kelvin","plain","remain","campaign",
         "fein","contain","domain","explain","sustain","pertain","obtain","entertain","villain","admin","abstain","stain"
       ]);
 
