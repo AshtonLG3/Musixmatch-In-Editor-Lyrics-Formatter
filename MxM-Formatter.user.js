@@ -2166,6 +2166,10 @@ x = x
     x = x.replace(/ +\n/g, '\n'); // trim spaces before line breaks
     x = x.replace(/\n{3,}/g, '\n\n'); // collapse 3+ newlines into 2
 
+	  // === Structural cleanup ===
+    x = x.replace(/\n[ \t]*\n+(?=#INSTRUMENTAL\b)/g, '\n');
+    x = x.replace(/\s+$/, '');
+
     // === Strengthened structure tag deduplication (prevents #HOOK double lines) ===
     x = x.replace(/(#(INTRO|VERSE|PRE-CHORUS|CHORUS|BRIDGE|HOOK|OUTRO)\s*\n\s*)+#\2/gi, '#$2');
     x = x.replace(/(#HOOK\s*\n\s*)+#HOOK/gi, '#HOOK');
