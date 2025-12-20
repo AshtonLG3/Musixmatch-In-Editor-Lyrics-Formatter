@@ -15,7 +15,7 @@
 // @updateURL https://update.greasyfork.org/scripts/556204/MxM%20In-Editor%20Formatter%20%28EN%29.meta.js
 // ==/UserScript==
 
-const DEPRECATION_TS = Date.UTC(2025, 11, 29, 23, 59, 0); // Dec 29 2025 23:59 UTC
+const DEPRECATION_TS = Date.UTC(2025, 11, 31, 23, 59, 0); // Dec 31 2025 23:59 UTC
 
 (function () {
   if (typeof window === 'undefined') return;
@@ -62,7 +62,7 @@ const DEPRECATION_TS = Date.UTC(2025, 11, 29, 23, 59, 0); // Dec 29 2025 23:59 U
     </h2>
     <p style="margin:0 0 10px;line-height:1.5;">
       This userscript is <strong>deprecated</strong> and will be permanently
-      disabled on <strong>29 December 2025 at 23:59</strong>.
+      disabled on <strong>31 December 2025 at 23:59</strong>.
     </p>
     <p style="margin:0 0 16px;line-height:1.5;">
       Please install the official Chrome extension to continue using the formatter.
