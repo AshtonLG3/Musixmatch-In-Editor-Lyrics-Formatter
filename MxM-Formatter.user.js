@@ -15,28 +15,79 @@
 // @updateURL https://update.greasyfork.org/scripts/556204/MxM%20In-Editor%20Formatter%20%28EN%29.meta.js
 // ==/UserScript==
 
+const DEPRECATION_TS = Date.UTC(2025, 11, 29, 23, 59, 0); // Dec 29 2025 23:59 UTC
+
 (function () {
   if (typeof window === 'undefined') return;
 
   const REDIRECT_URL =
     'https://chromewebstore.google.com/detail/mxm-in-editor-formatter-e/baneadebamaohnochaahaboadkdajamo';
 
-  const KEY = 'mxmFmtDeprecatedNotice.v1';
+  const now = Date.now();
 
-  try {
-    if (!localStorage.getItem(KEY)) {
-      localStorage.setItem(KEY, '1');
+  // ---- Hard deprecation after cutoff ----
+  if (now >= DEPRECATION_TS) {
+    window.location.href = REDIRECT_URL;
+    return;
+  }
 
-      const msg =
-        'MxM In-Editor Formatter userscript is deprecated.\n\n' +
-        'Please install the official Chrome extension instead.\n\n' +
-        'Click OK to open the formatter page.';
+  // ---- Forced deprecation notice (pre-cutoff) ----
+  const overlay = document.createElement('div');
+  overlay.style.cssText = `
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 2147483647;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  `;
 
-      if (confirm(msg)) {
-        window.location.href = REDIRECT_URL;
-      }
-    }
-  } catch {}
+  const modal = document.createElement('div');
+  modal.style.cssText = `
+    background: #0b1e3b;
+    color: #f5c26b;
+    border: 2px solid #f5c26b;
+    border-radius: 12px;
+    max-width: 520px;
+    width: calc(100% - 40px);
+    padding: 24px 26px;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  `;
+
+  modal.innerHTML = `
+    <h2 style="margin:0 0 12px;font-size:20px;color:#ffd98a;">
+      MxM In-Editor Formatter — Deprecation Notice
+    </h2>
+    <p style="margin:0 0 10px;line-height:1.5;">
+      This userscript is <strong>deprecated</strong> and will be permanently
+      disabled on <strong>29 December 2025 at 23:59</strong>.
+    </p>
+    <p style="margin:0 0 16px;line-height:1.5;">
+      Please install the official Chrome extension to continue using the formatter.
+    </p>
+    <div style="display:flex;justify-content:flex-end;gap:12px;">
+      <button id="mxm-dep-install" style="
+        background:#f5c26b;
+        color:#0b1e3b;
+        border:none;
+        border-radius:8px;
+        padding:10px 16px;
+        font-weight:600;
+        cursor:pointer;
+      ">
+        Go to Extension
+      </button>
+    </div>
+  `;
+
+  overlay.appendChild(modal);
+  document.documentElement.appendChild(overlay);
+
+  document.getElementById('mxm-dep-install').addEventListener('click', () => {
+    window.location.href = REDIRECT_URL;
+  });
 
   return;
 })();
