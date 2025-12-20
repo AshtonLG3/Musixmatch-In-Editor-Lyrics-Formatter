@@ -5,7 +5,7 @@
 // @deprecated    true
 // @homepageURL   https://chromewebstore.google.com/detail/mxm-in-editor-formatter-e/baneadebamaohnochaahaboadkdajamo
 // @supportURL    https://chromewebstore.google.com/detail/mxm-in-editor-formatter-e/baneadebamaohnochaahaboadkdajamo
-// @description   ⚠️ This userscript is deprecated. Please install the official Chrome extension instead.
+// @description   ⚠️ DEPRECATED — Install the official Chrome extension instead
 // @author        Richard Mangezi Muketa
 // @match         https://curators.musixmatch.com/*
 // @match         https://curators-beta.musixmatch.com/*
@@ -30,15 +30,15 @@
       const msg =
         'MxM In-Editor Formatter userscript is deprecated.\n\n' +
         'Please install the official Chrome extension instead.\n\n' +
-        'Click OK to open the Chrome Web Store.';
+        'Click OK to open the formatter page.';
 
       if (confirm(msg)) {
-        window.open(REDIRECT_URL, '_blank', 'noopener');
+        window.location.href = REDIRECT_URL;
       }
     }
-  } catch {
-    /* ignore storage errors */
-  }
+  } catch {}
+
+  return;
 })();
 
 (function (global) {
