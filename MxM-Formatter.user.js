@@ -15,68 +15,89 @@
 // @updateURL https://update.greasyfork.org/scripts/556204/MxM%20In-Editor%20Formatter%20%28EN%29.meta.js
 // ==/UserScript==
 
-const DEPRECATION_TS = Date.UTC(2025, 11, 31, 23, 59, 0); // Dec 31 2025 23:59 UTC
-
 (function () {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined' || typeof document === 'undefined') return;
 
-  const REDIRECT_URL =
+  const DEPRECATION_TS = Date.UTC(2025, 11, 31, 23, 59, 0);
+  const STORE_URL =
     'https://chromewebstore.google.com/detail/mxm-in-editor-formatter-e/baneadebamaohnochaahaboadkdajamo';
 
   const now = Date.now();
 
-  // ---- Hard deprecation after cutoff ----
-  if (now >= DEPRECATION_TS) {
-    window.location.href = REDIRECT_URL;
+  // Show notice until hard cutoff
+  if (now > DEPRECATION_TS) {
+    document.body.innerHTML = '';
+    alert(
+      'MxM In-Editor Formatter has been permanently disabled.\n\n' +
+      'Please install the official Chrome extension to continue.'
+    );
+    window.location.href = STORE_URL;
     return;
   }
 
-  // ---- Forced deprecation notice (pre-cutoff) ----
+  // ----- Modal -----
   const overlay = document.createElement('div');
+  const modal = document.createElement('div');
+
   overlay.style.cssText = `
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.85);
+    background: rgba(0,0,0,0.75);
     z-index: 2147483647;
     display: flex;
     align-items: center;
     justify-content: center;
   `;
 
-  const modal = document.createElement('div');
   modal.style.cssText = `
-    background: #0b1e3b;
-    color: #f5c26b;
-    border: 2px solid #f5c26b;
-    border-radius: 12px;
+    background: linear-gradient(180deg, #0e2a4f, #0b1f3a);
+    color: #f5e3a1;
+    border: 2px solid #d4af37;
+    border-radius: 14px;
+    padding: 22px 26px;
     max-width: 520px;
-    width: calc(100% - 40px);
-    padding: 24px 26px;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    width: calc(100% - 32px);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.6);
   `;
 
   modal.innerHTML = `
-    <h2 style="margin:0 0 12px;font-size:20px;color:#ffd98a;">
+    <h2 style="margin:0 0 10px;font-size:18px;color:#ffd76a;">
       MxM In-Editor Formatter — Deprecation Notice
     </h2>
-    <p style="margin:0 0 10px;line-height:1.5;">
+
+    <p style="margin:0 0 12px;font-size:14px;line-height:1.5;">
       This userscript is <strong>deprecated</strong> and will be permanently
-      disabled on <strong>31 December 2025 at 23:59</strong>.
+      disabled on <strong>31 December 2025 at 23:59 (UTC)</strong>.
     </p>
-    <p style="margin:0 0 16px;line-height:1.5;">
-      Please install the official Chrome extension to continue using the formatter.
+
+    <p style="margin:0 0 18px;font-size:14px;">
+      You may continue using it for now, or install the official Chrome extension.
     </p>
+
     <div style="display:flex;justify-content:flex-end;gap:12px;">
-      <button id="mxm-dep-install" style="
-        background:#f5c26b;
-        color:#0b1e3b;
-        border:none;
-        border-radius:8px;
-        padding:10px 16px;
-        font-weight:600;
-        cursor:pointer;
-      ">
+      <button id="mxmCloseDeprecation"
+        style="
+          background:#1c355e;
+          color:#f5e3a1;
+          border:1px solid #d4af37;
+          border-radius:10px;
+          padding:8px 14px;
+          cursor:pointer;
+        ">
+        Close
+      </button>
+
+      <button id="mxmGoExtension"
+        style="
+          background:#d4af37;
+          color:#0b1f3a;
+          border:none;
+          border-radius:10px;
+          padding:8px 16px;
+          font-weight:600;
+          cursor:pointer;
+        ">
         Go to Extension
       </button>
     </div>
@@ -85,11 +106,18 @@ const DEPRECATION_TS = Date.UTC(2025, 11, 31, 23, 59, 0); // Dec 31 2025 23:59 U
   overlay.appendChild(modal);
   document.documentElement.appendChild(overlay);
 
-  document.getElementById('mxm-dep-install').addEventListener('click', () => {
-    window.location.href = REDIRECT_URL;
-  });
+  // Prevent dismissal by ESC
+  window.addEventListener('keydown', e => {
+    if (e.key === 'Escape') e.preventDefault();
+  }, true);
 
-  return;
+  document.getElementById('mxmGoExtension').onclick = () => {
+    window.open(STORE_URL, '_blank', 'noopener');
+  };
+
+  document.getElementById('mxmCloseDeprecation').onclick = () => {
+    overlay.remove();
+  };
 })();
 
 (function (global) {
