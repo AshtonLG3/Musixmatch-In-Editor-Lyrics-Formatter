@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name          MxM In-Editor Formatter (EN)
 // @namespace     mxm-tools
-// @version       2.0.0
+// @version       2.0.1
 // @deprecated    true
 // @homepageURL   https://chromewebstore.google.com/detail/mxm-in-editor-formatter-e/baneadebamaohnochaahaboadkdajamo
 // @supportURL    https://chromewebstore.google.com/detail/mxm-in-editor-formatter-e/baneadebamaohnochaahaboadkdajamo

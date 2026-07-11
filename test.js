@@ -89,6 +89,16 @@ if (formatLyrics(timeContextLine) !== 'Meet me at 7:30 p.m.') {
   throw new Error('Time expressions must retain their numeric formatting and normalised meridiem');
 }
 
+const inlineBackingVocalShorthand = '/Help me sing it\\';
+if (formatLyrics(inlineBackingVocalShorthand) !== '(Help me sing it)') {
+  throw new Error('Inline slash/backslash shorthand should expand to one parenthetical backing vocal line');
+}
+
+const blockBackingVocalShorthand = '/\nHelp me sing it\nLord\n\\';
+if (formatLyrics(blockBackingVocalShorthand) !== '(Help me sing it)\n(Lord)') {
+  throw new Error('Standalone slash/backslash blocks should expand each lyric line into parenthetical backing vocals');
+}
+
 module.exports = {
   formatLyrics,
   version: metaVersion,

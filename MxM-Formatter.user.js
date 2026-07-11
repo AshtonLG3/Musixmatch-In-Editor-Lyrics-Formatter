@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name          MxM In-Editor Formatter (EN)
 // @namespace     mxm-tools
-// @version       2.0.0
+// @version       2.0.1
 // @deprecated    true
 // @homepageURL   https://chromewebstore.google.com/detail/mxm-in-editor-formatter-e/baneadebamaohnochaahaboadkdajamo
 // @supportURL    https://chromewebstore.google.com/detail/mxm-in-editor-formatter-e/baneadebamaohnochaahaboadkdajamo
@@ -123,9 +123,10 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '2.0.0'; // Bumped version
+  const SCRIPT_VERSION = '2.0.1'; // Bumped version
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
+  const THEME_KEY = 'mxmFmtTheme';
   const defaults = { showPanel: true, aggressiveNumbers: true };
   const LAST_ORIGINAL_KEY = 'mxmFmtLastOriginal.v1';
   let lastFormatState = null;
@@ -211,6 +212,39 @@
     EL: { preserve: ['Greek'], droppedG: false, tagMap: {} }
   };
 
+  const UI_THEMES = {
+    dark: {
+      controlBg: '#0e4f7a',
+      controlText: '#d4af37',
+      controlBorder: '#d4af37',
+      glow: 'rgba(212, 175, 55, 0.55)',
+      popoverBg: '#1e1e1e',
+      popoverText: '#eee',
+      popoverMuted: '#aaa',
+      selectBg: '#222',
+      selectText: '#fff',
+      selectBorder: '#444',
+      shadow: 'rgba(0,0,0,0.4)'
+    },
+    light: {
+      controlBg: '#f8fafc',
+      controlText: '#0e4f7a',
+      controlBorder: '#d4af37',
+      glow: 'rgba(14, 79, 122, 0.22)',
+      popoverBg: '#f8fafc',
+      popoverText: '#0f172a',
+      popoverMuted: '#475569',
+      selectBg: '#fff',
+      selectText: '#0f172a',
+      selectBorder: '#cbd5e1',
+      shadow: 'rgba(15,23,42,0.18)'
+    }
+  };
+
+  function normalizeTheme(value) {
+    return value === 'light' ? 'light' : 'dark';
+  }
+
   function readLocalOption(key){
     if(!hasWindow) return null;
     try{
@@ -234,6 +268,7 @@
   if(typeof storedLang === 'string' && storedLang) extensionOptions.lang = storedLang;
   const storedLower = readLocalOption('mxmFmtAutoLowercase');
   if(storedLower !== null) extensionOptions.autoLowercase = storedLower === '1' || storedLower === 'true';
+  let formatterTheme = normalizeTheme(readLocalOption(THEME_KEY));
 
   const BV_FIRST_WORD_EXCEPTIONS = new Set([
     'I',
@@ -1455,13 +1490,43 @@
   }
 
   // ---------- Formatter ----------
+  function wrapBackingVocalShorthandLine(line) {
+    const trimmed = String(line || '').trim();
+    if (!trimmed) return '';
+    if (trimmed.startsWith('(') && trimmed.endsWith(')')) return trimmed;
+    return `(${trimmed})`;
+  }
+
+  function expandBackingVocalShorthand(input) {
+    let text = String(input || '');
+
+    text = text.replace(/(^|\n)([ \t]*)\/[ \t]*\n([\s\S]*?)\n[ \t]*\\[ \t]*(?=\n|$)/g, (_match, boundary, indent, body) => {
+      const expanded = body
+        .split('\n')
+        .map((line) => {
+          const trimmed = line.trim();
+          if (!trimmed) return '';
+          return `${indent}${wrapBackingVocalShorthandLine(trimmed)}`;
+        })
+        .join('\n')
+        .replace(/\n{3,}/g, '\n\n');
+
+      return `${boundary}${expanded}`;
+    });
+
+    return text.replace(/(^|[ \t])\/[ \t]*([^/\\\n]*?\S)[ \t]*\\/gm, (_match, boundary, body) => {
+      return `${boundary}${wrapBackingVocalShorthandLine(body)}`;
+    });
+  }
+
   function formatLyrics(input, _options = {}) {
     if (!input) return "";
     if (input.length > 50000) {
       console.warn('Large input detected (>50k chars): minimal normalization only.');
       return input.replace(/\s+$/gm, '').trim();
     }
-    let x = ("\n" + input.trim() + "\n");
+    const shorthandExpandedInput = expandBackingVocalShorthand(input);
+    let x = ("\n" + shorthandExpandedInput.trim() + "\n");
     // Accent normalization (must run early)
     x = normalizeAccents(x);
     const preservedStandaloneParens = [];
@@ -2434,10 +2499,11 @@ x = x
     const buttonParent=uiDocument.body||uiDocument.documentElement;
     if(!buttonParent) return;
 
-    // Updated Colors to match Logo (approx)
-    const MF_BLUE='#0e4f7a'; // Slightly richer blue from icon
-    const MF_GOLD='#d4af37'; // Metallic Gold
-    const MF_GLOW='rgba(212, 175, 55, 0.55)'; // Gold Glow
+    const activeTheme=UI_THEMES[formatterTheme]||UI_THEMES.dark;
+    const MF_BLUE=activeTheme.controlBg;
+    const MF_GOLD=activeTheme.controlText;
+    const MF_BORDER=activeTheme.controlBorder;
+    const MF_GLOW=activeTheme.glow;
 
     let container=floatingButtonContainer||uiDocument.getElementById('mxmFmtBtnWrap');
     if(!container){
@@ -2471,7 +2537,7 @@ x = x
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        border: `2px solid ${MF_GOLD}`,
+        border: `2px solid ${MF_BORDER}`,
         background: MF_BLUE,
         color: MF_GOLD,
         cursor:'pointer',
@@ -2508,7 +2574,7 @@ x = x
         alignItems: 'center',
         justifyContent: 'center',
         padding: '0',
-        border: `1px solid ${MF_GOLD}`,
+        border: `1px solid ${MF_BORDER}`,
         background: MF_BLUE,
         color: MF_GOLD,
         cursor:'pointer',
@@ -2517,7 +2583,7 @@ x = x
       });
       revertBtn.addEventListener('mouseenter',()=>{if(revertBtn.disabled) return;revertBtn.style.transform='translateY(-2px)';revertBtn.style.boxShadow='0 6px 16px rgba(0,0,0,.4)';});
       revertBtn.addEventListener('mouseleave',()=>{revertBtn.style.transform='';revertBtn.style.boxShadow=revertBtn.disabled?'':'0 4px 12px rgba(0,0,0,.3)';});
-      revertBtn.addEventListener('focus',()=>{revertBtn.style.boxShadow=`0 0 0 2px ${MF_GOLD}`;});
+      revertBtn.addEventListener('focus',()=>{revertBtn.style.boxShadow=`0 0 0 2px ${MF_BORDER}`;});
       revertBtn.addEventListener('blur',()=>{revertBtn.style.boxShadow=revertBtn.disabled?'':'0 4px 12px rgba(0,0,0,.3)';});
       revertBtn.dataset.mxmStyled='1';
     }
@@ -2537,7 +2603,7 @@ x = x
 
     if(!gearBtn.dataset.mxmStyled){
       // Make the gear icon Gold
-      Object.assign(gearBtn.style,{fontSize:'18px',marginLeft:'2px',cursor:'pointer',background:'transparent',border:'none',color:MF_GOLD,padding:'6px',textShadow: '0 2px 4px rgba(0,0,0,0.5)'});
+      Object.assign(gearBtn.style,{fontSize:'18px',marginLeft:'2px',cursor:'pointer',background:'transparent',border:'none',color:MF_BORDER,padding:'6px',textShadow: formatterTheme==='light'?'none':'0 2px 4px rgba(0,0,0,0.5)'});
       gearBtn.dataset.mxmStyled='1';
     }
 
@@ -2554,13 +2620,13 @@ x = x
 
       pop=uiDocument.createElement('div');
       pop.id='mxmFmtPopover';
-      Object.assign(pop.style,{position:'absolute',bottom:'70px',right:'0',background:'#1e1e1e',border:`1px solid ${MF_GOLD}`,borderRadius:'10px',padding:'8px 12px',fontSize:'13px',color:'#eee',boxShadow:'0 4px 16px rgba(0,0,0,0.4)',zIndex:2147483647});
+      Object.assign(pop.style,{position:'absolute',bottom:'70px',right:'0',background:activeTheme.popoverBg,border:`1px solid ${MF_BORDER}`,borderRadius:'10px',padding:'8px 12px',fontSize:'13px',color:activeTheme.popoverText,boxShadow:`0 4px 16px ${activeTheme.shadow}`,zIndex:2147483647});
 
       pop.innerHTML=`
     <div style="margin-bottom:6px;">
       <label style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-        <span style="color:${MF_GOLD}">Language:</span>
-        <select id="mxmLangSelect" style="background:#222;color:#fff;border:1px solid #444;border-radius:6px;padding:2px 4px;">
+        <span style="color:${MF_BORDER}">Language:</span>
+        <select id="mxmLangSelect" style="background:${activeTheme.selectBg};color:${activeTheme.selectText};border:1px solid ${activeTheme.selectBorder};border-radius:6px;padding:2px 4px;">
           <option value="EN">EN</option>
           <option value="RU">RU</option>
           <option value="ES">ES</option>
@@ -2572,14 +2638,25 @@ x = x
     </div>
     <div>
       <label style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-        <span style="color:${MF_GOLD}">Auto Lowercase:</span>
+        <span style="color:${MF_BORDER}">Auto Lowercase:</span>
         <input type="checkbox" id="mxmLowercaseToggle">
       </label>
     </div>
+    <div style="margin-top:6px;">
+      <label style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <span style="color:${MF_BORDER}">Theme:</span>
+        <select id="mxmThemeSelect" style="background:${activeTheme.selectBg};color:${activeTheme.selectText};border:1px solid ${activeTheme.selectBorder};border-radius:6px;padding:2px 4px;">
+          <option value="dark">Dark</option>
+          <option value="light">Light</option>
+        </select>
+      </label>
+    </div>
+    <div style="margin-top:8px;font-size:11px;color:${activeTheme.popoverMuted};text-align:right;">v${SCRIPT_VERSION}</div>
   `.trim();
 
       const langSel=pop.querySelector('#mxmLangSelect');
       const lcToggle=pop.querySelector('#mxmLowercaseToggle');
+      const themeSel=pop.querySelector('#mxmThemeSelect');
       const storedLangValue=readLocalOption('mxmFmtLang');
       langSel.value=storedLangValue||extensionOptions.lang||'EN';
       if(!langSel.querySelector(`option[value="${langSel.value}"]`))
@@ -2587,6 +2664,7 @@ x = x
       if(!langSel.querySelector(`option[value="${langSel.value}"]`))
         langSel.value='EN';
       lcToggle.checked=Boolean(extensionOptions.autoLowercase);
+      themeSel.value=formatterTheme;
 
       langSel.onchange=ev=>{
         const nextLang=ev.target.value;
@@ -2599,6 +2677,17 @@ x = x
         extensionOptions.autoLowercase=isChecked;
         writeLocalOption('mxmFmtAutoLowercase',isChecked?'1':'0');
         toast(`Auto lowercase ${isChecked?'enabled':'disabled'}`);
+      };
+      themeSel.onchange=ev=>{
+        formatterTheme=normalizeTheme(ev.target.value);
+        writeLocalOption(THEME_KEY,formatterTheme);
+        [formatBtn,revertBtn,gearBtn].forEach(btn=>{if(btn?.dataset) delete btn.dataset.mxmStyled;});
+        const closerRef=pop.__mxmCloser;
+        if(typeof closerRef==='function') uiDocument.removeEventListener('click',closerRef);
+        pop.remove();
+        gearBtn.setAttribute('aria-expanded','false');
+        createFloatingButton();
+        toast(`Theme set to ${formatterTheme}`);
       };
 
       container.appendChild(pop);
