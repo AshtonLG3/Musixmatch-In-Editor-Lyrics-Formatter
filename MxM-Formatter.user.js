@@ -1,11 +1,10 @@
 // ==UserScript==
 // @name          MxM In-Editor Formatter (EN)
 // @namespace     mxm-tools
-// @version       2.0.2
-// @deprecated    true
+// @version       2.0.3
 // @homepageURL   https://chromewebstore.google.com/detail/mxm-in-editor-formatter-e/baneadebamaohnochaahaboadkdajamo
 // @supportURL    https://chromewebstore.google.com/detail/mxm-in-editor-formatter-e/baneadebamaohnochaahaboadkdajamo
-// @description   ⚠️ DEPRECATED — Install the official Chrome extension instead
+// @description   Musixmatch Studio-only formatter with local shorthand expansion and extension-safe fallback behavior
 // @author        Richard Mangezi Muketa
 // @match         https://curators.musixmatch.com/*
 // @match         https://curators-beta.musixmatch.com/*
@@ -15,115 +14,10 @@
 // @updateURL https://update.greasyfork.org/scripts/556204/MxM%20In-Editor%20Formatter%20%28EN%29.meta.js
 // ==/UserScript==
 
-(function () {
-  if (typeof window === 'undefined' || typeof document === 'undefined') return;
-
-  const DEPRECATION_TS = Date.UTC(2025, 11, 31, 23, 59, 0);
-  const STORE_URL =
-    'https://chromewebstore.google.com/detail/mxm-in-editor-formatter-e/baneadebamaohnochaahaboadkdajamo';
-
-  const now = Date.now();
-
-  // Show notice until hard cutoff
-  if (now > DEPRECATION_TS) {
-    document.body.innerHTML = '';
-    alert(
-      'MxM In-Editor Formatter has been permanently disabled.\n\n' +
-      'Please install the official Chrome extension to continue.'
-    );
-    window.location.href = STORE_URL;
-    return;
-  }
-
-  // ----- Modal -----
-  const overlay = document.createElement('div');
-  const modal = document.createElement('div');
-
-  overlay.style.cssText = `
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.75);
-    z-index: 2147483647;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  `;
-
-  modal.style.cssText = `
-    background: linear-gradient(180deg, #0e2a4f, #0b1f3a);
-    color: #f5e3a1;
-    border: 2px solid #d4af37;
-    border-radius: 14px;
-    padding: 22px 26px;
-    max-width: 520px;
-    width: calc(100% - 32px);
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.6);
-  `;
-
-  modal.innerHTML = `
-    <h2 style="margin:0 0 10px;font-size:18px;color:#ffd76a;">
-      MxM In-Editor Formatter — Deprecation Notice
-    </h2>
-
-    <p style="margin:0 0 12px;font-size:14px;line-height:1.5;">
-      This userscript is <strong>deprecated</strong> and will be permanently
-      disabled on <strong>31 December 2025 at 23:59 (UTC)</strong>.
-    </p>
-
-    <p style="margin:0 0 18px;font-size:14px;">
-      You may continue using it for now, or install the official Chrome extension.
-    </p>
-
-    <div style="display:flex;justify-content:flex-end;gap:12px;">
-      <button id="mxmCloseDeprecation"
-        style="
-          background:#1c355e;
-          color:#f5e3a1;
-          border:1px solid #d4af37;
-          border-radius:10px;
-          padding:8px 14px;
-          cursor:pointer;
-        ">
-        Close
-      </button>
-
-      <button id="mxmGoExtension"
-        style="
-          background:#d4af37;
-          color:#0b1f3a;
-          border:none;
-          border-radius:10px;
-          padding:8px 16px;
-          font-weight:600;
-          cursor:pointer;
-        ">
-        Go to Extension
-      </button>
-    </div>
-  `;
-
-  overlay.appendChild(modal);
-  document.documentElement.appendChild(overlay);
-
-  // Prevent dismissal by ESC
-  window.addEventListener('keydown', e => {
-    if (e.key === 'Escape') e.preventDefault();
-  }, true);
-
-  document.getElementById('mxmGoExtension').onclick = () => {
-    window.open(STORE_URL, '_blank', 'noopener');
-  };
-
-  document.getElementById('mxmCloseDeprecation').onclick = () => {
-    overlay.remove();
-  };
-})();
-
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '2.0.2'; // Bumped version
+  const SCRIPT_VERSION = '2.0.3'; // Bumped version
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const THEME_KEY = 'mxmFmtTheme';
@@ -1517,10 +1411,12 @@
     return text
       .split('\n')
       .map((line) => {
-        return line.replace(/\/[ \t]*([^/\\]*?\S)[ \t]*\\/g, (match, body, offset, fullLine) => {
+        return line.replace(/\/[ \t]*([^/\\]*?\S)[ \t]*(\\|$)/g, (match, body, closer, offset, fullLine) => {
           const before = fullLine.slice(0, offset);
+          const after = fullLine.slice(offset + match.length);
           const needsSpace = before && !/[ \t(]$/.test(before);
-          return `${needsSpace ? ' ' : ''}${wrapBackingVocalShorthandLine(body)}`;
+          const needsTrailingSpace = closer && after && !/^[ \t,.;:!?)]/.test(after);
+          return `${needsSpace ? ' ' : ''}${wrapBackingVocalShorthandLine(body)}${needsTrailingSpace ? ' ' : ''}`;
         });
       })
       .join('\n');

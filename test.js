@@ -104,6 +104,21 @@ if (formatLyrics(inlineBackingVocalAfterLead) !== 'And You will (you will always
   throw new Error('Inline lead/backing shorthand should keep the lead text and parenthesize the backing vocal');
 }
 
+const inlineBackingVocalAtEndOfLine = 'You were good then/You were good then';
+if (formatLyrics(inlineBackingVocalAtEndOfLine) !== 'You were good then (you were good then)') {
+  throw new Error('Inline shorthand should close at end-of-line when no closing backslash is typed');
+}
+
+const inlineBackingVocalWithContinuation = "You will/You will always be good\\and You're still good";
+if (formatLyrics(inlineBackingVocalWithContinuation) !== "You will (you will always be good) and You're still good") {
+  throw new Error('Inline shorthand should resume main lyrics after a closing backslash');
+}
+
+const leadingBackingVocalWithContinuation = "/You will always be good\\and You're still good";
+if (formatLyrics(leadingBackingVocalWithContinuation) !== "(You will always be good) and You're still good") {
+  throw new Error('Leading backing shorthand should allow main lyrics after a closing backslash');
+}
+
 module.exports = {
   formatLyrics,
   version: metaVersion,

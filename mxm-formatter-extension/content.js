@@ -1,7 +1,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-const SCRIPT_VERSION = '1.1.100';
+const SCRIPT_VERSION = '1.2.0';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -10,7 +10,7 @@ const SCRIPT_VERSION = '1.1.100';
     lang: "EN",
     autoLowercase: false,
     fixBackingVocals: true,
-    showFloatingButton: false
+    showFloatingButton: true
   };
   const extensionOptions = { ...extensionDefaults };
   let extensionOptionsInitialized = false;
@@ -1088,10 +1088,12 @@ const SCRIPT_VERSION = '1.1.100';
     return text
       .split('\n')
       .map((line) => {
-        return line.replace(/\/[ \t]*([^/\\]*?\S)[ \t]*\\/g, (match, body, offset, fullLine) => {
+        return line.replace(/\/[ \t]*([^/\\]*?\S)[ \t]*(\\|$)/g, (match, body, closer, offset, fullLine) => {
           const before = fullLine.slice(0, offset);
+          const after = fullLine.slice(offset + match.length);
           const needsSpace = before && !/[ \t(]$/.test(before);
-          return `${needsSpace ? ' ' : ''}${wrapBackingVocalShorthandLine(body)}`;
+          const needsTrailingSpace = closer && after && !/^[ \t,.;:!?)]/.test(after);
+          return `${needsSpace ? ' ' : ''}${wrapBackingVocalShorthandLine(body)}${needsTrailingSpace ? ' ' : ''}`;
         });
       })
       .join('\n');
@@ -2425,7 +2427,7 @@ const SCRIPT_VERSION = '1.1.100';
         lang: payload.mxmLang || extensionDefaults.lang,
         autoLowercase: Boolean(payload.mxmLower),
         fixBackingVocals: payload.mxmBV ?? extensionDefaults.fixBackingVocals,
-        showFloatingButton: Boolean(payload.mxmButton)
+        showFloatingButton: payload.mxmButton ?? extensionDefaults.showFloatingButton
       });
     });
 

@@ -1,9 +1,9 @@
 # Changelog
 
-## v2.0.2
+## v2.0.3
 - Expand local backing-vocal shorthand before formatting: `/line\` becomes `(line)`, `lead /backing\` becomes `lead (backing)`, and standalone `/`...`\` blocks become one parenthetical line per lyric line.
 - Add formatter version labels and dark/light theme selectors to the formatter menus.
-- Bump the userscript and package metadata to the 2.0.2 release.
+- Remove the Tampermonkey hard-disable redirect and bump userscript metadata to the 2.0.3 release.
 
 ## v1.1.90
 - Keep backing-vocal main-line lowercasing from crossing newline boundaries by limiting whitespace consumption.

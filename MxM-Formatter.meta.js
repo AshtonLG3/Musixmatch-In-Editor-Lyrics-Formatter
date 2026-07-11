@@ -1,11 +1,10 @@
 // ==UserScript==
 // @name          MxM In-Editor Formatter (EN)
 // @namespace     mxm-tools
-// @version       2.0.2
-// @deprecated    true
+// @version       2.0.3
 // @homepageURL   https://chromewebstore.google.com/detail/mxm-in-editor-formatter-e/baneadebamaohnochaahaboadkdajamo
 // @supportURL    https://chromewebstore.google.com/detail/mxm-in-editor-formatter-e/baneadebamaohnochaahaboadkdajamo
-// @description   ⚠️ This userscript is deprecated. Please install the official Chrome extension instead.
+// @description   Musixmatch Studio-only formatter with local shorthand expansion and extension-safe fallback behavior
 // @author        Richard Mangezi Muketa
 // @match         https://curators.musixmatch.com/*
 // @match         https://curators-beta.musixmatch.com/*

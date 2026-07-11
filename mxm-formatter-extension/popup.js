@@ -25,7 +25,7 @@ chrome.storage.sync.get(['mxmLang', 'mxmLower', 'mxmBV', 'mxmButton', 'mxmTheme'
   langSel.value = data.mxmLang || 'EN';
   lowerChk.checked = data.mxmLower || false;
   bvChk.checked = data.mxmBV ?? true;
-  btnChk.checked = data.mxmButton || false;
+  btnChk.checked = data.mxmButton ?? true;
   applyTheme(data.mxmTheme || 'dark');
 });
 
