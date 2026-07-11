@@ -99,6 +99,11 @@ if (formatLyrics(blockBackingVocalShorthand) !== '(Help me sing it)\n(Lord)') {
   throw new Error('Standalone slash/backslash blocks should expand each lyric line into parenthetical backing vocals');
 }
 
+const inlineBackingVocalAfterLead = 'And You will/You will always be good\\';
+if (formatLyrics(inlineBackingVocalAfterLead) !== 'And You will (you will always be good)') {
+  throw new Error('Inline lead/backing shorthand should keep the lead text and parenthesize the backing vocal');
+}
+
 module.exports = {
   formatLyrics,
   version: metaVersion,

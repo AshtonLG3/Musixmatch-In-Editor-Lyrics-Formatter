@@ -1,9 +1,9 @@
 # Changelog
 
-## v2.0.1
-- Expand local backing-vocal shorthand before formatting: `/line\` becomes `(line)`, and standalone `/`...`\` blocks become one parenthetical line per lyric line.
-- Add the formatter version and a dark/light theme selector to the userscript settings menu.
-- Bump the userscript and package metadata to the 2.0.1 release.
+## v2.0.2
+- Expand local backing-vocal shorthand before formatting: `/line\` becomes `(line)`, `lead /backing\` becomes `lead (backing)`, and standalone `/`...`\` blocks become one parenthetical line per lyric line.
+- Add formatter version labels and dark/light theme selectors to the formatter menus.
+- Bump the userscript and package metadata to the 2.0.2 release.
 
 ## v1.1.90
 - Keep backing-vocal main-line lowercasing from crossing newline boundaries by limiting whitespace consumption.

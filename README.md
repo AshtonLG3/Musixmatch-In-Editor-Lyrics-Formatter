@@ -5,7 +5,7 @@
   <br>
 
   <a target="_blank" rel="noopener noreferrer nofollow" href="https://github.com/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/blob/main/package.json">
-    <img src="https://img.shields.io/badge/dynamic/json?url=https://raw.githubusercontent.com/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/main/package.json&query=$.version&label=Version&style=for-the-badge&logo=tampermonkey&logoColor=white&color=0e4f7a" alt="Version 2.0.1">
+    <img src="https://img.shields.io/badge/dynamic/json?url=https://raw.githubusercontent.com/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/main/package.json&query=$.version&label=Version&style=for-the-badge&logo=tampermonkey&logoColor=white&color=0e4f7a" alt="Version 2.0.2">
   </a>
 
   <a target="_blank" rel="noopener noreferrer nofollow" href="#">
@@ -22,7 +22,7 @@
     The formatter cleans, normalises, and standardises English lyrics to comply with community guidelines in one keystroke.
   </p>
   <p align="center" dir="auto">
-    Backing-vocal shorthand: type <code>/Help me sing it\</code>, or wrap multiple lines between standalone <code>/</code> and <code>\</code>, then format to expand them into parenthetical BV lines.
+    Backing-vocal shorthand: type <code>/Help me sing it\</code>, <code>lead /backing\</code>, or wrap multiple lines between standalone <code>/</code> and <code>\</code>, then format to expand them into parenthetical BV lines.
   </p>
   <a href="https://github.com/AshtonLG3/Musixmatch-In-Editor-Lyrics-Formatter/raw/main/MxM-Formatter.user.js">
     <img src="https://img.shields.io/badge/INSTALL_SCRIPT-d4af37?style=for-the-badge&logo=tampermonkey&logoColor=black" height="45" style="max-width: 100%; height: auto; max-height: 45px;">

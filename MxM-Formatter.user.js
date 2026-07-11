@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name          MxM In-Editor Formatter (EN)
 // @namespace     mxm-tools
-// @version       2.0.1
+// @version       2.0.2
 // @deprecated    true
 // @homepageURL   https://chromewebstore.google.com/detail/mxm-in-editor-formatter-e/baneadebamaohnochaahaboadkdajamo
 // @supportURL    https://chromewebstore.google.com/detail/mxm-in-editor-formatter-e/baneadebamaohnochaahaboadkdajamo
@@ -123,7 +123,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-  const SCRIPT_VERSION = '2.0.1'; // Bumped version
+  const SCRIPT_VERSION = '2.0.2'; // Bumped version
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const THEME_KEY = 'mxmFmtTheme';
@@ -1514,9 +1514,16 @@
       return `${boundary}${expanded}`;
     });
 
-    return text.replace(/(^|[ \t])\/[ \t]*([^/\\\n]*?\S)[ \t]*\\/gm, (_match, boundary, body) => {
-      return `${boundary}${wrapBackingVocalShorthandLine(body)}`;
-    });
+    return text
+      .split('\n')
+      .map((line) => {
+        return line.replace(/\/[ \t]*([^/\\]*?\S)[ \t]*\\/g, (match, body, offset, fullLine) => {
+          const before = fullLine.slice(0, offset);
+          const needsSpace = before && !/[ \t(]$/.test(before);
+          return `${needsSpace ? ' ' : ''}${wrapBackingVocalShorthandLine(body)}`;
+        });
+      })
+      .join('\n');
   }
 
   function formatLyrics(input, _options = {}) {

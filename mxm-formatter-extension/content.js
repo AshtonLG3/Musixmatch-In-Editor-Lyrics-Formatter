@@ -1,7 +1,7 @@
 (function (global) {
   const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
   const root = hasWindow ? window : global;
-const SCRIPT_VERSION = '1.1.99';
+const SCRIPT_VERSION = '1.1.100';
   const ALWAYS_AGGRESSIVE = true;
   const SETTINGS_KEY = 'mxmFmtSettings.v105';
   const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -1061,9 +1061,46 @@ const SCRIPT_VERSION = '1.1.99';
   }
 
   // ---------- Formatter ----------
+  function wrapBackingVocalShorthandLine(line) {
+    const trimmed = String(line || '').trim();
+    if (!trimmed) return '';
+    if (trimmed.startsWith('(') && trimmed.endsWith(')')) return trimmed;
+    return `(${trimmed})`;
+  }
+
+  function expandBackingVocalShorthand(input) {
+    let text = String(input || '');
+
+    text = text.replace(/(^|\n)([ \t]*)\/[ \t]*\n([\s\S]*?)\n[ \t]*\\[ \t]*(?=\n|$)/g, (_match, boundary, indent, body) => {
+      const expanded = body
+        .split('\n')
+        .map((line) => {
+          const trimmed = line.trim();
+          if (!trimmed) return '';
+          return `${indent}${wrapBackingVocalShorthandLine(trimmed)}`;
+        })
+        .join('\n')
+        .replace(/\n{3,}/g, '\n\n');
+
+      return `${boundary}${expanded}`;
+    });
+
+    return text
+      .split('\n')
+      .map((line) => {
+        return line.replace(/\/[ \t]*([^/\\]*?\S)[ \t]*\\/g, (match, body, offset, fullLine) => {
+          const before = fullLine.slice(0, offset);
+          const needsSpace = before && !/[ \t(]$/.test(before);
+          return `${needsSpace ? ' ' : ''}${wrapBackingVocalShorthandLine(body)}`;
+        });
+      })
+      .join('\n');
+  }
+
   function formatLyrics(input, _options = {}) {
     if (!input) return "";
-    let x = ("\n" + input.trim() + "\n");
+    const shorthandExpandedInput = expandBackingVocalShorthand(input);
+    let x = ("\n" + shorthandExpandedInput.trim() + "\n");
     // Accent normalization (must run early)
     x = normalizeAccents(x);
     // --- AUTO LOWERCASE APPLIED BEFORE ALL PROCESSING ---

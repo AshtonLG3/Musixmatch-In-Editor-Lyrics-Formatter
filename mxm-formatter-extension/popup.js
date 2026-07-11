@@ -2,25 +2,46 @@ const langSel = document.getElementById('lang');
 const lowerChk = document.getElementById('autoLower');
 const bvChk = document.getElementById('fixBV');
 const btnChk = document.getElementById('showButton');
+const themeSel = document.getElementById('theme');
 const formatBtn = document.getElementById('formatBtn');
+const versionLabel = document.getElementById('versionLabel');
 
-chrome.storage.sync.get(['mxmLang', 'mxmLower', 'mxmBV', 'mxmButton'], (data) => {
+function normalizeTheme(value) {
+  return value === 'light' ? 'light' : 'dark';
+}
+
+function applyTheme(value) {
+  const theme = normalizeTheme(value);
+  document.body.dataset.theme = theme;
+  themeSel.value = theme;
+}
+
+if (versionLabel) {
+  const version = chrome.runtime.getManifest()?.version || '';
+  versionLabel.textContent = version ? `v${version}` : '';
+}
+
+chrome.storage.sync.get(['mxmLang', 'mxmLower', 'mxmBV', 'mxmButton', 'mxmTheme'], (data) => {
   langSel.value = data.mxmLang || 'EN';
   lowerChk.checked = data.mxmLower || false;
   bvChk.checked = data.mxmBV ?? true;
   btnChk.checked = data.mxmButton || false;
+  applyTheme(data.mxmTheme || 'dark');
 });
 
 function saveSettings() {
+  const theme = normalizeTheme(themeSel.value);
   chrome.storage.sync.set({
     mxmLang: langSel.value,
     mxmLower: lowerChk.checked,
     mxmBV: bvChk.checked,
-    mxmButton: btnChk.checked
+    mxmButton: btnChk.checked,
+    mxmTheme: theme
   });
+  applyTheme(theme);
 }
 
-langSel.onchange = lowerChk.onchange = bvChk.onchange = btnChk.onchange = saveSettings;
+langSel.onchange = lowerChk.onchange = bvChk.onchange = btnChk.onchange = themeSel.onchange = saveSettings;
 
 formatBtn.onclick = () => {
   saveSettings();

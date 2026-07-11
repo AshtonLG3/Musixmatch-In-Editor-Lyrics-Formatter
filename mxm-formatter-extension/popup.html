@@ -6,10 +6,30 @@
   <style>
     body {
       font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-      background: #181818;
-      color: #f1f1f1;
+      background: var(--bg);
+      color: var(--text);
       width: 200px;
       padding: 10px;
+    }
+    :root {
+      --bg: #181818;
+      --text: #f1f1f1;
+      --muted: #b6b6b6;
+      --field: #242424;
+      --field-text: #f1f1f1;
+      --border: #444;
+      --button: #e74c3c;
+      --button-text: #fff;
+    }
+    body[data-theme="light"] {
+      --bg: #f8fafc;
+      --text: #111827;
+      --muted: #475569;
+      --field: #fff;
+      --field-text: #111827;
+      --border: #cbd5e1;
+      --button: #0e4f7a;
+      --button-text: #fff;
     }
     select, input[type="checkbox"] {
       accent-color: #e74c3c;
@@ -18,18 +38,32 @@
       width: 100%;
       margin-top: 10px;
       padding: 8px;
-      background: #e74c3c;
+      background: var(--button);
       border: none;
       border-radius: 8px;
-      color: white;
+      color: var(--button-text);
       font-weight: 600;
       cursor: pointer;
     }
     label { display: flex; align-items: center; margin: 4px 0; gap: 6px; }
-    select { width: 100%; border-radius: 6px; padding: 3px; }
+    select {
+      width: 100%;
+      border-radius: 6px;
+      padding: 3px;
+      background: var(--field);
+      color: var(--field-text);
+      border: 1px solid var(--border);
+    }
+    .meta {
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      margin-top: 10px;
+    }
   </style>
 </head>
-<body>
+<body data-theme="dark">
   <label>
     Lang:
     <select id="lang">
@@ -44,7 +78,18 @@
   <label><input type="checkbox" id="autoLower"> Auto lowercase</label>
   <label><input type="checkbox" id="fixBV" checked> Fix backing vocals</label>
   <label><input type="checkbox" id="showButton"> Show floating button</label>
+  <label>
+    Theme:
+    <select id="theme">
+      <option value="dark">Dark</option>
+      <option value="light">Light</option>
+    </select>
+  </label>
   <button id="formatBtn">Format Lyrics</button>
+  <div class="meta">
+    <span>Extension</span>
+    <span id="versionLabel"></span>
+  </div>
 
   <script src="popup.js"></script>
 </body>
