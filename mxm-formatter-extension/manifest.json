@@ -1,27 +1,37 @@
 {
   "manifest_version": 3,
   "name": "MxM In-Editor Formatter (EN)",
-  "version": "1.1.99",
-  "description": "Musixmatch Studio formatter with BV, punctuation, and structural fixes.",
+  "version": "1.2.0",
+  "description": "Musixmatch Studio-only formatter. Injects floating tools directly into the editor.",
   "author": "Richard Mangezi Muketa",
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
-      "16": "icons/icon_f_blue16.png",
-      "48": "icons/icon_f_blue48.png",
-      "128": "icons/icon_f_blue128.png"
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
     }
   },
   "icons": {
-    "16": "icons/icon_f_blue16.png",
-    "48": "icons/icon_f_blue48.png",
-    "128": "icons/icon_f_blue128.png"
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
   },
-  "permissions": ["storage", "scripting", "activeTab"],
+  "permissions": [
+    "storage",
+    "scripting",
+    "activeTab"
+  ],
   "host_permissions": [
     "https://curators.musixmatch.com/*",
-    "https://curators-beta.musixmatch.com/*"
+    "https://curators-beta.musixmatch.com/*",
+    "https://docs.google.com/*"
   ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "mxm-formatter@richie.dev"
+    }
+  },
   "content_scripts": [
     {
       "matches": [
