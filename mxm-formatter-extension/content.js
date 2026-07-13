@@ -543,7 +543,7 @@ if (typeof mxmFormatterRoot.mxmFormatterLoaded === "undefined") {
 
     function normalizeSpelledOutNumbers(text) {
       return text.replace(
-        /\b(one|two|three|four|five|six|seven|eight|nine|ten)\s+(?=(one|two|three|four|five|six|seven|eight|nine|ten)\b)/gi,
+        /\b(one|two|three|four|five|six|seven|eight|nine|ten)[ \t]+(?=(one|two|three|four|five|six|seven|eight|nine|ten)\b)/gi,
         "$1, ",
       );
     }
@@ -551,7 +551,7 @@ if (typeof mxmFormatterRoot.mxmFormatterLoaded === "undefined") {
     function normalizeOClock(text) {
       if (!text) return text;
       const re =
-        /\b(?:(\d{1,2})|(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve))\s*(o['’]?\s*clock)\b/gi;
+        /\b(?:(\d{1,2})|(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve))[ \t]*(o['’]?[ \t]*clock)\b/gi;
       return text.replace(re, (match, digit, word, tail) => {
         let baseWord;
         if (digit) {
@@ -596,14 +596,14 @@ if (typeof mxmFormatterRoot.mxmFormatterLoaded === "undefined") {
       twelve: 12,
     };
 
-    const MERIDIEM_PATTERN = "(?:a|p)\\s*\\.?\\s*m\\.?";
+    const MERIDIEM_PATTERN = "(?:a|p)[ \\t]*\\.?[ \\t]*m\\.?";
     const MERIDIEM_TRAIL = "(?=$|[^A-Za-z0-9_])";
     const DIGIT_TIME_RE = new RegExp(
-      `\\b(\\d{1,2})(?:\\s*[:.]\\s*(\\d{1,2}))?\\s*(${MERIDIEM_PATTERN})${MERIDIEM_TRAIL}`,
+      `\\b(\\d{1,2})(?:[ \\t]*[:.][ \\t]*(\\d{1,2}))?[ \\t]*(${MERIDIEM_PATTERN})${MERIDIEM_TRAIL}`,
       "gi",
     );
     const WORD_TIME_RE = new RegExp(
-      `\\b(${Object.keys(WORD_TO_DIGIT_TIME).join("|")})\\b\\s*(${MERIDIEM_PATTERN})${MERIDIEM_TRAIL}`,
+      `\\b(${Object.keys(WORD_TO_DIGIT_TIME).join("|")})\\b[ \\t]*(${MERIDIEM_PATTERN})${MERIDIEM_TRAIL}`,
       "gi",
     );
 
@@ -1309,7 +1309,7 @@ if (typeof mxmFormatterRoot.mxmFormatterLoaded === "undefined") {
         GLOBAL_PROPER_FROM_SHEET,
       )) {
         if (rawKey.includes(" ")) {
-          const pattern = rawKey.replace(/\s+/g, "\\s+");
+          const pattern = rawKey.replace(/\s+/g, "[ \\t]+");
           const re = new RegExp(`\\b${pattern}\\b`, "gi");
           text = text.replace(re, canonical);
         }
@@ -2262,37 +2262,37 @@ if (typeof mxmFormatterRoot.mxmFormatterLoaded === "undefined") {
       x = enforceStructureTagSpacing(x);
 
       // === Normalize common holiday and festive terms (including inside parentheses) ===
-      x = x.replace(/\bchristmas[\s-]*eve\b/gi, "Christmas Eve");
-      x = x.replace(/\bchristmas[\s-]*day\b/gi, "Christmas Day");
-      x = x.replace(/\bchristmas[\s-]*time\b/gi, "Christmastime");
-      x = x.replace(/\bnew[\s-]*year[\s-]*s[\s-]*eve\b/gi, "New Year's Eve");
-      x = x.replace(/\bnew[\s-]*year[\s-]*s[\s-]*day\b/gi, "New Year's Day");
-      x = x.replace(/\bnew[\s-]*years?\b/gi, "New Year");
-      x = x.replace(/\bhappy[\s-]*holidays?\b/gi, "Happy Holidays");
-      x = x.replace(/\bseasons?[\s-]*greetings?\b/gi, "Season's Greetings");
+      x = x.replace(/\bchristmas[ \t-]*eve\b/gi, "Christmas Eve");
+      x = x.replace(/\bchristmas[ \t-]*day\b/gi, "Christmas Day");
+      x = x.replace(/\bchristmas[ \t-]*time\b/gi, "Christmastime");
+      x = x.replace(/\bnew[ \t-]*year[ \t-]*s[ \t-]*eve\b/gi, "New Year's Eve");
+      x = x.replace(/\bnew[ \t-]*year[ \t-]*s[ \t-]*day\b/gi, "New Year's Day");
+      x = x.replace(/\bnew[ \t-]*years?\b/gi, "New Year");
+      x = x.replace(/\bhappy[ \t-]*holidays?\b/gi, "Happy Holidays");
+      x = x.replace(/\bseasons?[ \t-]*greetings?\b/gi, "Season's Greetings");
 
       // 7-Eleven and variants
       x = x.replace(
-        /\b(?:7\s*[-/]\s*11|seven\s*[-\s]+11|seven\s*[-\s]+eleven)\b/gi,
+        /\b(?:7[ \t]*[-/][ \t]*11|seven[ \t]*[-/][ \t]*11|seven[ \t]+eleven|seven[ \t]*-[ \t]*eleven)\b/gi,
         "7-Eleven",
       );
 
       // Can not -> cannot (but not "can not only")
-      x = x.replace(/\b(C|c)an not\b(?!\s+only)/g, (_, c) =>
+      x = x.replace(/\b(C|c)an not\b(?![ \t]+only)/g, (_, c) =>
         c === "C" ? "Cannot" : "cannot",
       );
 
       // 24/7 -> 24-7
-      x = x.replace(/\b24\s*\/\s*7\b/g, "24-7");
+      x = x.replace(/\b24[ \t]*\/[ \t]*7\b/g, "24-7");
 
       // Normalize selected phrases and ensure religious names are capitalized
-      x = x.replace(/\bnight[\s-]*time\b/gi, (match) =>
+      x = x.replace(/\bnight[ \t-]*time\b/gi, (match) =>
         applyCasedReplacement(match, "nighttime"),
       );
-      x = x.replace(/\bone[\s-]+night[\s-]+stand\b/gi, (match) =>
+      x = x.replace(/\bone(?:[ \t]+|[ \t]*-[ \t]*)night(?:[ \t]+|[ \t]*-[ \t]*)stand\b/gi, (match) =>
         applyCasedReplacement(match, "one-night-stand"),
       );
-      x = x.replace(/\bvery\s+very\b/gi, (match) => {
+      x = x.replace(/\bvery[ \t]+very\b/gi, (match) => {
         if (match === match.toUpperCase()) return "VERY, VERY";
         if (match[0] === match[0].toUpperCase()) return "Very, very";
         return "very, very";
@@ -2799,14 +2799,14 @@ if (typeof mxmFormatterRoot.mxmFormatterLoaded === "undefined") {
           const lower = word.toLowerCase();
 
           let idx = 0;
-          while (idx < after.length && /\s/.test(after[idx])) idx++;
+          while (idx < after.length && /[ \t]/.test(after[idx])) idx++;
           if (idx >= after.length) return lower === "well" ? m : m + ",";
 
           if (after[idx] === ",") return m;
 
           while (idx < after.length && CLOSING_QUOTES.has(after[idx])) {
             idx++;
-            while (idx < after.length && /\s/.test(after[idx])) idx++;
+            while (idx < after.length && /[ \t]/.test(after[idx])) idx++;
             if (idx >= after.length) return m;
             if (after[idx] === ",") return m;
           }
@@ -2817,7 +2817,7 @@ if (typeof mxmFormatterRoot.mxmFormatterLoaded === "undefined") {
 
           if (lower === "well") {
             const before = str.slice(0, off);
-            const trimmedBefore = before.replace(/\s+$/, "");
+            const trimmedBefore = before.replace(/[ \t]+$/, "");
             const prevChar = trimmedBefore.slice(-1);
             const prevWordMatch = trimmedBefore.match(
               /([A-Za-z'’]+)[^A-Za-z'’]*$/,
@@ -2841,7 +2841,7 @@ if (typeof mxmFormatterRoot.mxmFormatterLoaded === "undefined") {
               "([{".includes(after[clauseIdx])
             ) {
               clauseIdx++;
-              while (clauseIdx < after.length && /\s/.test(after[clauseIdx]))
+              while (clauseIdx < after.length && /[ \t]/.test(after[clauseIdx]))
                 clauseIdx++;
             }
 
@@ -2850,7 +2850,7 @@ if (typeof mxmFormatterRoot.mxmFormatterLoaded === "undefined") {
               CLOSING_QUOTES.has(after[clauseIdx])
             ) {
               clauseIdx++;
-              while (clauseIdx < after.length && /\s/.test(after[clauseIdx]))
+              while (clauseIdx < after.length && /[ \t]/.test(after[clauseIdx]))
                 clauseIdx++;
             }
 
@@ -2890,7 +2890,7 @@ if (typeof mxmFormatterRoot.mxmFormatterLoaded === "undefined") {
         },
       );
 
-      x = x.replace(/\b(oh|ah|yeah|whoa|ooh|uh|well)\b\s*,\s*(?=\))/gi, "$1");
+      x = x.replace(/\b(oh|ah|yeah|whoa|ooh|uh|well)\b[ \t]*,[ \t]*(?=\))/gi, "$1");
 
       // === Dropped-G (smart and safe fix, live CSV cache + sync fallback) ===
       (() => {
@@ -3338,16 +3338,16 @@ if (typeof mxmFormatterRoot.mxmFormatterLoaded === "undefined") {
       // --- Final I-contraction normalization (post-format override) ---
       x = x
         // I'll corrections (ill / i'll)
-        .replace(/\b(i['’]?\s?ll)(?=[\s,.)!?'"]|$)/gi, "I'll")
+        .replace(/\b(i['’]?[ \t]?ll)(?=[\s,.)!?'"]|$)/gi, "I'll")
         // I've corrections (ive / i've)
-        .replace(/\b(i['’]?\s?ve)(?=[\s,.)!?'"]|$)/gi, "I've")
+        .replace(/\b(i['’]?[ \t]?ve)(?=[\s,.)!?'"]|$)/gi, "I've")
         // I'd corrections (id / i'd)
-        .replace(/\b(i['’]?\s?d)(?=[\s,.)!?'"]|$)/gi, "I'd");
+        .replace(/\b(i['’]?[ \t]?d)(?=[\s,.)!?'"]|$)/gi, "I'd");
 
       // === Fix: Holiday and Proper Noun Corrections (adjusted for Christmastime) ===
       x = x.replace(/\bchrismast\b/gi, "Christmas");
-      x = x.replace(/\bchristmas[\s-]*time\b/gi, "Christmastime");
-      x = x.replace(/\bchristmas[\s-]*eve\b/gi, "Christmas Eve");
+      x = x.replace(/\bchristmas[ \t-]*time\b/gi, "Christmastime");
+      x = x.replace(/\bchristmas[ \t-]*eve\b/gi, "Christmas Eve");
 
       // === Merge duplicate structure tags & remove blank spacing ===
       x = x.replace(

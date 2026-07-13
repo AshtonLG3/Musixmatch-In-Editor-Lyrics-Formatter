@@ -136,6 +136,23 @@ if (formatExtensionLyrics(inlineBackingVocalLine) !== formattedInlineBackingVoca
   throw new Error('Inline backing-vocal shorthand must close at the backslash marker');
 }
 
+const lineBoundaryCases = new Map([
+  ['well-known', 'Well-known'],
+  ['well\nI know', 'Well\nI know'],
+  ['christmas\ntime', 'Christmas\nTime'],
+  ['new\nyear', 'New\nYear'],
+  ['one\ntwo', 'One\nTwo'],
+  ['very\nvery', 'Very\nVery'],
+  ['i\nll go', 'I\nLl go'],
+]);
+
+for (const [input, expected] of lineBoundaryCases) {
+  const actual = formatExtensionLyrics(input);
+  if (actual !== expected) {
+    throw new Error(`Formatter rule crossed a line break: ${JSON.stringify(input)} formatted as ${JSON.stringify(actual)}`);
+  }
+}
+
 module.exports = {
   formatLyrics,
   version: metaVersion,
