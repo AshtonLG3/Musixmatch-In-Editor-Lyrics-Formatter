@@ -136,6 +136,17 @@ if (formatExtensionLyrics(inlineBackingVocalLine) !== formattedInlineBackingVoca
   throw new Error('Inline backing-vocal shorthand must close at the backslash marker');
 }
 
+const sameLineLeftBackingVocalLine = "My, my, my\\ I'm once bitten, twice shy, baby";
+const formattedSameLineLeftBackingVocalLine = "(My, my, my) I'm once bitten, twice shy, baby";
+if (formatExtensionLyrics(sameLineLeftBackingVocalLine) !== formattedSameLineLeftBackingVocalLine) {
+  throw new Error('Same-line backslash shorthand must wrap the lyric to its left');
+}
+
+const tightSameLineLeftBackingVocalLine = "My, my, my\\I'm once bitten, twice shy, baby";
+if (formatExtensionLyrics(tightSameLineLeftBackingVocalLine) !== formattedSameLineLeftBackingVocalLine) {
+  throw new Error('Same-line backslash shorthand must work without a space after the marker');
+}
+
 const lineBoundaryCases = new Map([
   ['well-known', 'Well-known'],
   ['well\nI know', 'Well\nI know'],

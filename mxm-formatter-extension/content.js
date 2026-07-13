@@ -2040,6 +2040,15 @@ if (typeof mxmFormatterRoot.mxmFormatterLoaded === "undefined") {
 
         expanded.push(
           line.replace(
+            /(^|[ \t])([^/\\\n]*?\S)[ \t]*\\[ \t]*([^\\\n]*\S.*)$/g,
+            (match, prefix, backingRaw, mainRaw, offset) => {
+              const backing = cleanBackingMarkerText(backingRaw);
+              const main = mainRaw.trim();
+              if (!backing || !main) return match;
+              if (line.slice(0, offset + prefix.length).includes("/")) return match;
+              return `${prefix}${wrapBackingVocalShorthandLine(backing)} ${main}`;
+            },
+          ).replace(
             /,?[ \t]*\/[ \t]*([^/\\]*?\S)[ \t]*(\\|$)/g,
             (match, body, closer, offset, fullLine) => {
               const before = fullLine.slice(0, offset);
