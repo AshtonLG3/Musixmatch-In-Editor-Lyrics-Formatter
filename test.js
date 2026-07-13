@@ -132,19 +132,28 @@ if (formatExtensionLyrics(embeddedAcronymLine) !== 'MyBBC one') {
 
 const inlineBackingVocalLine = "You can call on me you /can call on me\\ as long as I'm breathing";
 const formattedInlineBackingVocalLine = "You can call on me you (can call on me) as long as I'm breathing";
+if (formatLyrics(inlineBackingVocalLine) !== formattedInlineBackingVocalLine) {
+  throw new Error('Userscript inline backing-vocal shorthand must close at the backslash marker');
+}
 if (formatExtensionLyrics(inlineBackingVocalLine) !== formattedInlineBackingVocalLine) {
-  throw new Error('Inline backing-vocal shorthand must close at the backslash marker');
+  throw new Error('Extension inline backing-vocal shorthand must close at the backslash marker');
 }
 
 const sameLineLeftBackingVocalLine = "My, my, my\\ I'm once bitten, twice shy, baby";
 const formattedSameLineLeftBackingVocalLine = "(My, my, my) I'm once bitten, twice shy, baby";
+if (formatLyrics(sameLineLeftBackingVocalLine) !== formattedSameLineLeftBackingVocalLine) {
+  throw new Error('Userscript same-line backslash shorthand must wrap the lyric to its left');
+}
 if (formatExtensionLyrics(sameLineLeftBackingVocalLine) !== formattedSameLineLeftBackingVocalLine) {
-  throw new Error('Same-line backslash shorthand must wrap the lyric to its left');
+  throw new Error('Extension same-line backslash shorthand must wrap the lyric to its left');
 }
 
 const tightSameLineLeftBackingVocalLine = "My, my, my\\I'm once bitten, twice shy, baby";
+if (formatLyrics(tightSameLineLeftBackingVocalLine) !== formattedSameLineLeftBackingVocalLine) {
+  throw new Error('Userscript same-line backslash shorthand must work without a space after the marker');
+}
 if (formatExtensionLyrics(tightSameLineLeftBackingVocalLine) !== formattedSameLineLeftBackingVocalLine) {
-  throw new Error('Same-line backslash shorthand must work without a space after the marker');
+  throw new Error('Extension same-line backslash shorthand must work without a space after the marker');
 }
 
 const lineBoundaryCases = new Map([
@@ -180,6 +189,29 @@ for (const [input, expected] of illContractionCases) {
   const actual = formatExtensionLyrics(input);
   if (actual !== expected) {
     throw new Error(`Formatter misread ill contraction context: ${JSON.stringify(input)} formatted as ${JSON.stringify(actual)}`);
+  }
+}
+
+const backingVocalConventionCases = new Map([
+  ['lyric (backing vocal)', 'Lyric (backing vocal)'],
+  ['(backing vocal) lyric', '(backing vocal) lyric'],
+  ['lyric (bv), lyric (bv)', 'Lyric (bv), lyric (bv)'],
+  ['(bv) lyric, (bv) lyric', '(bv) lyric, (bv) lyric'],
+  ["(This isn't goodbye) oh yeah", "(this isn't goodbye) oh yeah"],
+  ['(Yeah, yeah) lyric', '(yeah, yeah) lyric'],
+  ['(I got you) lyric', '(I got you) lyric'],
+  ['(BV) lyric', '(BV) lyric'],
+]);
+
+for (const [input, expected] of backingVocalConventionCases) {
+  const actualUserscript = formatLyrics(input);
+  if (actualUserscript !== expected) {
+    throw new Error(`Userscript formatter broke backing vocal convention: ${JSON.stringify(input)} formatted as ${JSON.stringify(actualUserscript)}`);
+  }
+
+  const actualExtension = formatExtensionLyrics(input);
+  if (actualExtension !== expected) {
+    throw new Error(`Extension formatter broke backing vocal convention: ${JSON.stringify(input)} formatted as ${JSON.stringify(actualExtension)}`);
   }
 }
 

@@ -146,11 +146,13 @@ if (typeof mxmFormatterRoot.mxmFormatterLoaded === "undefined") {
       "I'ma",
       "I'll",
       "I'd",
+      "My",
       "i",
       "i'm",
       "i'ma",
       "i'll",
       "i'd",
+      "my",
       "Jesus",
       "Christ",
       "God",
@@ -160,6 +162,64 @@ if (typeof mxmFormatterRoot.mxmFormatterLoaded === "undefined") {
       "god",
       "lord",
     ]);
+
+    const PARENTHETICAL_ABBREVIATION_EXCLUSIONS = new Set([
+      "YEAH",
+      "YEA",
+      "YO",
+      "WOO",
+      "HEY",
+      "HA",
+      "UH",
+      "OH",
+      "OOH",
+      "WHOA",
+      "WHOO",
+      "NO",
+      "NA",
+      "LA",
+    ]);
+
+    function isStandaloneParentheticalAbbreviation(text) {
+      if (!text || /\s/.test(text) || !/^[A-Z0-9&+/'’.-]+$/.test(text))
+        return false;
+
+      const lettersOnly = text.replace(/[^A-Z]/g, "");
+      if (lettersOnly.length < 2) return false;
+      if (PARENTHETICAL_ABBREVIATION_EXCLUSIONS.has(lettersOnly))
+        return false;
+
+      return lettersOnly.length <= 4 || /[.&/+0-9-]/.test(text);
+    }
+
+    function normalizeBackingVocalParenthetical(match, inner) {
+      const trimmed = String(inner || "").trim();
+      if (!trimmed) return match;
+      if (/[!?]/.test(trimmed)) return match;
+      if (isStandaloneParentheticalAbbreviation(trimmed)) return match;
+
+      const firstWord = trimmed.split(/\s+/)[0] || "";
+      const firstWordCore = firstWord.replace(
+        /^[^A-Za-z'’]+|[^A-Za-z'’]+$/g,
+        "",
+      );
+      if (!firstWordCore) return match;
+      const lowerFirst = firstWordCore.toLocaleLowerCase();
+
+      if (
+        BV_FIRST_WORD_EXCEPTIONS.has(firstWordCore) ||
+        BV_FIRST_WORD_EXCEPTIONS.has(lowerFirst)
+      ) {
+        return `(${trimmed})`;
+      }
+
+      if (/^(yeah|yea|yo|la|na|woo|hey|ha|uh|o+h)$/i.test(firstWordCore)) {
+        return `(${trimmed.toLocaleLowerCase()})`;
+      }
+
+      const loweredFirstWord = firstWord.replace(firstWordCore, lowerFirst);
+      return `(${loweredFirstWord}${trimmed.slice(firstWord.length)})`;
+    }
 
     function loadSettings() {
       if (!hasWindow) return { ...defaults };
@@ -2841,6 +2901,10 @@ if (typeof mxmFormatterRoot.mxmFormatterLoaded === "undefined") {
         (m, word, off, str) => {
           const after = str.slice(off + m.length);
           const lower = word.toLowerCase();
+          const lineStart = str.lastIndexOf("\n", off - 1) + 1;
+          const beforeOnLine = str.slice(lineStart, off);
+          if (/^[ \t]*\([^)\n]+\)(?:[ \t]+[A-Za-z'’]+)?[ \t]*$/.test(beforeOnLine))
+            return m;
 
           let idx = 0;
           while (idx < after.length && /[ \t]/.test(after[idx])) idx++;
@@ -3243,23 +3307,7 @@ if (typeof mxmFormatterRoot.mxmFormatterLoaded === "undefined") {
 
       // === Backing vocals normalization (moved earlier to prevent re-capitalization) ===
       x = x.replace(/(?<!^|\n)\(([^)]+)\)/g, (match, inner) => {
-        const trimmed = inner.trim();
-        if (!trimmed) return match;
-
-        const firstWord = trimmed.split(/\s+/)[0] || "";
-        const lowerFirst = firstWord.toLocaleLowerCase();
-
-        if (
-          BV_FIRST_WORD_EXCEPTIONS.has(firstWord) ||
-          BV_FIRST_WORD_EXCEPTIONS.has(lowerFirst)
-        )
-          return match;
-
-        if (/^(yeah|yea|yo|la|na|woo|hey|ha|uh|o+h)$/i.test(firstWord)) {
-          return `(${trimmed.toLocaleLowerCase()})`;
-        }
-
-        return `(${lowerFirst}${trimmed.slice(firstWord.length)})`;
+        return normalizeBackingVocalParenthetical(match, inner);
       });
 
       // === Apply global proper-noun engine ===
@@ -3279,6 +3327,9 @@ if (typeof mxmFormatterRoot.mxmFormatterLoaded === "undefined") {
       x = x.replace(
         /,[ \t]*\(([^)]*?)\)(?=[ \t]*\S)/g,
         (match, inner, offset, str) => {
+          const lineStart = str.lastIndexOf("\n", offset - 1) + 1;
+          const beforeOnLine = str.slice(lineStart, offset);
+          if (/^[ \t]*\([^)\n]+\)[ \t]+\S/.test(beforeOnLine)) return match;
           const afterIdx = offset + match.length;
           if (str[afterIdx] === ",") return match;
           return ` (${inner}),`;
@@ -3438,6 +3489,13 @@ if (typeof mxmFormatterRoot.mxmFormatterLoaded === "undefined") {
       x = x.replace(
         /(^|\n)(\(\s*)(["'“”‘’]?)(\p{Ll})/gu,
         (_, b, p, q, l) => b + p + q + l.toLocaleUpperCase(),
+      );
+
+      x = x.replace(
+        /(^|\n)\(([^)\n]+)\)(?=[ \t]+\S)/g,
+        (match, boundary, inner) =>
+          boundary +
+          normalizeBackingVocalParenthetical(match.slice(boundary.length), inner),
       );
 
       // 4️⃣ Remove stray indentation and trailing spaces on each line
