@@ -130,6 +130,12 @@ if (formatExtensionLyrics(embeddedAcronymLine) !== 'MyBBC one') {
   throw new Error('Numbered title prefixes should require a real word boundary');
 }
 
+const inlineBackingVocalLine = "You can call on me you /can call on me\\ as long as I'm breathing";
+const formattedInlineBackingVocalLine = "You can call on me you (can call on me) as long as I'm breathing";
+if (formatExtensionLyrics(inlineBackingVocalLine) !== formattedInlineBackingVocalLine) {
+  throw new Error('Inline backing-vocal shorthand must close at the backslash marker');
+}
+
 module.exports = {
   formatLyrics,
   version: metaVersion,
