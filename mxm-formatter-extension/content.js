@@ -548,6 +548,41 @@ if (typeof mxmFormatterRoot.mxmFormatterLoaded === "undefined") {
       );
     }
 
+    const BARE_ILL_CONTRACTION_FOLLOWERS = new Set([
+      "be", "bring", "buy", "call", "catch", "change", "choose", "come", "do", "drive",
+      "fall", "find", "follow", "get", "give", "go", "have", "hold", "keep", "know",
+      "learn", "leave", "let", "live", "look", "love", "make", "meet", "move", "need",
+      "pay", "play", "pray", "pull", "push", "ride", "run", "save", "say", "see",
+      "send", "show", "sing", "sleep", "stand", "start", "stay", "stop", "take",
+      "talk", "tell", "try", "turn", "use", "wait", "walk", "want", "watch", "work",
+      "write"
+    ]);
+
+    const BARE_ILL_CONTRACTION_PRECEDERS = new Set([
+      "and", "baby", "because", "but", "cause", "cos", "coz", "cuz", "hey", "if",
+      "maybe", "now", "oh", "or", "so", "then", "well", "when", "whenever", "yeah",
+      "yea", "yah", "yo"
+    ]);
+
+    function shouldNormalizeBareIllToContraction(str, offset, token) {
+      const after = str.slice(offset + token.length);
+      const nextWordMatch = after.match(/^[ \t]*["'“”‘’]*([A-Za-z'’]+)/);
+      if (!nextWordMatch) return false;
+
+      const nextWord = nextWordMatch[1].toLowerCase().replace(/[’]/g, "'");
+      if (!BARE_ILL_CONTRACTION_FOLLOWERS.has(nextWord)) return false;
+
+      const lineStart = str.lastIndexOf("\n", offset - 1) + 1;
+      const beforeLine = str.slice(lineStart, offset).trim();
+      if (!beforeLine || /^[("'“‘\[]*$/.test(beforeLine)) return true;
+
+      const prevWordMatch = beforeLine.match(/([A-Za-z'’]+)[^A-Za-z'’]*$/);
+      if (!prevWordMatch) return false;
+
+      const prevWord = prevWordMatch[1].toLowerCase().replace(/[’]/g, "'");
+      return BARE_ILL_CONTRACTION_PRECEDERS.has(prevWord);
+    }
+
     function normalizeOClock(text) {
       if (!text) return text;
       const re =
@@ -3338,7 +3373,13 @@ if (typeof mxmFormatterRoot.mxmFormatterLoaded === "undefined") {
       // --- Final I-contraction normalization (post-format override) ---
       x = x
         // I'll corrections (ill / i'll)
-        .replace(/\b(i['’]?[ \t]?ll)(?=[\s,.)!?'"]|$)/gi, "I'll")
+        .replace(/\bi['’]?[ \t]+ll(?=[\s,.)!?'"]|$)/gi, "I'll")
+        .replace(/\bi['’]ll(?=[\s,.)!?'"]|$)/gi, "I'll")
+        .replace(/\bill(?=[\s,.)!?'"]|$)/gi, (match, offset, str) =>
+          shouldNormalizeBareIllToContraction(str, offset, match)
+            ? "I'll"
+            : match,
+        )
         // I've corrections (ive / i've)
         .replace(/\b(i['’]?[ \t]?ve)(?=[\s,.)!?'"]|$)/gi, "I've")
         // I'd corrections (id / i'd)

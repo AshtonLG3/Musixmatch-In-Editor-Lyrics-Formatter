@@ -153,6 +153,25 @@ for (const [input, expected] of lineBoundaryCases) {
   }
 }
 
+const illContractionCases = new Map([
+  ['ill see see you', "I'll see see you"],
+  ['ill be there', "I'll be there"],
+  ['and ill see you', "And I'll see you"],
+  ['i ll see you', "I'll see you"],
+  ["i'll see you", "I'll see you"],
+  ['he fell ill yesterday', 'He fell ill yesterday'],
+  ['I feel ill', 'I feel ill'],
+  ['ill-fated', 'Ill-fated'],
+  ['illness', 'Illness'],
+]);
+
+for (const [input, expected] of illContractionCases) {
+  const actual = formatExtensionLyrics(input);
+  if (actual !== expected) {
+    throw new Error(`Formatter misread ill contraction context: ${JSON.stringify(input)} formatted as ${JSON.stringify(actual)}`);
+  }
+}
+
 module.exports = {
   formatLyrics,
   version: metaVersion,
