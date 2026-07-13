@@ -1,13 +1,22 @@
 (function (root) {
-  const prefixes = Object.freeze([
-    "BBC",
-    "SABC",
-    "Angry Birds",
-    "Highway",
-    "Far Cry",
-    "Borderlands",
-    "Resident Evil",
-  ]);
+  const prefixes = Object.freeze({
+    caseInsensitive: Object.freeze([
+      "BBC",
+      "SABC",
+      "ZBC Radio",
+      "Angry Birds",
+      "Highway",
+      "Route",
+      "Interstate",
+      "Channel",
+      "Far Cry",
+      "Borderlands",
+      "Resident Evil",
+    ]),
+    caseSensitive: Object.freeze([
+      "Golf",
+    ]),
+  });
 
   if (typeof module !== "undefined" && module.exports) {
     module.exports = prefixes;

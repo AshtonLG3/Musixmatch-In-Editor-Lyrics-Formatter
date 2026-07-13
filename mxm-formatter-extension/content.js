@@ -361,22 +361,63 @@ if (typeof mxmFormatterRoot.mxmFormatterLoaded === "undefined") {
       12: "twelve",
     };
     const OCLOCK_WORD_SET = new Set(Object.values(OCLOCK_DIGIT_TO_WORD));
-    const NUMBERED_TITLE_PREFIXES = Object.freeze(
-      Array.isArray(root.MXM_NUMBERED_TITLE_PREFIXES)
-        ? root.MXM_NUMBERED_TITLE_PREFIXES
-        : [],
-    );
-
     function escapeRegExp(value) {
       return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     }
 
-    const NUMBERED_TITLE_PREFIX_RE = NUMBERED_TITLE_PREFIXES.length
-      ? new RegExp(
-          `(?:${NUMBERED_TITLE_PREFIXES.map(escapeRegExp).join("|")})$`,
-          "i",
-        )
-      : null;
+    function normalizeNumberedTitlePrefixes(source) {
+      if (Array.isArray(source)) {
+        return {
+          caseInsensitive: source,
+          caseSensitive: [],
+        };
+      }
+
+      if (!source || typeof source !== "object") {
+        return {
+          caseInsensitive: [],
+          caseSensitive: [],
+        };
+      }
+
+      return {
+        caseInsensitive: Array.isArray(source.caseInsensitive)
+          ? source.caseInsensitive
+          : [],
+        caseSensitive: Array.isArray(source.caseSensitive)
+          ? source.caseSensitive
+          : [],
+      };
+    }
+
+    function createNumberedTitlePrefixMatcher(prefixes, flags) {
+      const escapedPrefixes = [
+        ...new Set(
+          prefixes
+            .map((prefix) => String(prefix).trim())
+            .filter(Boolean)
+            .sort((a, b) => b.length - a.length),
+        ),
+      ].map((prefix) => escapeRegExp(prefix).replace(/\s+/g, "\\s+"));
+
+      return escapedPrefixes.length
+        ? new RegExp(`(?:^|\\b)(?:${escapedPrefixes.join("|")})$`, flags)
+        : null;
+    }
+
+    const NUMBERED_TITLE_PREFIXES = normalizeNumberedTitlePrefixes(
+      root.MXM_NUMBERED_TITLE_PREFIXES,
+    );
+    const NUMBERED_TITLE_PREFIX_MATCHERS = [
+      createNumberedTitlePrefixMatcher(
+        NUMBERED_TITLE_PREFIXES.caseInsensitive,
+        "i",
+      ),
+      createNumberedTitlePrefixMatcher(
+        NUMBERED_TITLE_PREFIXES.caseSensitive,
+        "",
+      ),
+    ].filter(Boolean);
 
     function isTimeContext(line, _s, e) {
       const after = line.slice(e);
@@ -399,9 +440,9 @@ if (typeof mxmFormatterRoot.mxmFormatterLoaded === "undefined") {
     }
     function isNamedNumberContext(line, s) {
       const before = line.slice(0, s).replace(/[ \t]+$/g, "");
-      return NUMBERED_TITLE_PREFIX_RE
-        ? NUMBERED_TITLE_PREFIX_RE.test(before)
-        : false;
+      return NUMBERED_TITLE_PREFIX_MATCHERS.some((matcher) =>
+        matcher.test(before),
+      );
     }
     function isOClockFollowing(line, e) {
       const after = line.slice(e);

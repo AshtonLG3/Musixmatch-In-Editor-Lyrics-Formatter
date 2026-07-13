@@ -98,6 +98,11 @@ if (formatLyrics(timeContextLine) !== 'Meet me at 7:30 p.m.') {
 const numberedTitleCases = new Map([
   ['BBC 1', 'BBC 1'],
   ['SABC 1', 'SABC 1'],
+  ['ZBC Radio 3', 'ZBC Radio 3'],
+  ['Golf 8', 'Golf 8'],
+  ['Highway 6', 'Highway 6'],
+  ['Route 4', 'Route 4'],
+  ['Channel 5', 'Channel 5'],
   ['Far Cry 2', 'Far Cry 2'],
   ['Borderlands 4', 'Borderlands 4'],
   ['Resident Evil 3', 'Resident Evil 3'],
@@ -113,6 +118,16 @@ for (const [input, expected] of numberedTitleCases) {
 const ordinaryNumberLine = 'I got 2 reasons';
 if (formatExtensionLyrics(ordinaryNumberLine) !== 'I got two reasons') {
   throw new Error('Ordinary lyric numerals should still be spelled out');
+}
+
+const lowercaseGolfLine = 'I played golf 8 times';
+if (formatExtensionLyrics(lowercaseGolfLine) !== 'I played golf eight times') {
+  throw new Error('Lowercase golf should not be treated as a numbered model title');
+}
+
+const embeddedAcronymLine = 'MyBBC 1';
+if (formatExtensionLyrics(embeddedAcronymLine) !== 'MyBBC one') {
+  throw new Error('Numbered title prefixes should require a real word boundary');
 }
 
 module.exports = {
