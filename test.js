@@ -46,6 +46,12 @@ if (typeof formatLyrics !== 'function') {
   throw new Error('MxM-Formatter.user.js did not export a formatLyrics function');
 }
 
+require('./mxm-formatter-extension/numbered-title-prefixes.js');
+const { formatLyrics: formatExtensionLyrics } = require('./mxm-formatter-extension/content.js');
+if (typeof formatExtensionLyrics !== 'function') {
+  throw new Error('mxm-formatter-extension/content.js did not export a formatLyrics function');
+}
+
 const standaloneParenthetical = '(Yeah, yeah, yeah)';
 const formattedStandalone = formatLyrics(standaloneParenthetical);
 if (formattedStandalone !== standaloneParenthetical) {
@@ -87,6 +93,26 @@ if (formatLyrics(twentyOneLine) !== '21 reasons') {
 const timeContextLine = 'Meet me at 7:30 pm';
 if (formatLyrics(timeContextLine) !== 'Meet me at 7:30 p.m.') {
   throw new Error('Time expressions must retain their numeric formatting and normalised meridiem');
+}
+
+const numberedTitleCases = new Map([
+  ['BBC 1', 'BBC 1'],
+  ['SABC 1', 'SABC 1'],
+  ['Far Cry 2', 'Far Cry 2'],
+  ['Borderlands 4', 'Borderlands 4'],
+  ['Resident Evil 3', 'Resident Evil 3'],
+]);
+
+for (const [input, expected] of numberedTitleCases) {
+  const actual = formatExtensionLyrics(input);
+  if (actual !== expected) {
+    throw new Error(`Numbered title should keep its digit: ${input} formatted as ${actual}`);
+  }
+}
+
+const ordinaryNumberLine = 'I got 2 reasons';
+if (formatExtensionLyrics(ordinaryNumberLine) !== 'I got two reasons') {
+  throw new Error('Ordinary lyric numerals should still be spelled out');
 }
 
 module.exports = {

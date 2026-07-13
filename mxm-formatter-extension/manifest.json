@@ -38,7 +38,7 @@
         "https://curators.musixmatch.com/*",
         "https://curators-beta.musixmatch.com/*"
       ],
-      "js": ["content.js"],
+      "js": ["numbered-title-prefixes.js", "content.js"],
       "run_at": "document_idle"
     }
   ]

@@ -7,8 +7,15 @@
  */
 
 // 1. Guard Clause: Prevent double-injection which causes UI duplication and event conflicts.
-if (typeof window.mxmFormatterLoaded === "undefined") {
-  window.mxmFormatterLoaded = true;
+const mxmFormatterRoot =
+  typeof window !== "undefined"
+    ? window
+    : typeof globalThis !== "undefined"
+      ? globalThis
+      : this;
+
+if (typeof mxmFormatterRoot.mxmFormatterLoaded === "undefined") {
+  mxmFormatterRoot.mxmFormatterLoaded = true;
 
   // ============================================================================
   // START: PRESERVED FORMATTER LOGIC
@@ -354,6 +361,22 @@ if (typeof window.mxmFormatterLoaded === "undefined") {
       12: "twelve",
     };
     const OCLOCK_WORD_SET = new Set(Object.values(OCLOCK_DIGIT_TO_WORD));
+    const NUMBERED_TITLE_PREFIXES = Object.freeze(
+      Array.isArray(root.MXM_NUMBERED_TITLE_PREFIXES)
+        ? root.MXM_NUMBERED_TITLE_PREFIXES
+        : [],
+    );
+
+    function escapeRegExp(value) {
+      return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    }
+
+    const NUMBERED_TITLE_PREFIX_RE = NUMBERED_TITLE_PREFIXES.length
+      ? new RegExp(
+          `(?:${NUMBERED_TITLE_PREFIXES.map(escapeRegExp).join("|")})$`,
+          "i",
+        )
+      : null;
 
     function isTimeContext(line, _s, e) {
       const after = line.slice(e);
@@ -376,7 +399,9 @@ if (typeof window.mxmFormatterLoaded === "undefined") {
     }
     function isNamedNumberContext(line, s) {
       const before = line.slice(0, s).replace(/[ \t]+$/g, "");
-      return /(?:\bBBC|\bAngry\s+Birds|\bHighway)$/i.test(before);
+      return NUMBERED_TITLE_PREFIX_RE
+        ? NUMBERED_TITLE_PREFIX_RE.test(before)
+        : false;
     }
     function isOClockFollowing(line, e) {
       const after = line.slice(e);
