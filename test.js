@@ -156,6 +156,15 @@ if (formatExtensionLyrics(tightSameLineLeftBackingVocalLine) !== formattedSameLi
   throw new Error('Extension same-line backslash shorthand must work without a space after the marker');
 }
 
+const mainBackingMainSplitLine = "Since I met the Lord, things I used to do/\nDon't do anymore\\ Lord God";
+const formattedMainBackingMainSplitLine = "Since I met the Lord, things I used to do (don't do anymore) Lord God";
+if (formatLyrics(mainBackingMainSplitLine) !== formattedMainBackingMainSplitLine) {
+  throw new Error('Userscript slash/backslash shorthand must close backing vocals before same-line main vocals');
+}
+if (formatExtensionLyrics(mainBackingMainSplitLine) !== formattedMainBackingMainSplitLine) {
+  throw new Error('Extension slash/backslash shorthand must close backing vocals before same-line main vocals');
+}
+
 const lineBoundaryCases = new Map([
   ['well-known', 'Well-known'],
   ['well\nI know', 'Well\nI know'],

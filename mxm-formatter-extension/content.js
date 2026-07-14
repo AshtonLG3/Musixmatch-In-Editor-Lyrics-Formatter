@@ -2024,6 +2024,23 @@ if (typeof mxmFormatterRoot.mxmFormatterLoaded === "undefined") {
       return `(${trimmed})`;
     }
 
+    function splitBackingLineAtCloser(line) {
+      const closerIndex = String(line || "").indexOf("\\");
+      if (closerIndex === -1) {
+        return {
+          backing: cleanBackingMarkerText(line),
+          main: "",
+          hasCloser: false,
+        };
+      }
+
+      return {
+        backing: cleanBackingMarkerText(line.slice(0, closerIndex)),
+        main: line.slice(closerIndex + 1).trim(),
+        hasCloser: true,
+      };
+    }
+
     function expandBackingVocalShorthand(input) {
       let text = String(input || "");
 
@@ -2074,16 +2091,18 @@ if (typeof mxmFormatterRoot.mxmFormatterLoaded === "undefined") {
         if (trimmedRight.endsWith("/") && i + 1 < lines.length) {
           const main = trimmedRight.slice(0, -1).replace(/[ \t]+$/g, "");
           const backingLine = lines[i + 1].replace(/[ \t]+$/g, "");
-          const backing = cleanBackingMarkerText(backingLine);
+          const splitBacking = splitBackingLineAtCloser(backingLine);
+          const backing = splitBacking.backing;
           if (backing) {
-            const nextMain =
-              backingLine.endsWith("\\") && i + 2 < lines.length
+            const nextLineMain =
+              splitBacking.hasCloser && !splitBacking.main && i + 2 < lines.length
                 ? lines[i + 2].trim()
                 : "";
+            const nextMain = splitBacking.main || nextLineMain;
             expanded.push(
               `${main ? `${main} ` : ""}(${backing})${nextMain ? ` ${nextMain}` : ""}`,
             );
-            i += nextMain ? 2 : 1;
+            i += nextLineMain ? 2 : 1;
             continue;
           }
         }
@@ -3343,7 +3362,7 @@ if (typeof mxmFormatterRoot.mxmFormatterLoaded === "undefined") {
       // ✅ Only lowercase the first word after ")" (except I / I'm / I'ma)
       x = x.replace(/(?<![?!])\)[ \t]+(\p{Lu}\p{Ll}*)\b/gu, (match, word) => {
         const exceptions = ["I", "I'm", "I'ma"];
-        return exceptions.includes(word)
+        return exceptions.includes(word) || BV_FIRST_WORD_EXCEPTIONS.has(word)
           ? `) ${word}`
           : `) ${word.toLocaleLowerCase()}`;
       });
