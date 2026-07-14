@@ -285,7 +285,14 @@
     return lettersOnly.length <= 4 || /[.&/+0-9-]/.test(text);
   }
 
-  function normalizeBackingVocalParenthetical(match, inner) {
+  function uppercaseFirstWordCore(firstWord, firstWordCore) {
+    return firstWord.replace(
+      firstWordCore,
+      firstWordCore.charAt(0).toLocaleUpperCase() + firstWordCore.slice(1)
+    );
+  }
+
+  function normalizeBackingVocalParenthetical(match, inner, options = {}) {
     const trimmed = String(inner || '').trim();
     if (!trimmed) return match;
     if (/[!?]/.test(trimmed)) return match;
@@ -295,6 +302,11 @@
     const firstWordCore = firstWord.replace(/^[^A-Za-z'’]+|[^A-Za-z'’]+$/g, '');
     if (!firstWordCore) return match;
     const lowerFirst = firstWordCore.toLocaleLowerCase();
+
+    if (options.capitalizeFirstWord) {
+      const uppercasedFirstWord = uppercaseFirstWordCore(firstWord, firstWordCore);
+      return `(${uppercasedFirstWord}${trimmed.slice(firstWord.length)})`;
+    }
 
     if (BV_FIRST_WORD_EXCEPTIONS.has(firstWordCore) || BV_FIRST_WORD_EXCEPTIONS.has(lowerFirst)) {
       return `(${trimmed})`;
@@ -2475,7 +2487,7 @@ x = x
     );
 
     x = x.replace(/(^|\n)\(([^)\n]+)\)(?=[ \t]+\S)/g, (match, boundary, inner) =>
-      boundary + normalizeBackingVocalParenthetical(match.slice(boundary.length), inner)
+      boundary + normalizeBackingVocalParenthetical(match.slice(boundary.length), inner, { capitalizeFirstWord: true })
     );
 
     // 4️⃣ Remove stray indentation and trailing spaces on each line

@@ -203,11 +203,13 @@ for (const [input, expected] of illContractionCases) {
 
 const backingVocalConventionCases = new Map([
   ['lyric (backing vocal)', 'Lyric (backing vocal)'],
-  ['(backing vocal) lyric', '(backing vocal) lyric'],
+  ['(backing vocal) lyric', '(Backing vocal) lyric'],
   ['lyric (bv), lyric (bv)', 'Lyric (bv), lyric (bv)'],
-  ['(bv) lyric, (bv) lyric', '(bv) lyric, (bv) lyric'],
-  ["(This isn't goodbye) oh yeah", "(this isn't goodbye) oh yeah"],
-  ['(Yeah, yeah) lyric', '(yeah, yeah) lyric'],
+  ['(bv) lyric, (bv) lyric', '(Bv) lyric, (bv) lyric'],
+  ["(This isn't goodbye) oh yeah", "(This isn't goodbye) oh yeah"],
+  ['(Yeah, yeah) lyric', '(Yeah, yeah) lyric'],
+  ['(yeah, yeah)', '(Yeah, yeah)'],
+  ['(backing vocal)', '(Backing vocal)'],
   ['(I got you) lyric', '(I got you) lyric'],
   ['(BV) lyric', '(BV) lyric'],
 ]);
