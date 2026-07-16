@@ -1926,9 +1926,9 @@ if (typeof mxmFormatterRoot.mxmFormatterLoaded === "undefined") {
       return canonical;
     }
 
-    function hasModalBeforeWord(str, offset) {
+    function hasAuxiliaryBeforeCause(str, offset) {
       const before = str.slice(Math.max(0, offset - 32), offset);
-      return /\b(?:can|could|may|might|must|should|will|would)\s+$/i.test(
+      return /\b(?:can|could|do|does|did|may|might|must|shall|should|will|would)\b(?:\s+[a-z]+){0,5}\s+$/i.test(
         before,
       );
     }
@@ -2509,7 +2509,7 @@ if (typeof mxmFormatterRoot.mxmFormatterLoaded === "undefined") {
           line = line.replace(/\bcause\b/gi, (match, offset, str) => {
             const prev = offset > 0 ? str[offset - 1] : "";
             if (prev === "'" || prev === "\u2019") return match;
-            if (hasModalBeforeWord(str, offset)) return match;
+            if (hasAuxiliaryBeforeCause(str, offset)) return match;
             if (match === match.toUpperCase()) return "'CAUSE";
             if (match[0] === match[0].toUpperCase()) return "'Cause";
             return "'cause";

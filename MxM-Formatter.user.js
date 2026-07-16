@@ -1657,6 +1657,11 @@
   }
 
   // ---------- Formatter ----------
+  function hasAuxiliaryBeforeCause(str, offset) {
+    const before = str.slice(Math.max(0, offset - 32), offset);
+    return /\b(?:can|could|do|does|did|may|might|must|shall|should|will|would)\b(?:\s+[a-z]+){0,5}\s+$/i.test(before);
+  }
+
   function formatLyrics(input, _options = {}) {
     if (!input) return "";
     if (input.length > 50000) {
@@ -1934,6 +1939,7 @@
         line = line.replace(/\bcause\b/gi, (match, offset, str) => {
           const prev = offset > 0 ? str[offset - 1] : '';
           if (prev === "'" || prev === "\u2019") return match;
+          if (hasAuxiliaryBeforeCause(str, offset)) return match;
           if (match === match.toUpperCase()) return "'CAUSE";
           if (match[0] === match[0].toUpperCase()) return "'Cause";
           return "'cause";

@@ -130,6 +130,29 @@ if (formatExtensionLyrics(embeddedAcronymLine) !== 'MyBBC one') {
   throw new Error('Numbered title prefixes should require a real word boundary');
 }
 
+const literalCauseLines = new Map([
+  ["But will a spark cause the bridge to burn?", "But will a spark cause the bridge to burn?"],
+  ["Will it cause a scene?", "Will it cause a scene?"],
+  ["It could cause a scene", "It could cause a scene"],
+]);
+
+for (const [input, expected] of literalCauseLines) {
+  if (formatLyrics(input) !== expected) {
+    throw new Error(`Userscript should preserve literal cause: ${input}`);
+  }
+  if (formatExtensionLyrics(input) !== expected) {
+    throw new Error(`Extension should preserve literal cause: ${input}`);
+  }
+}
+
+const shorthandCauseLine = 'just cause I can';
+if (formatLyrics(shorthandCauseLine) !== "Just 'cause I can") {
+  throw new Error("Userscript should still normalize shorthand cause");
+}
+if (formatExtensionLyrics(shorthandCauseLine) !== "Just 'cause I can") {
+  throw new Error("Extension should still normalize shorthand cause");
+}
+
 const inlineBackingVocalLine = "You can call on me you /can call on me\\ as long as I'm breathing";
 const formattedInlineBackingVocalLine = "You can call on me you (can call on me) as long as I'm breathing";
 if (formatLyrics(inlineBackingVocalLine) !== formattedInlineBackingVocalLine) {
