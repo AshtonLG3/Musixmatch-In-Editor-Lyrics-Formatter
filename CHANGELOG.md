@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.2.1
+- Preserve literal verb uses of `cause` after subjects such as `they`, while retaining apostrophe normalization for shorthand uses such as `just 'cause`.
+- Add a regression test for `Been bitten, can't breathe, they cause a disease` across both formatter surfaces.
+- Bump the Chrome extension and package metadata to 1.2.1.
+
 ## v1.1.90
 - Keep backing-vocal main-line lowercasing from crossing newline boundaries by limiting whitespace consumption.
 - Recognize Chevy as a capitalized car make in both built-in and sheet-driven proper noun maps.

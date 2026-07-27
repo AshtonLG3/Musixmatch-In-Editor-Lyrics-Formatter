@@ -1,6 +1,6 @@
 /**
  * MxM In-Editor Formatter (Content Script)
- * Version: 1.2.0
+ * Version: 1.2.1
  *
  * This file contains the complete logic for the formatter.
  * Logic is preserved exactly as requested to ensure tested functionality remains intact.
@@ -25,7 +25,7 @@ if (typeof mxmFormatterRoot.mxmFormatterLoaded === "undefined") {
     const hasWindow =
       typeof window !== "undefined" && typeof document !== "undefined";
     const root = hasWindow ? window : global;
-    const SCRIPT_VERSION = "1.2.0"; // Bumped version
+    const SCRIPT_VERSION = "1.2.1";
     const ALWAYS_AGGRESSIVE = true;
     const SETTINGS_KEY = "mxmFmtSettings.v105";
     const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -1933,6 +1933,20 @@ if (typeof mxmFormatterRoot.mxmFormatterLoaded === "undefined") {
       );
     }
 
+    const LITERAL_CAUSE_SUBJECTS = new Set([
+      "i",
+      "you",
+      "we",
+      "they",
+      "who",
+      "what",
+    ]);
+
+    function hasLiteralSubjectBeforeCause(str, offset) {
+      const words = str.slice(0, offset).toLowerCase().match(/[a-z]+/g);
+      return !!words?.length && LITERAL_CAUSE_SUBJECTS.has(words[words.length - 1]);
+    }
+
     function cleanBackingMarkerText(value) {
       return String(value || "")
         .trim()
@@ -2510,6 +2524,7 @@ if (typeof mxmFormatterRoot.mxmFormatterLoaded === "undefined") {
             const prev = offset > 0 ? str[offset - 1] : "";
             if (prev === "'" || prev === "\u2019") return match;
             if (hasAuxiliaryBeforeCause(str, offset)) return match;
+            if (hasLiteralSubjectBeforeCause(str, offset)) return match;
             if (match === match.toUpperCase()) return "'CAUSE";
             if (match[0] === match[0].toUpperCase()) return "'Cause";
             return "'cause";

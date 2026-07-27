@@ -1662,6 +1662,13 @@
     return /\b(?:can|could|do|does|did|may|might|must|shall|should|will|would)\b(?:\s+[a-z]+){0,5}\s+$/i.test(before);
   }
 
+  const LITERAL_CAUSE_SUBJECTS = new Set(['i', 'you', 'we', 'they', 'who', 'what']);
+
+  function hasLiteralSubjectBeforeCause(str, offset) {
+    const words = str.slice(0, offset).toLowerCase().match(/[a-z]+/g);
+    return !!words?.length && LITERAL_CAUSE_SUBJECTS.has(words[words.length - 1]);
+  }
+
   function formatLyrics(input, _options = {}) {
     if (!input) return "";
     if (input.length > 50000) {
@@ -1940,6 +1947,7 @@
           const prev = offset > 0 ? str[offset - 1] : '';
           if (prev === "'" || prev === "\u2019") return match;
           if (hasAuxiliaryBeforeCause(str, offset)) return match;
+          if (hasLiteralSubjectBeforeCause(str, offset)) return match;
           if (match === match.toUpperCase()) return "'CAUSE";
           if (match[0] === match[0].toUpperCase()) return "'Cause";
           return "'cause";

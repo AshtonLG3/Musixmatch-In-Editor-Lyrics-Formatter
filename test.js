@@ -134,6 +134,7 @@ const literalCauseLines = new Map([
   ["But will a spark cause the bridge to burn?", "But will a spark cause the bridge to burn?"],
   ["Will it cause a scene?", "Will it cause a scene?"],
   ["It could cause a scene", "It could cause a scene"],
+  ["Been bitten, can't breathe, they cause a disease", "Been bitten, can't breathe, they cause a disease"],
 ]);
 
 for (const [input, expected] of literalCauseLines) {
