@@ -18,6 +18,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -26,12 +28,19 @@ jobs:
 
       - name: Run Prettier formatting check
         run: |
-          npx --yes prettier@3.3.3 --check \
+          mapfile -t changed_files < <(git diff --name-only --diff-filter=ACMR HEAD^1 HEAD -- \
             "MxM-Formatter.user.js" \
             "MxM-Formatter.meta.js" \
             "index.html" \
             "test.js" \
-            "mxm-formatter-extension/**/*.js"
+            ":(glob)mxm-formatter-extension/**/*.js")
+
+          if [ "${#changed_files[@]}" -eq 0 ]; then
+            echo "No changed userscript or extension JS files to lint."
+            exit 0
+          fi
+
+          npx --yes prettier@3.3.3 --check "${changed_files[@]}"
 
   release:
     name: Tag and release userscript

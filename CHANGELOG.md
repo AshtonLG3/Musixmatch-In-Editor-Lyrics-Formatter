@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.2.3
+- Preserve allowed line-ending periods for `a.m.`, `p.m.`, and `L.A.` while continuing to strip ordinary lyric-ending periods.
+- Add regression coverage for line-ending meridiems and `L.A.`.
+- Bump the Chrome extension and package metadata to 1.2.3.
+
+## v1.2.2
+- Normalize inline backing-vocal question parentheses without forcing the first word uppercase.
+- Capitalize standalone `i` inside backing-vocal parentheses while keeping acronym parentheticals intact.
+- Bump the Chrome extension and package metadata to 1.2.2.
+
+## v1.2.1
+- Preserve literal verb uses of `cause` after subjects such as `they`, while retaining apostrophe normalization for shorthand uses such as `just 'cause`.
+- Add a regression test for `Been bitten, can't breathe, they cause a disease` across both formatter surfaces.
+- Bump the Chrome extension and package metadata to 1.2.1.
+
 ## v1.1.90
 - Keep backing-vocal main-line lowercasing from crossing newline boundaries by limiting whitespace consumption.
 - Recognize Chevy as a capitalized car make in both built-in and sheet-driven proper noun maps.
