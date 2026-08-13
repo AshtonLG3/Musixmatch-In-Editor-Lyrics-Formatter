@@ -1,6 +1,6 @@
 /**
  * MxM In-Editor Formatter (Content Script)
- * Version: 1.2.2
+ * Version: 1.2.3
  *
  * This file contains the complete logic for the formatter.
  * Logic is preserved exactly as requested to ensure tested functionality remains intact.
@@ -25,7 +25,7 @@ if (typeof mxmFormatterRoot.mxmFormatterLoaded === "undefined") {
     const hasWindow =
       typeof window !== "undefined" && typeof document !== "undefined";
     const root = hasWindow ? window : global;
-    const SCRIPT_VERSION = "1.2.2";
+    const SCRIPT_VERSION = "1.2.3";
     const ALWAYS_AGGRESSIVE = true;
     const SETTINGS_KEY = "mxmFmtSettings.v105";
     const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -2469,7 +2469,24 @@ if (typeof mxmFormatterRoot.mxmFormatterLoaded === "undefined") {
       );
 
       // Remove end-line punctuation
+      const allowedLineEndingPeriods = [];
+      const ALLOWED_LINE_ENDING_PERIOD_TOKEN = "\uF002";
+      x = x.replace(
+        /\b(?:[ap]\.m\.|L\.A\.)(?=(?:[ \t]*["'“”‘’])?[ \t]*(?:\n|$))/gi,
+        (match) => {
+          const token = `${ALLOWED_LINE_ENDING_PERIOD_TOKEN}${allowedLineEndingPeriods.length}${ALLOWED_LINE_ENDING_PERIOD_TOKEN}`;
+          allowedLineEndingPeriods.push(match);
+          return token;
+        },
+      );
       x = x.replace(/[.,;:\-]+(?=[ \t]*\n)/g, "");
+      x = x.replace(
+        new RegExp(
+          `${ALLOWED_LINE_ENDING_PERIOD_TOKEN}(\\d+)${ALLOWED_LINE_ENDING_PERIOD_TOKEN}`,
+          "g",
+        ),
+        (_, idx) => allowedLineEndingPeriods[Number(idx)] || "",
+      );
 
       // Instrumental normalization and tag spacing handled immediately after tag conversion
 

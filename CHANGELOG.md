@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.2.3
+- Preserve allowed line-ending periods for `a.m.`, `p.m.`, and `L.A.` while continuing to strip ordinary lyric-ending periods.
+- Add regression coverage for line-ending meridiems and `L.A.`.
+- Bump the Chrome extension and package metadata to 1.2.3.
+
 ## v1.2.2
 - Normalize inline backing-vocal question parentheses without forcing the first word uppercase.
 - Capitalize standalone `i` inside backing-vocal parentheses while keeping acronym parentheticals intact.

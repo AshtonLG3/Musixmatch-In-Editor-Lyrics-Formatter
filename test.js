@@ -95,6 +95,27 @@ if (formatLyrics(timeContextLine) !== 'Meet me at 7:30 p.m.') {
   throw new Error('Time expressions must retain their numeric formatting and normalised meridiem');
 }
 
+const lineEndingPeriodCases = new Map([
+  ['It ends at 9 p.m', 'It ends at 9 p.m.'],
+  ['It ends at 9 p.m.', 'It ends at 9 p.m.'],
+  ['It starts at 9 am', 'It starts at 9 a.m.'],
+  ['I live in L.A.', 'I live in L.A.'],
+]);
+
+for (const [input, expected] of lineEndingPeriodCases) {
+  if (formatLyrics(input) !== expected) {
+    throw new Error(`Userscript should preserve allowed line-ending periods: ${input}`);
+  }
+  if (formatExtensionLyrics(input) !== expected) {
+    throw new Error(`Extension should preserve allowed line-ending periods: ${input}`);
+  }
+}
+
+const ordinaryLineEndingPeriod = 'This line ends.';
+if (formatExtensionLyrics(ordinaryLineEndingPeriod) !== 'This line ends') {
+  throw new Error('Ordinary line-ending periods should still be stripped');
+}
+
 const numberedTitleCases = new Map([
   ['BBC 1', 'BBC 1'],
   ['SABC 1', 'SABC 1'],

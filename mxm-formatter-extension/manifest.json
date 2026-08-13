@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "MxM In-Editor Formatter (EN)",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "Musixmatch Studio-only formatter. Injects floating tools directly into the editor.",
   "author": "Richard Mangezi Muketa",
   "action": {
