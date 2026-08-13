@@ -236,6 +236,11 @@ const backingVocalConventionCases = new Map([
   ['(backing vocal)', '(Backing vocal)'],
   ['(I got you) lyric', '(I got you) lyric'],
   ['(BV) lyric', '(BV) lyric'],
+  ['line (Backing vocal?)', 'Line (backing vocal?)'],
+  ['line (oh, no, i know)', 'Line (oh, no, I know)'],
+  ['Take you home (Are you kidding?)', 'Take you home (are you kidding?)'],
+  ['Hello (ABC?) world', 'Hello (ABC?) World'],
+  ['Hello (YEAH?) world', 'Hello (yeah?) World'],
 ]);
 
 for (const [input, expected] of backingVocalConventionCases) {

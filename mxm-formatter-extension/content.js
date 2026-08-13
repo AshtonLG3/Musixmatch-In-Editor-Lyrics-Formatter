@@ -1,6 +1,6 @@
 /**
  * MxM In-Editor Formatter (Content Script)
- * Version: 1.2.1
+ * Version: 1.2.2
  *
  * This file contains the complete logic for the formatter.
  * Logic is preserved exactly as requested to ensure tested functionality remains intact.
@@ -25,7 +25,7 @@ if (typeof mxmFormatterRoot.mxmFormatterLoaded === "undefined") {
     const hasWindow =
       typeof window !== "undefined" && typeof document !== "undefined";
     const root = hasWindow ? window : global;
-    const SCRIPT_VERSION = "1.2.1";
+    const SCRIPT_VERSION = "1.2.2";
     const ALWAYS_AGGRESSIVE = true;
     const SETTINGS_KEY = "mxmFmtSettings.v105";
     const defaults = { showPanel: true, aggressiveNumbers: true };
@@ -181,15 +181,20 @@ if (typeof mxmFormatterRoot.mxmFormatterLoaded === "undefined") {
     ]);
 
     function isStandaloneParentheticalAbbreviation(text) {
-      if (!text || /\s/.test(text) || !/^[A-Z0-9&+/'’.-]+$/.test(text))
+      const candidate = String(text || "").trim().replace(/[!?]+$/g, "");
+      if (
+        !candidate ||
+        /\s/.test(candidate) ||
+        !/^[A-Z0-9&+/'’.-]+$/.test(candidate)
+      )
         return false;
 
-      const lettersOnly = text.replace(/[^A-Z]/g, "");
+      const lettersOnly = candidate.replace(/[^A-Z]/g, "");
       if (lettersOnly.length < 2) return false;
       if (PARENTHETICAL_ABBREVIATION_EXCLUSIONS.has(lettersOnly))
         return false;
 
-      return lettersOnly.length <= 4 || /[.&/+0-9-]/.test(text);
+      return lettersOnly.length <= 4 || /[.&/+0-9-]/.test(candidate);
     }
 
     function uppercaseFirstWordCore(firstWord, firstWordCore) {
@@ -202,10 +207,11 @@ if (typeof mxmFormatterRoot.mxmFormatterLoaded === "undefined") {
     function normalizeBackingVocalParenthetical(match, inner, options = {}) {
       const trimmed = String(inner || "").trim();
       if (!trimmed) return match;
-      if (/[!?]/.test(trimmed)) return match;
-      if (isStandaloneParentheticalAbbreviation(trimmed)) return match;
+      const normalizedTrimmed = ensureStandaloneICapitalized(trimmed);
+      if (isStandaloneParentheticalAbbreviation(normalizedTrimmed))
+        return `(${normalizedTrimmed})`;
 
-      const firstWord = trimmed.split(/\s+/)[0] || "";
+      const firstWord = normalizedTrimmed.split(/\s+/)[0] || "";
       const firstWordCore = firstWord.replace(
         /^[^A-Za-z'’]+|[^A-Za-z'’]+$/g,
         "",
@@ -215,22 +221,22 @@ if (typeof mxmFormatterRoot.mxmFormatterLoaded === "undefined") {
 
       if (options.capitalizeFirstWord) {
         const uppercasedFirstWord = uppercaseFirstWordCore(firstWord, firstWordCore);
-        return `(${uppercasedFirstWord}${trimmed.slice(firstWord.length)})`;
+        return `(${uppercasedFirstWord}${normalizedTrimmed.slice(firstWord.length)})`;
       }
 
       if (
         BV_FIRST_WORD_EXCEPTIONS.has(firstWordCore) ||
         BV_FIRST_WORD_EXCEPTIONS.has(lowerFirst)
       ) {
-        return `(${trimmed})`;
+        return `(${normalizedTrimmed})`;
       }
 
       if (/^(yeah|yea|yo|la|na|woo|hey|ha|uh|o+h)$/i.test(firstWordCore)) {
-        return `(${trimmed.toLocaleLowerCase()})`;
+        return `(${ensureStandaloneICapitalized(normalizedTrimmed.toLocaleLowerCase())})`;
       }
 
       const loweredFirstWord = firstWord.replace(firstWordCore, lowerFirst);
-      return `(${loweredFirstWord}${trimmed.slice(firstWord.length)})`;
+      return `(${ensureStandaloneICapitalized(`${loweredFirstWord}${normalizedTrimmed.slice(firstWord.length)}`)})`;
     }
 
     function loadSettings() {

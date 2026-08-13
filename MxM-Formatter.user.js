@@ -276,13 +276,14 @@
   ]);
 
   function isStandaloneParentheticalAbbreviation(text) {
-    if (!text || /\s/.test(text) || !/^[A-Z0-9&+/'’.-]+$/.test(text)) return false;
+    const candidate = String(text || '').trim().replace(/[!?]+$/g, '');
+    if (!candidate || /\s/.test(candidate) || !/^[A-Z0-9&+/'’.-]+$/.test(candidate)) return false;
 
-    const lettersOnly = text.replace(/[^A-Z]/g, '');
+    const lettersOnly = candidate.replace(/[^A-Z]/g, '');
     if (lettersOnly.length < 2) return false;
     if (PARENTHETICAL_ABBREVIATION_EXCLUSIONS.has(lettersOnly)) return false;
 
-    return lettersOnly.length <= 4 || /[.&/+0-9-]/.test(text);
+    return lettersOnly.length <= 4 || /[.&/+0-9-]/.test(candidate);
   }
 
   function uppercaseFirstWordCore(firstWord, firstWordCore) {
@@ -295,29 +296,29 @@
   function normalizeBackingVocalParenthetical(match, inner, options = {}) {
     const trimmed = String(inner || '').trim();
     if (!trimmed) return match;
-    if (/[!?]/.test(trimmed)) return match;
-    if (isStandaloneParentheticalAbbreviation(trimmed)) return match;
+    const normalizedTrimmed = ensureStandaloneICapitalized(trimmed);
+    if (isStandaloneParentheticalAbbreviation(normalizedTrimmed)) return `(${normalizedTrimmed})`;
 
-    const firstWord = trimmed.split(/\s+/)[0] || '';
+    const firstWord = normalizedTrimmed.split(/\s+/)[0] || '';
     const firstWordCore = firstWord.replace(/^[^A-Za-z'’]+|[^A-Za-z'’]+$/g, '');
     if (!firstWordCore) return match;
     const lowerFirst = firstWordCore.toLocaleLowerCase();
 
     if (options.capitalizeFirstWord) {
       const uppercasedFirstWord = uppercaseFirstWordCore(firstWord, firstWordCore);
-      return `(${uppercasedFirstWord}${trimmed.slice(firstWord.length)})`;
+      return `(${uppercasedFirstWord}${normalizedTrimmed.slice(firstWord.length)})`;
     }
 
     if (BV_FIRST_WORD_EXCEPTIONS.has(firstWordCore) || BV_FIRST_WORD_EXCEPTIONS.has(lowerFirst)) {
-      return `(${trimmed})`;
+      return `(${normalizedTrimmed})`;
     }
 
     if (/^(yeah|yea|yo|la|na|woo|hey|ha|uh|o+h)$/i.test(firstWordCore)) {
-      return `(${trimmed.toLocaleLowerCase()})`;
+      return `(${ensureStandaloneICapitalized(normalizedTrimmed.toLocaleLowerCase())})`;
     }
 
     const loweredFirstWord = firstWord.replace(firstWordCore, lowerFirst);
-    return `(${loweredFirstWord}${trimmed.slice(firstWord.length)})`;
+    return `(${ensureStandaloneICapitalized(`${loweredFirstWord}${normalizedTrimmed.slice(firstWord.length)}`)})`;
   }
 
   function loadSettings() {
