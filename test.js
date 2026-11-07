@@ -46,6 +46,12 @@ if (typeof formatLyrics !== 'function') {
   throw new Error('MxM-Formatter.user.js did not export a formatLyrics function');
 }
 
+require('./mxm-formatter-extension/numbered-title-prefixes.js');
+const { formatLyrics: formatExtensionLyrics } = require('./mxm-formatter-extension/content.js');
+if (typeof formatExtensionLyrics !== 'function') {
+  throw new Error('mxm-formatter-extension/content.js did not export a formatLyrics function');
+}
+
 const standaloneParenthetical = '(Yeah, yeah, yeah)';
 const formattedStandalone = formatLyrics(standaloneParenthetical);
 if (formattedStandalone !== standaloneParenthetical) {
@@ -87,6 +93,187 @@ if (formatLyrics(twentyOneLine) !== '21 reasons') {
 const timeContextLine = 'Meet me at 7:30 pm';
 if (formatLyrics(timeContextLine) !== 'Meet me at 7:30 p.m.') {
   throw new Error('Time expressions must retain their numeric formatting and normalised meridiem');
+}
+
+const lineEndingPeriodCases = new Map([
+  ['It ends at 9 p.m', 'It ends at 9 p.m.'],
+  ['It ends at 9 p.m.', 'It ends at 9 p.m.'],
+  ['It starts at 9 am', 'It starts at 9 a.m.'],
+  ['I live in L.A.', 'I live in L.A.'],
+]);
+
+for (const [input, expected] of lineEndingPeriodCases) {
+  if (formatLyrics(input) !== expected) {
+    throw new Error(`Userscript should preserve allowed line-ending periods: ${input}`);
+  }
+  if (formatExtensionLyrics(input) !== expected) {
+    throw new Error(`Extension should preserve allowed line-ending periods: ${input}`);
+  }
+}
+
+const ordinaryLineEndingPeriod = 'This line ends.';
+if (formatExtensionLyrics(ordinaryLineEndingPeriod) !== 'This line ends') {
+  throw new Error('Ordinary line-ending periods should still be stripped');
+}
+
+const numberedTitleCases = new Map([
+  ['BBC 1', 'BBC 1'],
+  ['SABC 1', 'SABC 1'],
+  ['ZBC Radio 3', 'ZBC Radio 3'],
+  ['Golf 8', 'Golf 8'],
+  ['Highway 6', 'Highway 6'],
+  ['Route 4', 'Route 4'],
+  ['Channel 5', 'Channel 5'],
+  ['Far Cry 2', 'Far Cry 2'],
+  ['Borderlands 4', 'Borderlands 4'],
+  ['Resident Evil 3', 'Resident Evil 3'],
+]);
+
+for (const [input, expected] of numberedTitleCases) {
+  const actual = formatExtensionLyrics(input);
+  if (actual !== expected) {
+    throw new Error(`Numbered title should keep its digit: ${input} formatted as ${actual}`);
+  }
+}
+
+const ordinaryNumberLine = 'I got 2 reasons';
+if (formatExtensionLyrics(ordinaryNumberLine) !== 'I got two reasons') {
+  throw new Error('Ordinary lyric numerals should still be spelled out');
+}
+
+const lowercaseGolfLine = 'I played golf 8 times';
+if (formatExtensionLyrics(lowercaseGolfLine) !== 'I played golf eight times') {
+  throw new Error('Lowercase golf should not be treated as a numbered model title');
+}
+
+const embeddedAcronymLine = 'MyBBC 1';
+if (formatExtensionLyrics(embeddedAcronymLine) !== 'MyBBC one') {
+  throw new Error('Numbered title prefixes should require a real word boundary');
+}
+
+const literalCauseLines = new Map([
+  ["But will a spark cause the bridge to burn?", "But will a spark cause the bridge to burn?"],
+  ["Will it cause a scene?", "Will it cause a scene?"],
+  ["It could cause a scene", "It could cause a scene"],
+  ["Been bitten, can't breathe, they cause a disease", "Been bitten, can't breathe, they cause a disease"],
+]);
+
+for (const [input, expected] of literalCauseLines) {
+  if (formatLyrics(input) !== expected) {
+    throw new Error(`Userscript should preserve literal cause: ${input}`);
+  }
+  if (formatExtensionLyrics(input) !== expected) {
+    throw new Error(`Extension should preserve literal cause: ${input}`);
+  }
+}
+
+const shorthandCauseLine = 'just cause I can';
+if (formatLyrics(shorthandCauseLine) !== "Just 'cause I can") {
+  throw new Error("Userscript should still normalize shorthand cause");
+}
+if (formatExtensionLyrics(shorthandCauseLine) !== "Just 'cause I can") {
+  throw new Error("Extension should still normalize shorthand cause");
+}
+
+const inlineBackingVocalLine = "You can call on me you /can call on me\\ as long as I'm breathing";
+const formattedInlineBackingVocalLine = "You can call on me you (can call on me) as long as I'm breathing";
+if (formatLyrics(inlineBackingVocalLine) !== formattedInlineBackingVocalLine) {
+  throw new Error('Userscript inline backing-vocal shorthand must close at the backslash marker');
+}
+if (formatExtensionLyrics(inlineBackingVocalLine) !== formattedInlineBackingVocalLine) {
+  throw new Error('Extension inline backing-vocal shorthand must close at the backslash marker');
+}
+
+const sameLineLeftBackingVocalLine = "My, my, my\\ I'm once bitten, twice shy, baby";
+const formattedSameLineLeftBackingVocalLine = "(My, my, my) I'm once bitten, twice shy, baby";
+if (formatLyrics(sameLineLeftBackingVocalLine) !== formattedSameLineLeftBackingVocalLine) {
+  throw new Error('Userscript same-line backslash shorthand must wrap the lyric to its left');
+}
+if (formatExtensionLyrics(sameLineLeftBackingVocalLine) !== formattedSameLineLeftBackingVocalLine) {
+  throw new Error('Extension same-line backslash shorthand must wrap the lyric to its left');
+}
+
+const tightSameLineLeftBackingVocalLine = "My, my, my\\I'm once bitten, twice shy, baby";
+if (formatLyrics(tightSameLineLeftBackingVocalLine) !== formattedSameLineLeftBackingVocalLine) {
+  throw new Error('Userscript same-line backslash shorthand must work without a space after the marker');
+}
+if (formatExtensionLyrics(tightSameLineLeftBackingVocalLine) !== formattedSameLineLeftBackingVocalLine) {
+  throw new Error('Extension same-line backslash shorthand must work without a space after the marker');
+}
+
+const mainBackingMainSplitLine = "Since I met the Lord, things I used to do/\nDon't do anymore\\ Lord God";
+const formattedMainBackingMainSplitLine = "Since I met the Lord, things I used to do (don't do anymore) Lord God";
+if (formatLyrics(mainBackingMainSplitLine) !== formattedMainBackingMainSplitLine) {
+  throw new Error('Userscript slash/backslash shorthand must close backing vocals before same-line main vocals');
+}
+if (formatExtensionLyrics(mainBackingMainSplitLine) !== formattedMainBackingMainSplitLine) {
+  throw new Error('Extension slash/backslash shorthand must close backing vocals before same-line main vocals');
+}
+
+const lineBoundaryCases = new Map([
+  ['well-known', 'Well-known'],
+  ['well\nI know', 'Well\nI know'],
+  ['christmas\ntime', 'Christmas\nTime'],
+  ['new\nyear', 'New\nYear'],
+  ['one\ntwo', 'One\nTwo'],
+  ['very\nvery', 'Very\nVery'],
+  ['i\nll go', 'I\nLl go'],
+]);
+
+for (const [input, expected] of lineBoundaryCases) {
+  const actual = formatExtensionLyrics(input);
+  if (actual !== expected) {
+    throw new Error(`Formatter rule crossed a line break: ${JSON.stringify(input)} formatted as ${JSON.stringify(actual)}`);
+  }
+}
+
+const illContractionCases = new Map([
+  ['ill see see you', "I'll see see you"],
+  ['ill be there', "I'll be there"],
+  ['and ill see you', "And I'll see you"],
+  ['i ll see you', "I'll see you"],
+  ["i'll see you", "I'll see you"],
+  ['he fell ill yesterday', 'He fell ill yesterday'],
+  ['I feel ill', 'I feel ill'],
+  ['ill-fated', 'Ill-fated'],
+  ['illness', 'Illness'],
+]);
+
+for (const [input, expected] of illContractionCases) {
+  const actual = formatExtensionLyrics(input);
+  if (actual !== expected) {
+    throw new Error(`Formatter misread ill contraction context: ${JSON.stringify(input)} formatted as ${JSON.stringify(actual)}`);
+  }
+}
+
+const backingVocalConventionCases = new Map([
+  ['lyric (backing vocal)', 'Lyric (backing vocal)'],
+  ['(backing vocal) lyric', '(Backing vocal) lyric'],
+  ['lyric (bv), lyric (bv)', 'Lyric (bv), lyric (bv)'],
+  ['(bv) lyric, (bv) lyric', '(Bv) lyric, (bv) lyric'],
+  ["(This isn't goodbye) oh yeah", "(This isn't goodbye) oh yeah"],
+  ['(Yeah, yeah) lyric', '(Yeah, yeah) lyric'],
+  ['(yeah, yeah)', '(Yeah, yeah)'],
+  ['(backing vocal)', '(Backing vocal)'],
+  ['(I got you) lyric', '(I got you) lyric'],
+  ['(BV) lyric', '(BV) lyric'],
+  ['line (Backing vocal?)', 'Line (backing vocal?)'],
+  ['line (oh, no, i know)', 'Line (oh, no, I know)'],
+  ['Take you home (Are you kidding?)', 'Take you home (are you kidding?)'],
+  ['Hello (ABC?) world', 'Hello (ABC?) World'],
+  ['Hello (YEAH?) world', 'Hello (yeah?) World'],
+]);
+
+for (const [input, expected] of backingVocalConventionCases) {
+  const actualUserscript = formatLyrics(input);
+  if (actualUserscript !== expected) {
+    throw new Error(`Userscript formatter broke backing vocal convention: ${JSON.stringify(input)} formatted as ${JSON.stringify(actualUserscript)}`);
+  }
+
+  const actualExtension = formatExtensionLyrics(input);
+  if (actualExtension !== expected) {
+    throw new Error(`Extension formatter broke backing vocal convention: ${JSON.stringify(input)} formatted as ${JSON.stringify(actualExtension)}`);
+  }
 }
 
 module.exports = {

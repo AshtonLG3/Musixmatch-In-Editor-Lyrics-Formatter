@@ -241,11 +241,13 @@
     "I'ma",
     "I'll",
     "I'd",
+    'My',
     'i',
     "i'm",
     "i'ma",
     "i'll",
     "i'd",
+    'my',
     'Jesus',
     'Christ',
     'God',
@@ -255,6 +257,69 @@
     'god',
     'lord'
   ]);
+
+  const PARENTHETICAL_ABBREVIATION_EXCLUSIONS = new Set([
+    'YEAH',
+    'YEA',
+    'YO',
+    'WOO',
+    'HEY',
+    'HA',
+    'UH',
+    'OH',
+    'OOH',
+    'WHOA',
+    'WHOO',
+    'NO',
+    'NA',
+    'LA'
+  ]);
+
+  function isStandaloneParentheticalAbbreviation(text) {
+    const candidate = String(text || '').trim().replace(/[!?]+$/g, '');
+    if (!candidate || /\s/.test(candidate) || !/^[A-Z0-9&+/'’.-]+$/.test(candidate)) return false;
+
+    const lettersOnly = candidate.replace(/[^A-Z]/g, '');
+    if (lettersOnly.length < 2) return false;
+    if (PARENTHETICAL_ABBREVIATION_EXCLUSIONS.has(lettersOnly)) return false;
+
+    return lettersOnly.length <= 4 || /[.&/+0-9-]/.test(candidate);
+  }
+
+  function uppercaseFirstWordCore(firstWord, firstWordCore) {
+    return firstWord.replace(
+      firstWordCore,
+      firstWordCore.charAt(0).toLocaleUpperCase() + firstWordCore.slice(1)
+    );
+  }
+
+  function normalizeBackingVocalParenthetical(match, inner, options = {}) {
+    const trimmed = String(inner || '').trim();
+    if (!trimmed) return match;
+    const normalizedTrimmed = ensureStandaloneICapitalized(trimmed);
+    if (isStandaloneParentheticalAbbreviation(normalizedTrimmed)) return `(${normalizedTrimmed})`;
+
+    const firstWord = normalizedTrimmed.split(/\s+/)[0] || '';
+    const firstWordCore = firstWord.replace(/^[^A-Za-z'’]+|[^A-Za-z'’]+$/g, '');
+    if (!firstWordCore) return match;
+    const lowerFirst = firstWordCore.toLocaleLowerCase();
+
+    if (options.capitalizeFirstWord) {
+      const uppercasedFirstWord = uppercaseFirstWordCore(firstWord, firstWordCore);
+      return `(${uppercasedFirstWord}${normalizedTrimmed.slice(firstWord.length)})`;
+    }
+
+    if (BV_FIRST_WORD_EXCEPTIONS.has(firstWordCore) || BV_FIRST_WORD_EXCEPTIONS.has(lowerFirst)) {
+      return `(${normalizedTrimmed})`;
+    }
+
+    if (/^(yeah|yea|yo|la|na|woo|hey|ha|uh|o+h)$/i.test(firstWordCore)) {
+      return `(${ensureStandaloneICapitalized(normalizedTrimmed.toLocaleLowerCase())})`;
+    }
+
+    const loweredFirstWord = firstWord.replace(firstWordCore, lowerFirst);
+    return `(${ensureStandaloneICapitalized(`${loweredFirstWord}${normalizedTrimmed.slice(firstWord.length)}`)})`;
+  }
 
   function loadSettings() {
     if (!hasWindow) return { ...defaults };
@@ -1454,14 +1519,165 @@
     return text;
   }
 
+  function cleanBackingMarkerText(value) {
+    return String(value || '')
+      .trim()
+      .replace(/[\/\\]+[ \t]*$/g, '')
+      .trim();
+  }
+
+  function wrapBackingVocalShorthandLine(line) {
+    const trimmed = cleanBackingMarkerText(line);
+    if (!trimmed) return '';
+    if (trimmed.startsWith('(') && trimmed.endsWith(')')) return trimmed;
+    return `(${trimmed})`;
+  }
+
+  function splitBackingLineAtCloser(line) {
+    const closerIndex = String(line || '').indexOf('\\');
+    if (closerIndex === -1) {
+      return {
+        backing: cleanBackingMarkerText(line),
+        main: '',
+        hasCloser: false
+      };
+    }
+
+    return {
+      backing: cleanBackingMarkerText(line.slice(0, closerIndex)),
+      main: line.slice(closerIndex + 1).trim(),
+      hasCloser: true
+    };
+  }
+
+  function expandBackingVocalShorthand(input) {
+    let text = String(input || '');
+
+    text = text.replace(
+      /(^|\n)([ \t]*)\/[ \t]*\n([\s\S]*?)\n[ \t]*\\[ \t]*(?=\n|$)/g,
+      (_match, boundary, indent, body) => {
+        const expanded = body
+          .split('\n')
+          .map((line) => {
+            const trimmed = line.trim();
+            if (!trimmed) return '';
+            return `${indent}${wrapBackingVocalShorthandLine(trimmed)}`;
+          })
+          .join('\n')
+          .replace(/\n{3,}/g, '\n\n');
+
+        return `${boundary}${expanded}`;
+      }
+    );
+
+    const lines = text.replace(/\r\n?/g, '\n').split('\n');
+    const expanded = [];
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmedRight = line.replace(/[ \t]+$/g, '');
+      const openedBacking = trimmedRight.match(/^[ \t]*\/[ \t]*(.+?)$/);
+      const nextMainMatch =
+        i + 1 < lines.length
+          ? lines[i + 1].match(/^[ \t]*\\[ \t]*(.*?)\s*$/)
+          : null;
+
+      if (openedBacking && nextMainMatch) {
+        const backing = cleanBackingMarkerText(openedBacking[1]);
+        const nextMain = nextMainMatch[1].trim();
+        if (backing) {
+          const previousMain = expanded.length
+            ? expanded.pop().replace(/[ \t]+$/g, '')
+            : '';
+          expanded.push(
+            `${previousMain ? `${previousMain} ` : ''}(${backing})${nextMain ? ` ${nextMain}` : ''}`
+          );
+          i++;
+          continue;
+        }
+      }
+
+      if (trimmedRight.endsWith('/') && i + 1 < lines.length) {
+        const main = trimmedRight.slice(0, -1).replace(/[ \t]+$/g, '');
+        const backingLine = lines[i + 1].replace(/[ \t]+$/g, '');
+        const splitBacking = splitBackingLineAtCloser(backingLine);
+        const backing = splitBacking.backing;
+        if (backing) {
+          const nextLineMain =
+            splitBacking.hasCloser && !splitBacking.main && i + 2 < lines.length
+              ? lines[i + 2].trim()
+              : '';
+          const nextMain = splitBacking.main || nextLineMain;
+          expanded.push(
+            `${main ? `${main} ` : ''}(${backing})${nextMain ? ` ${nextMain}` : ''}`
+          );
+          i += nextLineMain ? 2 : 1;
+          continue;
+        }
+      }
+
+      if (trimmedRight.endsWith('\\') && i + 1 < lines.length) {
+        const backing = cleanBackingMarkerText(trimmedRight.slice(0, -1));
+        const main = lines[i + 1].trim();
+        if (backing && main) {
+          expanded.push(`(${backing}) ${main}`);
+          i++;
+          continue;
+        }
+      }
+
+      expanded.push(
+        line
+          .replace(
+            /(^|[ \t])([^/\\\n]*?\S)[ \t]*\\[ \t]*([^\\\n]*\S.*)$/g,
+            (match, prefix, backingRaw, mainRaw, offset) => {
+              const backing = cleanBackingMarkerText(backingRaw);
+              const main = mainRaw.trim();
+              if (!backing || !main) return match;
+              if (line.slice(0, offset + prefix.length).includes('/')) return match;
+              return `${prefix}${wrapBackingVocalShorthandLine(backing)} ${main}`;
+            }
+          )
+          .replace(
+            /,?[ \t]*\/[ \t]*([^/\\]*?\S)[ \t]*(\\|$)/g,
+            (match, body, closer, offset, fullLine) => {
+              const before = fullLine.slice(0, offset);
+              const after = fullLine.slice(offset + match.length);
+              const inner = cleanBackingMarkerText(body);
+              if (!inner) return match;
+              const needsSpace = before && !/[ \t(]$/.test(before);
+              const needsTrailingSpace =
+                closer && after && !/^[ \t,.;:!?)]/.test(after);
+              return `${needsSpace ? ' ' : ''}${wrapBackingVocalShorthandLine(inner)}${needsTrailingSpace ? ' ' : ''}`;
+            }
+          )
+      );
+    }
+
+    return expanded.join('\n');
+  }
+
   // ---------- Formatter ----------
+  function hasAuxiliaryBeforeCause(str, offset) {
+    const before = str.slice(Math.max(0, offset - 32), offset);
+    return /\b(?:can|could|do|does|did|may|might|must|shall|should|will|would)\b(?:\s+[a-z]+){0,5}\s+$/i.test(before);
+  }
+
+  const LITERAL_CAUSE_SUBJECTS = new Set(['i', 'you', 'we', 'they', 'who', 'what']);
+
+  function hasLiteralSubjectBeforeCause(str, offset) {
+    const words = str.slice(0, offset).toLowerCase().match(/[a-z]+/g);
+    return !!words?.length && LITERAL_CAUSE_SUBJECTS.has(words[words.length - 1]);
+  }
+
   function formatLyrics(input, _options = {}) {
     if (!input) return "";
     if (input.length > 50000) {
       console.warn('Large input detected (>50k chars): minimal normalization only.');
       return input.replace(/\s+$/gm, '').trim();
     }
-    let x = ("\n" + input.trim() + "\n");
+    const shorthandExpandedInput = expandBackingVocalShorthand(input);
+    let x = ("\n" + shorthandExpandedInput.trim() + "\n");
     // Accent normalization (must run early)
     x = normalizeAccents(x);
     const preservedStandaloneParens = [];
@@ -1693,7 +1909,18 @@
     });
 
     // Remove end-line punctuation
+    const allowedLineEndingPeriods = [];
+    const ALLOWED_LINE_ENDING_PERIOD_TOKEN = '\uF002';
+    x = x.replace(/\b(?:[ap]\.m\.|L\.A\.)(?=(?:[ \t]*["'“”‘’])?[ \t]*(?:\n|$))/gi, (match) => {
+      const token = `${ALLOWED_LINE_ENDING_PERIOD_TOKEN}${allowedLineEndingPeriods.length}${ALLOWED_LINE_ENDING_PERIOD_TOKEN}`;
+      allowedLineEndingPeriods.push(match);
+      return token;
+    });
     x = x.replace(/[.,;:\-]+(?=[ \t]*\n)/g, "");
+    x = x.replace(
+      new RegExp(`${ALLOWED_LINE_ENDING_PERIOD_TOKEN}(\\d+)${ALLOWED_LINE_ENDING_PERIOD_TOKEN}`, 'g'),
+      (_, idx) => allowedLineEndingPeriods[Number(idx)] || ''
+    );
 
     // Instrumental normalization and tag spacing handled immediately after tag conversion
 
@@ -1731,6 +1958,8 @@
         line = line.replace(/\bcause\b/gi, (match, offset, str) => {
           const prev = offset > 0 ? str[offset - 1] : '';
           if (prev === "'" || prev === "\u2019") return match;
+          if (hasAuxiliaryBeforeCause(str, offset)) return match;
+          if (hasLiteralSubjectBeforeCause(str, offset)) return match;
           if (match === match.toUpperCase()) return "'CAUSE";
           if (match[0] === match[0].toUpperCase()) return "'Cause";
           return "'cause";
@@ -1847,6 +2076,9 @@ const WELL_CLAUSE_STARTERS = new Set([
     x = x.replace(/\b(oh|ah|yeah|whoa|ooh|uh|well)\b(?!,)/gi, (m, word, off, str) => {
       const after = str.slice(off + m.length);
       const lower = word.toLowerCase();
+      const lineStart = str.lastIndexOf('\n', off - 1) + 1;
+      const beforeOnLine = str.slice(lineStart, off);
+      if (/^[ \t]*\([^)\n]+\)(?:[ \t]+[A-Za-z'’]+)?[ \t]*$/.test(beforeOnLine)) return m;
 
       let idx = 0;
       while (idx < after.length && /\s/.test(after[idx])) idx++;
@@ -2124,20 +2356,7 @@ const WELL_CLAUSE_STARTERS = new Set([
 
     // === Backing vocals normalization (moved earlier to prevent re-capitalization) ===
     x = x.replace(/(?<!^|\n)\(([^)]+)\)/g, (match, inner) => {
-      const trimmed = inner.trim();
-      if (!trimmed) return match;
-
-      const firstWord = trimmed.split(/\s+/)[0] || '';
-      const lowerFirst = firstWord.toLocaleLowerCase();
-
-      if (BV_FIRST_WORD_EXCEPTIONS.has(firstWord) || BV_FIRST_WORD_EXCEPTIONS.has(lowerFirst))
-        return match;
-
-      if (/^(yeah|yea|yo|la|na|woo|hey|ha|uh|o+h)$/i.test(firstWord)) {
-        return `(${trimmed.toLocaleLowerCase()})`;
-      }
-
-      return `(${lowerFirst}${trimmed.slice(firstWord.length)})`;
+      return normalizeBackingVocalParenthetical(match, inner);
     });
 
 
@@ -2154,6 +2373,9 @@ const WELL_CLAUSE_STARTERS = new Set([
 
     // Comma relocation fix retained
     x = x.replace(/,[ \t]*\(([^)]*?)\)(?=[ \t]*\S)/g, (match, inner, offset, str) => {
+      const lineStart = str.lastIndexOf('\n', offset - 1) + 1;
+      const beforeOnLine = str.slice(lineStart, offset);
+      if (/^[ \t]*\([^)\n]+\)[ \t]+\S/.test(beforeOnLine)) return match;
       const afterIdx = offset + match.length;
       if (str[afterIdx] === ',') return match;
       return ` (${inner}),`;
@@ -2167,7 +2389,9 @@ const WELL_CLAUSE_STARTERS = new Set([
     // ✅ Only lowercase the first word after ")" (except I / I'm / I'ma)
     x = x.replace(/(?<![?!])\)[ \t]+(\p{Lu}\p{Ll}*)\b/gu, (match, word) => {
       const exceptions = ['I', "I'm", "I'ma"];
-      return exceptions.includes(word) ? `) ${word}` : `) ${word.toLocaleLowerCase()}`;
+      return exceptions.includes(word) || BV_FIRST_WORD_EXCEPTIONS.has(word)
+        ? `) ${word}`
+        : `) ${word.toLocaleLowerCase()}`;
     });
 
     x = x
@@ -2286,6 +2510,10 @@ x = x
     // === Final-Pass: Capitalize first letter when line starts with "(" ===
     x = x.replace(/(^|\n)(\(\s*)(["'“”‘’]?)(\p{Ll})/gu,
       (_, b, p, q, l) => b + p + q + l.toLocaleUpperCase()
+    );
+
+    x = x.replace(/(^|\n)\(([^)\n]+)\)(?=[ \t]+\S)/g, (match, boundary, inner) =>
+      boundary + normalizeBackingVocalParenthetical(match.slice(boundary.length), inner, { capitalizeFirstWord: true })
     );
 
     // 4️⃣ Remove stray indentation and trailing spaces on each line
